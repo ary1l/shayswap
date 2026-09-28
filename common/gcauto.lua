@@ -4,6 +4,14 @@ local inc = nil;
 local disp = nil;
 local nextTick = 0;
 local busyUntil = 0;
+local nukeSent = false; -- busyUntil is an auto nuke's fallback hold; its finish/interrupt packet ends it
+-- Forced delay after my own actions, counted from the finish packet. BG-Wiki (Forced Delay, Casting
+-- Time Gauge): 3s after a spell finishes, 2s after a WS or job ability; FFXIclopedia (Chainspell):
+-- "approximate 2.5 - 3 second". Too soon gets "Unable to cast spells at this time." No source gives an
+-- interrupted cast's delay, so it gets the spell's 3s. Items: no source, so no delay is added.
+local lockUntil = 0;
+local LOCK = { [3] = 2.0, [4] = 3.0, [6] = 2.0, [14] = 2.0, [15] = 2.0 };
+local SPELL_LOCK = 3.0;
 local warned = {};
 local seen = {};
 
@@ -58,6 +66,7 @@ gcauto.ItemCount = item_count;
 local function queue(cmd, hold)
     AshitaCore:GetChatManager():QueueCommand(-1, cmd);
     busyUntil = os.clock() + hold;
+    nukeSent = false;
 end
 
 local function food_list()
@@ -190,7 +199,7 @@ local function tick()
     nextTick = now + 0.5;
     if (inc == nil) or (disp == nil) then return end
     prune_tags();
-    if (now < busyUntil) then return end
+    if (now < busyUntil) or (now < lockUntil) then return end
     if (gState == nil) or (gState.PlayerAction ~= nil) then return end
     local player = gData.GetPlayer();
     if (player == nil) then return end
@@ -591,7 +600,8 @@ function gcauto.NukeTick(player, now)
                 if (target_index(tm) == idx) then
                     st.fired = st.fired + 1;
                     st.elu[spellEl] = (st.elu[spellEl] or 0) + 1;
-                    queue('/ma "' .. spell .. '" <t>', math.max(castTime, 5.0));
+                    queue('/ma "' .. spell .. '" <t>', math.max(castTime, 5.0)); -- fallback if no finish packet
+                    nukeSent = true;
                     return true;
                 end
             end
@@ -761,14 +771,29 @@ function gcauto.HandleCommand(args)
     return false;
 end
 
+-- My action finished (or my cast was interrupted, cmd_no 8 with an 'sp' arg, XiPackets 0x0028):
+-- start the forced delay, and end an auto nuke's fallback hold.
+local function lock_packet(P)
+    local me = my_id();
+    if (me == nil) or (P.actor ~= me) then return end
+    local lock = LOCK[P.cat];
+    if (P.cat == 8) and (bit.band(P.param, 0xFFFF) == 28787) then lock = SPELL_LOCK end
+    if (lock == nil) then return end
+    lockUntil = os.clock() + lock;
+    if nukeSent and ((P.cat == 4) or (P.cat == 8)) then
+        busyUntil = 0;
+        nukeSent = false;
+    end
+end
+
 function gcauto.Start()
     ashita.events.register('d3d_present', 'gcauto_tick', tick);
     ashita.events.register('packet_in', 'gcauto_packet', function (e)
         if (e.id == 0x0028) then
             local ok, P = pcall(parse_action, e.data);
-            if ok then pcall(roll_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P) end
+            if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P) end
         end
-        if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
+        if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
     end);
 end
 
