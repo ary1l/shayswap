@@ -10,7 +10,7 @@ One box: `/ms sendto <name> /lac fwd <cmd>`.
 | `/wm` | Next weapon mode (`/weaponset` same) |
 | `/wm savage` | Match by name: exact, prefix, substring |
 | `/wm 3` | By position (1 = None) |
-| `/wm none` | Stop managing weapons |
+| `/wm none` | Stop managing weapons (`TH`-set weapons still apply while `/th` is on) |
 | `/wm default` | This job's `DefaultWeapons` |
 | `/wm melee` | Role name from `gcinclude.WeaponRoles` |
 | `/wm leaden force` | Swap even at 1000+ TP engaged |
@@ -19,10 +19,12 @@ One box: `/ms sendto <name> /lac fwd <cmd>`.
 - A weapon mode is what you return to at rest. Action sets that swap weapons still do.
 - Per-slot cycles override the mode for their slot. COR/RNG modes are named for the gun, so
   `/mainset` changes the melee weapon.
+- `/th` on: Main/Sub/Range in the `TH` set override the mode and per-slot cycles, tagged or not (Sub only if
+  you can dual wield). `/th` off gives them back.
 - **TP hold:** engaged at 1000+ TP, Main/Sub/Range don't change (songs, rolls, cures, enfeebling,
   enhancing, geomancy excepted). `force` overrides; `settings.WeaponTPGuard = 0` disables.
 - `Weapon_<Mode>_1h` is used when the subjob can't dual wield. `gcinclude.AlwaysDualWield = true`
-  forces the DW pair (BLU).
+  forces the DW pair (BLU, THF). The same check decides whether the `TH` set's Sub is used.
 
 Augmented items in a per-slot cycle:
 
@@ -195,8 +197,9 @@ Glyphs: `wpn` Weapons, `ml` MeleeSet, `m` `s` `r` `a` Main/Sub/Range/Ammo, `nk` 
 
 | Command | Does |
 |---|---|
-| `/meleeset` | MeleeSet: Default → Hybrid → Acc |
+| `/meleeset` | MeleeSet: Default → Hybrid → Acc. Wears `Tp_`/`Ws_Hybrid` or `_Acc` over `Tp_`/`Ws_Default`, and `<Name>_Hybrid`/`_Acc` over a named set |
 | `/kite` | Kite toggle |
+| `/th` | TH toggle: `TH` set until the target is tagged; its Main/Sub/Range the whole time it's on |
 | `/setcycle <name> <value>` | Set any cycle |
 | `/wsdistance [yalms]` | Toggle WS distance check / set distance (default 5) |
 | `/gcmessages` | Chat confirmations on/off |
@@ -242,7 +245,7 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 | Command | Does |
 |---|---|
 | `/checksets` | Empty sets, bad item names, `_Default` gaps, ear/ring slot swaps, leftover Moonshade |
-| `/gctrace` | One chat line per action: `[Cure IV] Precast > Cure_Precast \| Midcast > Cure`. `{Waist}` = engine-made set |
+| `/gctrace` | One chat line per action: `[Cure IV] Precast > Cure_Precast \| Midcast > Cure`. `{Waist}` = engine-made set (obi/Orpheus, TH without its weapons) |
 | `/gchelp` | Command list in game |
 | `/gckey <key> <cmd>` | Bind a key |
 | `/gcinfo` | Show element gear picks |
@@ -255,7 +258,7 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 | `Weapon_<Mode>` / `_1h` | Weapon mode |
 | `mdt`, `Aminon`, `SIR` | With their toggles |
 | `LightBonus` | Healing Magic midcast |
-| `TH` | `/th` on, target untagged (tag clears when the mob dies). Its Main/Sub/Range stay on while `/th` is on, tagged or not (a weapon swap resets TP) |
+| `TH` | `/th` on: at rest, and over midcast/midshot at a mob, until it is tagged (your hit, shot, WS or ability; a spell, step or Effusion only if it lands; clears on death or zone). Not over actions on you or allies. BLU: only `BluMagTH` spells, always (AoE). Main/Sub/Range stay on while `/th` is on, tagged or not (Sub only if you can dual wield; a weapon swap resets TP) |
 | `HolyWater` | When Doomed (else `gcinclude.sets.Holy_Water`) |
 | `XIRoll` | Idle only, with a roll on you at 11 (default Roller's Ring) |
 | `Absorb` | Absorb-TP and every other Absorb- spell, over midcast |
@@ -265,7 +268,9 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 
 Moonshade goes in Ear2 on WS below `MoonshadeTP` (1750), except `MoonshadeSkip`.
 
-Layer order: your sets → weapons → mdt/Aminon → Hoxne → received → TH → buff sets → XIRoll.
+Layer order: your sets → weapons (+ `TH` weapons while `/th` is on) → mdt/Aminon → Hoxne → TH → received → buff sets → XIRoll →
+debuff (Sleep/Doom/Weakness) and craft/zeni/fish/rr sets.
+Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
 
 **Received sets** (worn `ReceivedWindow` 8s; mapping in `settings.ReceivedSets`):
 
@@ -336,6 +341,16 @@ end
 ```
 
 `gcinclude.BuffCount('Name')` or `(id)` counts buffs (same as `gData.GetBuffCount`, cached ids).
+
+Handler helpers:
+
+| Call | Does |
+|---|---|
+| `gcinclude.EquipMode('Ws')` | `Ws_Default`, then `Ws_<MeleeSet>` unless Default |
+| `gcinclude.ByName(name)` | Set named `name` (any case), then `name_<MeleeSet>`. False if none |
+| `gcinclude.Family(name)` | `'Utsusemi: Ni'` → `'Utsusemi'`, `'Drain III'` → `'Drain'` |
+| `gcinclude.CheckTH(force)` | `TH` set without its weapons if `/th` is on and the target is an untagged mob; `force` skips the target checks |
+| `gcinclude.CheckWsBailout()` | False if the WS would fail: `if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end` |
 
 ## Multibox examples
 

@@ -3,7 +3,8 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 -- DRK template. No gear is filled in: put your own items in each set.
 -- Sets named after an ability, spell, skill or weapon skill (['Last Resort'], ['Savage Blade'])
--- are worn by name; add '<Name>_Hybrid' / '<Name>_Acc' for /meleeset. Empty sets do nothing.
+-- are worn by name (gcinclude.ByName); a spell with no set uses its family's (['Cure'] for Cure IV).
+-- Add '<Name>_Hybrid' / '<Name>_Acc' for /meleeset. Empty sets do nothing.
 local sets = {
     Cure_Received = {},
     Cursna_Received = {},
@@ -26,7 +27,7 @@ local sets = {
     mdt = {},
     Aminon = {},
     SIR = {},
-    TH = {},
+    TH = {}, -- /th: until the target is tagged; Main/Sub/Range here stay on while /th is on
 
     Tp_Default = {},
     Tp_Hybrid = {},

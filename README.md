@@ -12,7 +12,9 @@ Full reference: `COMMANDS.md`.
 ## Quick start
 
 1. Fill `Idle`, `Tp_Default`, `Ws_Default`. Everything else can wait.
-2. Add a set named after an ability, spell or WS (`['Savage Blade']`) and it is used for that action.
+2. Template jobs (BLM BST DNC DRG DRK NIN PUP RUN SAM SMN WAR): a set named after an ability, spell,
+   skill or WS (`['Savage Blade']`) is used for that action; a spell with no set uses its family's
+   (`['Cure']` for Cure IV). `_Hybrid`/`_Acc` follow `/meleeset`. Other jobs name their sets in the job file.
 3. Leave `gSettings.FastCast` at 0 (see Fast Cast below).
 4. `/checksets` finds empty sets and bad item names.
 
@@ -26,15 +28,17 @@ Full reference: `COMMANDS.md`.
 | Alt+grave | `/hoxne` |
 | Win+grave | `/mbmode` |
 
-`/gchelp` lists every command. `/gckey <key> <cmd>` rebinds.
+`/gchelp` lists the main commands (all of them: `COMMANDS.md`). `/gckey <key> <cmd>` rebinds.
 
 ## What it does
 
 - **Weapons**: weapon modes per job (`/wm`). Engaged at 1000+ TP, weapons don't change so you keep TP.
   Can't dual wield (wrong subjob): uses the `_1h` version of the mode.
-- **Layers**, lowest to highest: your sets → weapons → MDT/Aminon → Hoxne → received gear → TH → buff sets → XIRoll.
+- **Layers**, lowest to highest: your sets → weapons (+ `TH`-set weapons while `/th` is on) → MDT/Aminon → Hoxne →
+  TH → received gear → buff sets → XIRoll → debuff and craft/zeni/fish/rr sets. Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
 - **Automatic**: obi/Orpheus by day, weather and distance; Moonshade under 1750 TP on every WS; Holy Water
-  on Doom; food and soda; TH gear until the mob is tagged (TH weapons stay on while `/th` is on); lockstyle on load if `LockstyleSet` is set.
+  on Doom; food and soda; `/th`: TH gear at rest and on spells/shots at a mob until it is tagged (your hit, shot,
+  WS, ability, or a spell/step that lands; BLU: `BluMagTH` spells only), `TH`-set weapons the whole time; lockstyle on load if `LockstyleSet` is set.
 - **Action checks**: spells, abilities and WS that would fail are cancelled before any gear moves, with the
   reason in chat. A recast back within 5s is queued and fires when ready.
 - **Holds**: `/naked` `/weaponsonly` `/abysseaproc` strip slots and keep them bare; `/capacity` `/jubilee`
@@ -75,6 +79,8 @@ Leave `gSettings.FastCast` at 0. Nothing here needs your Fast Cast number.
 
 - HP pieces: give them `Priority = <HP>` so max HP doesn't dip mid-swap.
 - Leave Moonshade out of WS sets; the engine adds it.
+- Weapons in `TH` (THF: Gandring Sub) stay on the whole time `/th` is on, tagged or not (a swap would reset TP).
+  `/th` off gives your weapon mode back.
 - `Absorb`: one set covers every Absorb- spell. `Absorb_TP` only if Absorb-TP needs different gear.
 - Dynamis RP: wear only what you're ranking, `/lock neck main sub range`, `/unlock` after. Kill RP splits
   between every uncapped item worn, and only Divergence necks/weapons earn it (BG, Oboro).
@@ -84,8 +90,8 @@ Leave `gSettings.FastCast` at 0. Nothing here needs your Fast Cast number.
 | Problem | Check |
 |---|---|
 | Edit does nothing | `/lac reload` |
-| A slot won't change | `/unlock`, or it's a weapon held at 1000+ TP (`/wm <mode> force`) |
-| Weapon in Idle/TP/Town never shows | Weapon mode overrides it at rest; `/wm none` to manage weapons yourself |
+| A slot won't change | `/unlock`, or it's a weapon held at 1000+ TP (`/wm <mode> force`), or a `TH`-set weapon while `/th` is on |
+| Weapon in Idle/TP/Town never shows | Weapon mode overrides it at rest; `/wm none` to manage weapons yourself. `/th` on: `TH`-set weapons override both |
 | Wrong/no gear | `/checksets`, then the item name spelling; `/gctrace` names each set used |
 | Action cancelled | The chat line says why. See Action checks in `COMMANDS.md` |
 | HUD gone | `/gchud on`, `/gchud pos 500 120` |

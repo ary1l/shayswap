@@ -1446,6 +1446,7 @@ end
 			if gcinclude.IsWeaponValue(v) then equip[slot] = gcinclude.WeaponItems[string.lower(v)] or v end
 		end
 		-- Main/Sub/Range in the TH set stay on while /th is on, tagged or not: swapping them resets TP.
+		-- Sub only when you can dual wield; otherwise it is dropped (CheckTH skips it too).
 		if (gcdisplay.GetToggle('TH') == true) then
 			local th = gcinclude.FindSet('TH');
 			if (th ~= nil) then
@@ -1481,24 +1482,32 @@ end
 	function gcinclude.DoMoonshade() end
 	function gcinclude.GetWeaponSet(mode) return gcinclude.FindSet('Weapon_' .. mode) end
 
-	-- TH gear until the action's target (else the selected one) is tagged; force skips that check (AoE TH
-	-- spells). Main/Sub/Range are left to BuildWeaponLayer, so they don't come off at the tag. The TH set
-	-- minus those slots is built once per set table.
+	-- TH gear until the action's target (else the selected one) is tagged; none for an action on you or an
+	-- ally. force skips both checks (AoE TH spells, which can be self-targeted). Main/Sub/Range are left to BuildWeaponLayer, so they don't come off at the tag. The TH set
+	-- minus those slots is built once per set table (the set itself when it has none, so /gctrace names it).
 	local thGear, thGearOf = nil, nil;
 	function gcinclude.CheckTH(force)
 		if (gcdisplay.GetToggle('TH') ~= true) then return end
 		local set = gcinclude.FindSet('TH');
 		if (set == nil) then return end
-		if (force ~= true) and (gcauto ~= nil) and (gcauto.IsTagged ~= nil) then
-			local target = gData.GetActionTarget() or gData.GetTarget();
-			if (target ~= nil) and (target.Type == 'Monster') and gcauto.IsTagged(target.Id) then
+		if (force ~= true) then
+			local action = gData.GetActionTarget();
+			if (action ~= nil) and (action.Type ~= 'Monster') then return end
+			local target = action or gData.GetTarget();
+			if (target ~= nil) and (target.Type == 'Monster') and (gcauto ~= nil) and (gcauto.IsTagged ~= nil) and gcauto.IsTagged(target.Id) then
 				return;
 			end
 		end
 		if (thGearOf ~= set) then
-			thGear, thGearOf = {}, set;
-			for k, v in pairs(set) do
-				if not gcinclude.HoldSlots:contains(gData.GetEquipSlot(k)) then thGear[k] = v end
+			thGear, thGearOf = set, set;
+			for k, _ in pairs(set) do
+				if gcinclude.HoldSlots:contains(gData.GetEquipSlot(k)) then
+					thGear = {};
+					for k2, v2 in pairs(set) do
+						if not gcinclude.HoldSlots:contains(gData.GetEquipSlot(k2)) then thGear[k2] = v2 end
+					end
+					break;
+				end
 			end
 		end
 		gFunc.EquipSet(thGear);
@@ -1621,6 +1630,7 @@ end
 			'weapons: /wm [name|N|none|default|role] [force], /mainset /subset /rangeset /ammoset',
 			'defense: /def (cycle DT > MDT > Aminon > SIRD > none), /dt /mdt /aminon /sir, /lock [slots] /unlock [slots]',
 			'hoxne  : /hoxne (Off > On > Locked)',
+			'toggles: /th (TH gear until the target is tagged; TH-set weapons while on), /kite, /meleeset (Default > Hybrid > Acc)',
 			'auto   : /autofood [on|off], /autosoda [on|off], /revit [on|off], /holywater [on|off]',
 			'hud    : /gchud [on|off|pos x y|debug]',
 			'checks : /checksets, /xiroll, /mbinfo',
@@ -2187,7 +2197,7 @@ function gcinclude.CheckDefault()
     end
 
     -- Auto Regen/Refresh/DT/Pet_Dt and Town sets count as "your sets", so they go under the engine layers
-    -- (README layer order: your sets -> weapons -> mdt/Aminon -> Hoxne -> received -> TH -> buffs -> XIRoll).
+    -- (README layer order: your sets -> weapons (+ TH weapons while /th is on) -> mdt/Aminon -> Hoxne -> TH -> received -> buffs -> XIRoll).
     gcinclude.SetRegenRefreshGear();
     gcinclude.SetTownGear();
     gcinclude.CheckWeapons();
