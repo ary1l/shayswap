@@ -74,8 +74,9 @@ Unknown slot names are refused. Holds skip slots already locked or TP-held; off 
 | `Force` | `/burst` | Burst set always | no |
 
 Autonuke:
-- Targets a chain on a mob you or your party are engaged on, or your target. Not engaged: it
-  targets the chained mob first.
+- Targets a chain on a mob you or your party are engaged on, or your target; your target's chain first.
+  It casts on the chained mob by its id, so it works while you're engaged on another mob (skipped if
+  that mob is past 21.8', the usual spell range per FFXIclopedia). Not engaged: it also targets the chained mob.
 - Casts the chain element's nuke (Fire, Blizzard, Aero, Stone, Thunder, Water) at the tier.
   Light/Darkness chains use those elements. Transfixion/Compression (Light or Dark only): SCH casts
   Luminohelix/Noctohelix (II with 1200 JP); other jobs have no Light/Dark nuke, so they skip it.

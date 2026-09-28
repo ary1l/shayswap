@@ -63,8 +63,8 @@ end
 
 gcauto.ItemCount = item_count;
 
-local function queue(cmd, hold)
-    AshitaCore:GetChatManager():QueueCommand(-1, cmd);
+local function queue(cmd, hold, mode)
+    AshitaCore:GetChatManager():QueueCommand(mode or -1, cmd);
     busyUntil = os.clock() + hold;
     nukeSent = false;
 end
@@ -566,6 +566,12 @@ end
 -- /autonuke, sync's geo_mod.mb.tick for one box. For each live chain on an armed mob: burst n
 -- casts the nth spell of the element's list. If the chained mob is not your target and you are
 -- not engaged, it targets it first (sync's set_target_safe: ITarget:SetTarget(index, false)).
+-- The cast names the mob by server id, so it goes to the chained mob even while you are engaged
+-- on another. Sent as menu input (mode 0), as Thorny's Shorthand sends '/ma "<spell>" <server id>'.
+-- Your target's chain goes first. Engaged on another mob, a chained mob past SPELL_RANGE is skipped.
+-- FFXIclopedia (Distance): 21.8' is the "maximum distance for most targeted spells cast by a player.
+-- This varies with the size of the target." Entity GetDistance is squared (LAC data.lua GetEntity).
+local SPELL_RANGE = 21.8;
 function gcauto.NukeTick(player, now)
     if (disp.GetToggle('AutoNuke') ~= true) then return false end
     if has_buff('Silence') or has_buff('Mute') then return false end
@@ -580,8 +586,14 @@ function gcauto.NukeTick(player, now)
         end
     end
     local minmp = inc.settings.MBMinMP or 0;
-    for sid, r in pairs(mbres) do
-        local idx = sids[sid];
+    local tm = mm:GetTarget();
+    local mine = target_index(tm);
+    local order = {};
+    for sid in pairs(mbres) do
+        if (sids[sid] == mine) then table.insert(order, 1, sid) else order[#order + 1] = sid end
+    end
+    for _, sid in ipairs(order) do
+        local r, idx = mbres[sid], sids[sid];
         local st = mbst[sid];
         if (st == nil) then st = { fired = 0, elu = {} }; mbst[sid] = st end
         if (st.k_ts ~= r.ts) or (st.k_step ~= r.step) then
@@ -593,14 +605,18 @@ function gcauto.NukeTick(player, now)
             local castTime = gcauto.CastTime(res);
             local fits = (res ~= nil) and ((now + castTime + 0.5) <= (r.ts + r.dur));
             if (spell ~= nil) and fits and ((minmp <= 0) or (mm:GetParty():GetMemberMP(0) >= minmp)) then
-                local tm = mm:GetTarget();
-                if (target_index(tm) ~= idx) and (player.Status ~= 'Engaged') and (tm ~= nil) then
-                    pcall(function() tm:SetTarget(idx, false) end);
+                local far = false;
+                if (idx ~= mine) then
+                    if (player.Status ~= 'Engaged') then
+                        if (tm ~= nil) then pcall(function() tm:SetTarget(idx, false) end) end
+                    else
+                        far = (math.sqrt(ent:GetDistance(idx) or 0) > SPELL_RANGE);
+                    end
                 end
-                if (target_index(tm) == idx) then
+                if not far then
                     st.fired = st.fired + 1;
                     st.elu[spellEl] = (st.elu[spellEl] or 0) + 1;
-                    queue('/ma "' .. spell .. '" <t>', math.max(castTime, 5.0)); -- fallback if no finish packet
+                    queue(string.format('/ma "%s" %d', spell, sid), math.max(castTime, 5.0), 0); -- fallback if no finish packet
                     nukeSent = true;
                     return true;
                 end
