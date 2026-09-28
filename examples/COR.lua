@@ -20,7 +20,6 @@ local sets = {
         Range = 'Armageddon',
     },
     Idle = {
-        Ring2 = 'Defending Ring',
 		--Main = { Name = 'Rostam', AugPath='B'},
 		--Sub = { Name = 'Rostam', AugPath='C'},
 		--Range = 'Death Penalty',
@@ -32,6 +31,7 @@ local sets = {
         Body = 'adamantite armor',
         Hands = 'Malignance Gloves',
         Ring1 = 'murky ring',
+        Ring2 = 'Defending Ring',
         Back = 'null shawl',
         Waist = 'Null Belt',
         Legs = 'Nyame Flanchard',
@@ -91,24 +91,24 @@ local sets = {
         Ring2 = 'Stikini Ring +1',
     },
     Town = {
-		sub = 'leafkin shield',
+		Sub = 'leafkin shield',
         Range = 'Death Penalty',
         Ammo = 'Living Bullet',
         Head = 'laksa. tricorne +4',
         Neck = 'Rep. Plat. Medal',
         Body = 'adamantite armor',
         Hands = 'Lanun Gants +4',
-        Ring2 = 'Stikini Ring +1',
         Ring1 = 'shneddick ring',
-		waist = 'k. kachina belt +1',
+        Ring2 = 'Stikini Ring +1',
+		Waist = 'k. kachina belt +1',
         Legs = 'Osh. trousers +1',
         Feet = 'Lanun Bottes +4',
     },
 	Dt = {
         Head = 'Nyame Helm',
         Neck = 'Null Loop',
-		Ear2 = 'Eabani Earring',
-        Ear1 = 'alabaster Earring',
+		Ear1 = 'Eabani Earring',
+        Ear2 = 'alabaster Earring',
         Body = 'adamantite armor',
         Hands = 'Nyame Gauntlets',
         Ring1 = 'murky ring',
@@ -158,7 +158,7 @@ local sets = {
 		Main = 'Naegling',
 		Sub = 'Gleti\'s Knife',
 		Range = 'Anarchy +2',
-		ammo = 'chrono bullet',
+		Ammo = 'chrono bullet',
         Head = 'Malignance Chapeau',
         Neck = 'Iskur Gorget',
         Ear1 = 'Telos Earring',
@@ -176,7 +176,7 @@ local sets = {
 
     Precast = {
         --Neck = 'Baetyl Pendant',
-		ear1 = 'loquac. earring',
+		Ear1 = 'loquac. earring',
         Ear2 = 'Etiolation Earring',
         Body = 'Adhemar Jacket',
         Hands = 'Leyline Gloves',
@@ -188,17 +188,17 @@ local sets = {
     Cure = {
         Neck = 'Incanter\'s Torque',
         Ear2 = 'Mendi. Earring',
-        Ring2 = 'Stikini Ring +1',
         Ring1 = 'Metamor. Ring +1',
+        Ring2 = 'Stikini Ring +1',
         Back = 'Solemnity Cape',
         Legs = 'Carmine Cuisses +1',
     },
 
     Enhancing = {
         Neck = 'Incanter\'s Torque',
-        Ear2 = 'Mendi. Earring',
         Ear1 = 'Andoaa Earring',
-        Ring2 = 'Metamor. Ring +1'
+        Ear2 = 'Mendi. Earring',
+        Ring2 = 'Metamor. Ring +1',
     },
 
     Enfeebling = {
@@ -219,8 +219,8 @@ local sets = {
         Ear2 = 'Crematio Earring',
         Body = 'Nyame Mail',
         Hands = 'Nyame Gauntlets',
-        Ring2 = 'Stikini Ring +1',
         Ring1 = 'Metamor. Ring +1',
+        Ring2 = 'Stikini Ring +1',
         Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
     },
@@ -269,7 +269,7 @@ local sets = {
 		--Head = 'Oshosi Mask +1',
         Body = 'Chasseur\'s Frac +3',
 		Hands = 'Lanun Gants +4',
-		legs = 'Osh. Trousers +1',
+		Legs = 'Osh. Trousers +1',
 		--feet = 'Osh. Leggings +1',
     },
 
@@ -352,7 +352,7 @@ local sets = {
     },
 
     Laststand_Default = {
-		ammo = 'chrono bullet',
+		Ammo = 'chrono bullet',
         Head = 'Lanun Tricorne +4',
         Neck = 'Iskur Gorget',
         Ear1 = 'Ishvara Earring',
@@ -368,7 +368,7 @@ local sets = {
     Laststand_Hybrid = {
     },
     Laststand_Acc = {
-	neck = 'null loop',
+	Neck = 'null loop',
     },
 
     Wildfire_Default = {
@@ -467,13 +467,13 @@ local sets = {
     Rolls = { -- it will put on ur DT gear set first then layer this set on for phantom roll (not dbl up), use /dt if you think you need to lock dt set while rolling
         Main = { Name = 'Rostam', AugPath='C'},
         Range = 'Compensator',
-		Neck = 'Regal Necklace',
         Head = 'Lanun Tricorne +4',
+		Neck = 'Regal Necklace',
+        Hands = 'Chasseur\'s Gants +3',
 		Ring1 = 'Luzaf\'s Ring',
 		Ring2 = 'Defending Ring',
-        Hands = 'Chasseur\'s Gants +3',
-		legs = 'desultor tassets',
         Back = { Name = 'Camulus\'s Mantle', Augment = { [1] = 'Phys. dmg. taken -10%', [2] = 'HP+60', [3] = '"Snapshot"+10', [4] = 'Mag. Evasion+20', [5] = 'Evasion+20' } },
+		Legs = 'desultor tassets',
     },
 	
 	Bolt = { -- it will put on ur DT gear set first then layer this set on for phantom roll (not dbl up), use /dt if you think you need to lock dt set while rolling
@@ -489,8 +489,8 @@ local sets = {
     RandomDeal = {Body = 'Lanun Frac +4'},
     SnakeEye = {Legs = 'Lanun Trews +2'},
     TH = {
-		Waist = 'Chaac Belt',
         Head = { Name = 'Herculean Helm', Augment = { [1] = 'Accuracy+30', [2] = 'Attack+18', [3] = '"Fast Cast"+3', [4] = '"Treasure Hunter"+2' } },
+		Waist = 'Chaac Belt',
 	},
     Movement = {
 		Head = 'nyame helm',
