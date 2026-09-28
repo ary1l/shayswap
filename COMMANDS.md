@@ -255,7 +255,7 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 | `Weapon_<Mode>` / `_1h` | Weapon mode |
 | `mdt`, `Aminon`, `SIR` | With their toggles |
 | `LightBonus` | Healing Magic midcast |
-| `TH` | `/th` on, target untagged (tag clears when the mob dies) |
+| `TH` | `/th` on, target untagged (tag clears when the mob dies). Its Main/Sub/Range stay on while `/th` is on, tagged or not (a weapon swap resets TP) |
 | `HolyWater` | When Doomed (else `gcinclude.sets.Holy_Water`) |
 | `XIRoll` | Idle only, with a roll on you at 11 (default Roller's Ring) |
 | `Absorb` | Absorb-TP and every other Absorb- spell, over midcast |

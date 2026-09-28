@@ -1445,6 +1445,16 @@ end
 			local v = gcdisplay.GetCycle(cname);
 			if gcinclude.IsWeaponValue(v) then equip[slot] = gcinclude.WeaponItems[string.lower(v)] or v end
 		end
+		-- Main/Sub/Range in the TH set stay on while /th is on, tagged or not: swapping them resets TP.
+		if (gcdisplay.GetToggle('TH') == true) then
+			local th = gcinclude.FindSet('TH');
+			if (th ~= nil) then
+				for k, v in pairs(th) do
+					local slot = gData.GetEquipSlot(k);
+					if gcinclude.HoldSlots:contains(slot) and ((slot ~= 2) or gcinclude.CanDualWield()) then equip[slot] = v end
+				end
+			end
+		end
 		local set = {};
 		local count = 0;
 		for slot, v in pairs(equip) do
@@ -1471,17 +1481,27 @@ end
 	function gcinclude.DoMoonshade() end
 	function gcinclude.GetWeaponSet(mode) return gcinclude.FindSet('Weapon_' .. mode) end
 
-	function gcinclude.CheckTH()
+	-- TH gear until the action's target (else the selected one) is tagged; force skips that check (AoE TH
+	-- spells). Main/Sub/Range are left to BuildWeaponLayer, so they don't come off at the tag. The TH set
+	-- minus those slots is built once per set table.
+	local thGear, thGearOf = nil, nil;
+	function gcinclude.CheckTH(force)
 		if (gcdisplay.GetToggle('TH') ~= true) then return end
 		local set = gcinclude.FindSet('TH');
 		if (set == nil) then return end
-		if (gcauto ~= nil) and (gcauto.IsTagged ~= nil) then
-			local target = gData.GetTarget();
+		if (force ~= true) and (gcauto ~= nil) and (gcauto.IsTagged ~= nil) then
+			local target = gData.GetActionTarget() or gData.GetTarget();
 			if (target ~= nil) and (target.Type == 'Monster') and gcauto.IsTagged(target.Id) then
 				return;
 			end
 		end
-		gFunc.EquipSet(set);
+		if (thGearOf ~= set) then
+			thGear, thGearOf = {}, set;
+			for k, v in pairs(set) do
+				if not gcinclude.HoldSlots:contains(gData.GetEquipSlot(k)) then thGear[k] = v end
+			end
+		end
+		gFunc.EquipSet(thGear);
 	end
 
 	gcinclude.HoxneOwned = T{};
