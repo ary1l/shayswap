@@ -164,8 +164,17 @@ local function check_auto_items(player)
     return false;
 end
 
--- TH tags: drop a mob once it is at 0 HP, so a respawn with the same id gets TH again.
+-- TH tags: a mob my melee (1), ranged (2), WS (3), spell (4), ability (6), step/flourish (14) or
+-- Effusion (15) hit (XiPackets 0x0028 cmd_no). Spells, steps and Effusions count only when they land.
+-- Dropped at 0 HP (a respawn with the same id gets TH again) and on zone.
 local tagged = {};
+-- Messages for a spell or ability that didn't land (Windower Resources action_messages): resisted
+-- 85 284 653-656, no effect 75 114 156 283 323 423 659, missed 158 324 658, out of range / too far /
+-- can't see 4 78 154 198 217 219 313 328.
+local NOLAND = { [4]=true, [75]=true, [78]=true, [85]=true, [114]=true, [154]=true, [156]=true, [158]=true,
+    [198]=true, [217]=true, [219]=true, [283]=true, [284]=true, [313]=true, [323]=true, [324]=true,
+    [328]=true, [423]=true, [653]=true, [654]=true, [655]=true, [656]=true, [658]=true, [659]=true };
+local TAGCAT = { [1]='any', [2]='any', [3]='any', [4]='landed', [6]='any', [14]='landed', [15]='landed' };
 local function prune_tags()
     if (next(tagged) == nil) then return end
     local ent = AshitaCore:GetMemoryManager():GetEntity();
@@ -217,7 +226,7 @@ local function rd(n)
     return value;
 end
 
-local A = { tgt = {}, nres = {}, first = {}, rval = {}, rmsg = {}, rkind = {} };
+local A = { tgt = {}, nres = {}, first = {}, rmiss = {}, rval = {}, rmsg = {}, rkind = {} };
 local function parse_action(data)
     -- Lua index 6 = byte 0x05: skip the 4-byte header and the size byte (XiPackets 0x0028 Reversing.md;
     -- LAC reads the actor at e.data 0x05 + 1).
@@ -236,7 +245,8 @@ local function parse_action(data)
         A.first[t] = k + 1;
         for _ = 1, results do
             k = k + 1;
-            rd(3); rd(2); rd(12); rd(5); rd(5);
+            A.rmiss[k] = rd(3); -- XiPackets: 0 hit, 1 miss, 2 guard, 3 parry, 4 block
+            rd(2); rd(12); rd(5); rd(5);
             A.rval[k] = rd(17);
             A.rmsg[k] = rd(10);
             rd(31);
@@ -629,11 +639,14 @@ local function roll_packet(P)
         end
         return;
     end
-    if (category == 1) or (category == 2) or (category == 3) or (category == 6) then
+    local tagcat = TAGCAT[category];
+    if (tagcat ~= nil) then
         local me = my_id();
         if (me ~= nil) and (actor == me) then
             for t = 1, P.ntgt do
-                if is_monster(P.tgt[t]) then tagged[P.tgt[t]] = true end
+                local k = P.first[t];
+                local ok = (tagcat == 'any') or ((P.nres[t] > 0) and (P.rmiss[k] == 0) and (not NOLAND[P.rmsg[k]]));
+                if ok and is_monster(P.tgt[t]) then tagged[P.tgt[t]] = true end
             end
             -- category 6 falls through: your own Phantom Roll / Double-Up is also a roll packet.
             if (category ~= 6) then return end
