@@ -122,7 +122,7 @@
 		AutoSoda = false; -- /autosoda: keep Regain up with SodaItem
 		SodaItem = 'Frontier Soda';
 		ConsumableMaxTries = 2; -- AutoSoda disarms after this many tries without Regain showing up
-		AutoNuke = false; -- /autonuke (or /mbmode Auto): cast into live skillchains on your target (RDM/BLM/SCH/GEO). Sync's logic.
+		AutoNuke = false; -- /autonuke (or /mbmode Auto): cast into live skillchains on your target or a mob your party is engaged on (RDM/BLM/SCH/GEO). Sync's logic.
 		MBCasts = 1; -- bursts per chain (sync: count)
 		MBRotate = false; -- spread bursts across the chain's elements (sync: rotate)
 		MBMinMP = 0; -- hold fire below this MP (sync: mp)
