@@ -61,24 +61,7 @@ profile.Sets = sets;
 profile.Packer = {
 };
 
--- Wears the set named after an action, then its /meleeset variant. False if there is none.
-local function ByName(name)
-    local set = gcinclude.FindSet(name);
-    if (set == nil) then return false end
-    gFunc.EquipSet(set);
-    local mode = gcdisplay.GetCycle('MeleeSet');
-    if (mode ~= nil) and (mode ~= 'Default') then
-        local v = gcinclude.FindSet(name .. '_' .. mode);
-        if (v ~= nil) then gFunc.EquipSet(v) end
-    end
-    return true;
-end
-
--- 'Utsusemi: Ni' -> 'Utsusemi', 'Drain III' -> 'Drain'.
-local function Family(name)
-    local base = string.match(name, '^(.-):') or name;
-    return (string.gsub(base, ' [IVX]+$', ''));
-end
+local ByName, Family = gcinclude.ByName, gcinclude.Family;
 
 profile.OnLoad = function()
     gSettings.AllowAddSet = true;
@@ -99,10 +82,7 @@ profile.HandleDefault = function()
     local player = gData.GetPlayer();
     gFunc.EquipSet(sets.Idle);
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default);
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet'));
-        end
+        gcinclude.EquipMode('Tp');
         if (gcdisplay.GetToggle('PROC') == true) then gFunc.EquipSet(sets.Proc) end
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
@@ -154,10 +134,7 @@ end
 profile.HandleWeaponskill = function()
     if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
     local ws = gData.GetAction();
-    gFunc.EquipSet(sets.Ws_Default);
-    if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet'));
-    end
+    gcinclude.EquipMode('Ws');
     ByName(ws.Name);
     if (gcdisplay.GetToggle('PROC') == true) then gFunc.EquipSet(sets.Proc) end
 end

@@ -579,9 +579,7 @@ profile.HandleDefault = function()
 	
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-			gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet')) end
+        gcinclude.EquipMode('Tp');
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -631,16 +629,8 @@ profile.HandlePrecast = function()
         end
     elseif (spell.Skill == 'Healing Magic') then
         gFunc.EquipSet(sets.Cure_Precast);
-		end
-	
-	if (spell.Skill == 'Enfeebling Magic') then
-        gFunc.EquipSet(sets.Precast);
-        end
-	if spell.Name == 'Dispelga' then
-			gFunc.EquipSet(sets.dispelga_precast);
-		end
-
-
+    end
+    if (spell.Name == 'Dispelga') then gFunc.EquipSet(sets.dispelga_precast) end
     gcinclude.CheckCancels();
 end
 
@@ -735,40 +725,23 @@ profile.HandleMidshot = function()
 end
 
 profile.HandleWeaponskill = function()
-    local canWS = gcinclude.CheckWsBailout();
-    if (canWS == false) then gFunc.CancelAction() return;
-    else
-        local ws = gData.GetAction();
-    
-        gFunc.EquipSet(sets.Ws_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet')) end
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
+
+    gcinclude.EquipMode('Ws');
    
-        if string.match(ws.Name, 'Chant du Cygne') then
-            gFunc.EquipSet(sets.Chant_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Chant_' .. gcdisplay.GetCycle('MeleeSet')); end
-		elseif string.match(ws.Name, 'Sanguine Blade') then
-            gFunc.EquipSet(sets.sanguine_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('sanguine_' .. gcdisplay.GetCycle('MeleeSet')); end
-		elseif string.match(ws.Name, 'Black Halo') then
-            gFunc.EquipSet(sets.BH_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('BH_' .. gcdisplay.GetCycle('MeleeSet')); end
-		elseif string.match(ws.Name, 'Knights of Round') then
-            gFunc.EquipSet(sets.KOR_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('KOR_' .. gcdisplay.GetCycle('MeleeSet')); end
-		elseif string.match(ws.Name, 'Shining Blade') or string.match(ws.Name, 'Seraph Blade') or string.match(ws.Name, 'Shining Strike') then
-            gFunc.EquipSet(sets.shining_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('shining_' .. gcdisplay.GetCycle('MeleeSet')); end
-	    elseif string.match(ws.Name, 'Savage Blade') then
-            gFunc.EquipSet(sets.Savage_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Savage_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
+    if string.match(ws.Name, 'Chant du Cygne') then
+        gcinclude.EquipMode('Chant');
+	elseif string.match(ws.Name, 'Sanguine Blade') then
+        gcinclude.EquipMode('sanguine');
+	elseif string.match(ws.Name, 'Black Halo') then
+        gcinclude.EquipMode('BH');
+	elseif string.match(ws.Name, 'Knights of Round') then
+        gcinclude.EquipMode('KOR');
+	elseif string.match(ws.Name, 'Shining Blade') or string.match(ws.Name, 'Seraph Blade') or string.match(ws.Name, 'Shining Strike') then
+        gcinclude.EquipMode('shining');
+    elseif string.match(ws.Name, 'Savage Blade') then
+        gcinclude.EquipMode('Savage');
     end
 end
 

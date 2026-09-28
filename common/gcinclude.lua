@@ -1378,6 +1378,33 @@ end
 		return setIndex[string.lower(name)];
 	end
 
+	-- Job-file helpers.
+	-- Wears <prefix>_Default, then <prefix>_<mode> when /meleeset is not Default.
+	function gcinclude.EquipMode(prefix)
+		gFunc.EquipSet(gProfile.Sets[prefix .. '_Default']);
+		local mode = gcdisplay.GetCycle('MeleeSet');
+		if (mode ~= 'Default') then gFunc.EquipSet(prefix .. '_' .. mode) end
+	end
+
+	-- Wears the set named after an action, then its /meleeset variant. False if there is none.
+	function gcinclude.ByName(name)
+		local set = gcinclude.FindSet(name);
+		if (set == nil) then return false end
+		gFunc.EquipSet(set);
+		local mode = gcdisplay.GetCycle('MeleeSet');
+		if (mode ~= nil) and (mode ~= 'Default') then
+			local v = gcinclude.FindSet(name .. '_' .. mode);
+			if (v ~= nil) then gFunc.EquipSet(v) end
+		end
+		return true;
+	end
+
+	-- 'Utsusemi: Ni' -> 'Utsusemi', 'Drain III' -> 'Drain'.
+	function gcinclude.Family(name)
+		local base = string.match(name, '^(.-):') or name;
+		return (string.gsub(base, ' [IVX]+$', ''));
+	end
+
 	function gcinclude.CanDualWield()
 		if (gcinclude.AlwaysDualWield == true) then return true end
 		local player = gData.GetPlayer();

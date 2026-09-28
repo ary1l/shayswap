@@ -445,9 +445,7 @@ profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
 
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet')) end
+        gcinclude.EquipMode('Tp');
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -536,12 +534,13 @@ profile.HandleMidcast = function()
             gFunc.EquipSet(sets.Cursna);
         end
     elseif (spell.Skill == 'Elemental Magic') then
+        local burst = gcinclude.BurstWanted();
         gFunc.EquipSet(sets.Nuke);
 
         if (gcdisplay.GetCycle('NukeSet') == 'Macc') then
             gFunc.EquipSet(sets.NukeACC);
         end
-        if gcinclude.BurstWanted() then
+        if burst then
             gFunc.EquipSet(sets.Burst);
         end
         if (spell.Element == weather.WeatherElement) and (klimaform > 0) then
@@ -552,7 +551,7 @@ profile.HandleMidcast = function()
         end
         if string.contains(spell.Name, 'helix') then
             gFunc.EquipSet(sets.Helix);
-            if gcinclude.BurstWanted() then
+            if burst then
                 gFunc.EquipSet(sets.HelixBurst);
             end
             if string.contains(spell.Name, 'Nocto') then
@@ -589,24 +588,15 @@ profile.HandleMidshot = function()
 end
 
 profile.HandleWeaponskill = function()
-    local canWS = gcinclude.CheckWsBailout();
-    if (canWS == false) then gFunc.CancelAction() return;
-    else
-        local ws = gData.GetAction();
-    
-        gFunc.EquipSet(sets.Ws_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet')) end
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
 
-        if string.match(ws.Name, 'Cataclysm') then
-            gFunc.EquipSet(sets.Cataclysm_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Cataclysm_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Myrkr') then
-            gFunc.EquipSet(sets.Mykyr_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Mykyr_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
+    gcinclude.EquipMode('Ws');
+
+    if string.match(ws.Name, 'Cataclysm') then
+        gcinclude.EquipMode('Cataclysm');
+    elseif string.match(ws.Name, 'Myrkr') then
+        gcinclude.EquipMode('Mykyr');
     end
 end
 
