@@ -293,14 +293,12 @@ profile.HandleItem = function()
 end
 
 profile.HandlePrecast = function()
-    local spell = gData.GetAction();
     gFunc.EquipSet(sets.Precast);
 
     gcinclude.CheckCancels();
 end
 
 profile.HandleMidcast = function()
-    local spell = gData.GetAction();
 	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
 end
 

@@ -467,7 +467,6 @@ profile.HandleDefault = function()
 end
 
 profile.HandleAbility = function()
-    local ability = gData.GetAction();
 
     gcinclude.CheckCancels();
 end
