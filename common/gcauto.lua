@@ -264,6 +264,8 @@ local function parse_action(data)
         end
     end
     pdata = nil;
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    A.me = party and party:GetMemberServerId(0); -- my server id, read once for every handler
     return A;
 end
 
@@ -279,12 +281,6 @@ local function roll_abilities()
         end
     end
     return rollAbilities;
-end
-
-local function my_id()
-    local party = AshitaCore:GetMemoryManager():GetParty();
-    if (party == nil) then return nil end
-    return party:GetMemberServerId(0);
 end
 
 -- Combat window, Selindrile-style: a monster hits me or a party/alliance member
@@ -328,7 +324,7 @@ local function is_ally(id)
 end
 
 local function combat_packet(P)
-    local me = my_id();
+    local me = P.me;
     if (me == nil) then return end
     local category = P.cat;
     local hostile = ((category == 1) or (category == 2) or (category == 11)) and is_monster(P.actor);
@@ -354,7 +350,7 @@ local castRatio = {};   -- [skill] = { ratios }
 local function cast_packet(P)
     local cat = P.cat;
     if (cat ~= 8) and (cat ~= 4) then return end
-    local me = my_id();
+    local me = P.me;
     if (me == nil) or (P.actor ~= me) then return end
     if (cat == 8) then
         local id = (P.ntgt > 0) and (P.nres[1] > 0) and P.rval[P.first[1]] or nil;
@@ -386,7 +382,7 @@ end
 
 -- Magic burst, ported from sync (sync_packethandler H028.sc + geo_mod.mb.tick).
 -- Chain property = the result's proc kind (6 bits, 1..16 -> scdata.PROPNUM; LSB ActionProcSkillChain),
--- counted when the action is in scdata.BYCAT for its category (3 WS, 4 spell, 13 pet, 14); any WS chain counts.
+-- counted when the action is in scdata.BYCAT for its category (4 spell, 13 pet, 14); any WS chain counts.
 -- Window: settings.MBWindow seconds (BG: 10) from the chain packet; another WS on the mob ends it.
 -- A burst is cast only if its cast time (gcauto.CastTime) lands it inside the window.
 local scdata = nil;
@@ -401,7 +397,7 @@ local MBELEM = {
     Radiance = { 'Fire', 'Wind', 'Thunder', 'Light' }, Umbra = { 'Ice', 'Earth', 'Water', 'Dark' },
 };
 local mbres = {};   -- [mob server id] = { props, ts, dur, step }
-local mbst = {};    -- [mob server id] = { fired, elu, k_ts, k_step }
+local mbst = {};    -- [mob server id] = { fired, k_ts, k_step }
 
 local function mb_packet(P)
     if (scdata == nil) then return end
@@ -418,7 +414,7 @@ local function mb_packet(P)
         if (msg ~= nil) and scdata.PETMSG[msg] then cat = 13 end
         local tbl = scdata.BYCAT[cat];
         local act = tbl and tbl[bit.band(P.param, 0xFFFF)];
-        local chained = (prop ~= nil) and (scdata.CHAIN[prop] ~= nil);
+        local chained = (prop ~= nil); -- every PROPNUM value is a skillchain property
         -- XiPackets documents proc_kind as the skillchain id for weapon skills (cmd 3), so a WS chain
         -- counts even when the WS is missing from scdata; other categories still need their table entry.
         if chained and ((act ~= nil) or (cat == 3)) and is_monster(target) then
@@ -573,7 +569,7 @@ end
 -- This varies with the size of the target." Entity GetDistance is squared (LAC data.lua GetEntity).
 local SPELL_RANGE = 21.8;
 function gcauto.NukeTick(player, now)
-    if (disp.GetToggle('AutoNuke') ~= true) then return false end
+    if (disp.GetToggle('AutoNuke') ~= true) or (next(mbres) == nil) then return false end
     if has_buff('Silence') or has_buff('Mute') then return false end
     if (player.IsMoving == true) then return false end
     local mm = AshitaCore:GetMemoryManager();
@@ -595,12 +591,12 @@ function gcauto.NukeTick(player, now)
     for _, sid in ipairs(order) do
         local r, idx = mbres[sid], sids[sid];
         local st = mbst[sid];
-        if (st == nil) then st = { fired = 0, elu = {} }; mbst[sid] = st end
+        if (st == nil) then st = { fired = 0 }; mbst[sid] = st end
         if (st.k_ts ~= r.ts) or (st.k_step ~= r.step) then
-            st.k_ts, st.k_step, st.fired, st.elu = r.ts, r.step, 0, {};
+            st.k_ts, st.k_step, st.fired = r.ts, r.step, 0;
         end
         if (now < r.ts + r.dur) and (st.fired < (inc.settings.MBCasts or 1)) then
-            local spell, spellEl, res = pick_spell(r, st);
+            local spell, _, res = pick_spell(r, st);
             -- Only cast if it can land inside the window (learned cast time, see gcauto.CastTime).
             local castTime = gcauto.CastTime(res);
             local fits = (res ~= nil) and ((now + castTime + 0.5) <= (r.ts + r.dur));
@@ -615,7 +611,6 @@ function gcauto.NukeTick(player, now)
                 end
                 if not far then
                     st.fired = st.fired + 1;
-                    st.elu[spellEl] = (st.elu[spellEl] or 0) + 1;
                     queue(string.format('/ma "%s" %d', spell, sid), math.max(castTime, 5.0), 0); -- fallback if no finish packet
                     nukeSent = true;
                     return true;
@@ -646,10 +641,9 @@ local function roll_recompute()
 end
 
 local function roll_packet(P)
-    local actor, category, param = P.actor, P.cat, P.param;
+    local actor, category, param, me = P.actor, P.cat, P.param, P.me;
     -- Magic (Start) from anyone else, aimed at me: gear up while it is still in the air.
     if (category == 8) then
-        local me = my_id();
         if (me ~= nil) and (actor ~= me) and (gcauto.OnIncomingCast ~= nil) then
             for t = 1, P.ntgt do
                 if (P.tgt[t] == me) then
@@ -667,7 +661,6 @@ local function roll_packet(P)
     end
     local tagcat = TAGCAT[category];
     if (tagcat ~= nil) then
-        local me = my_id();
         if (me ~= nil) and (actor == me) then
             for t = 1, P.ntgt do
                 local k = P.first[t];
@@ -679,9 +672,7 @@ local function roll_packet(P)
         end
     end
     local rollName = (category == 6) and roll_abilities()[param] or nil;
-    if (rollName == nil) then return end
-    local me = my_id();
-    if (me == nil) then return end
+    if (rollName == nil) or (me == nil) then return end
     for t = 1, P.ntgt do
         if (P.tgt[t] == me) then
             local k = P.first[t];
@@ -696,8 +687,9 @@ local function roll_packet(P)
     roll_recompute();
 end
 
+-- Only an 11 can be dropped by a recompute here; roll_packet recomputes after every roll.
 function gcauto.RollEleven()
-    if (next(rolls) ~= nil) then roll_recompute() end
+    if rollEleven then roll_recompute() end
     return rollEleven;
 end
 
@@ -710,6 +702,7 @@ function gcauto.ClearTags()
 end
 
 function gcauto.RollInfo()
+    roll_recompute();
     local now = os.clock();
     local parts = {};
     for id, entry in pairs(rolls) do
@@ -790,7 +783,7 @@ end
 -- My action finished (or my cast was interrupted, cmd_no 8 with an 'sp' arg, XiPackets 0x0028):
 -- start the forced delay, and end an auto nuke's fallback hold.
 local function lock_packet(P)
-    local me = my_id();
+    local me = P.me;
     if (me == nil) or (P.actor ~= me) then return end
     local lock = LOCK[P.cat];
     if (P.cat == 8) and (bit.band(P.param, 0xFFFF) == 28787) then lock = SPELL_LOCK end

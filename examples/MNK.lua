@@ -249,15 +249,12 @@ end
 
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
-    local impetus = gcinclude.BuffCount('Impetus');
-    local footwork = gcinclude.BuffCount('Footwork');
-	
 	local player = gData.GetPlayer();
     
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
-        if (impetus >= 1) then gFunc.EquipSet(sets.Impetus) end
-        if (footwork >= 1) then gFunc.EquipSet(sets.Footwork) end
+        if (gcinclude.BuffCount('Impetus') > 0) then gFunc.EquipSet(sets.Impetus) end
+        if (gcinclude.BuffCount('Footwork') > 0) then gFunc.EquipSet(sets.Footwork) end
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -312,13 +309,12 @@ end
 profile.HandleWeaponskill = function()
     if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
     local ws = gData.GetAction();
-    local impetus = gcinclude.BuffCount('Impetus');
 
     gcinclude.EquipMode('Ws');
 
     if string.match(ws.Name, 'Victory Smite') then
         gFunc.EquipSet(sets.Victory_Default)
-        if impetus > 0 then gFunc.EquipSet('Victory_Imp'); end
+        if (gcinclude.BuffCount('Impetus') > 0) then gFunc.EquipSet(sets.Victory_Imp) end
         if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
         gFunc.EquipSet('Victory_' .. gcdisplay.GetCycle('MeleeSet')); end
     elseif string.match(ws.Name, 'Shijin Spiral') then

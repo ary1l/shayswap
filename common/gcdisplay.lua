@@ -44,13 +44,7 @@ function gcdisplay.SetCycle(name,val)
 end
 
 function gcdisplay.AdvanceToggle(name)
-	if (type(Toggles[name]) ~= 'boolean') then
-		return;
-	elseif Toggles[name] then
-		Toggles[name] = false;
-	else
-		Toggles[name] = true;
-	end
+	if (type(Toggles[name]) == 'boolean') then Toggles[name] = not Toggles[name] end
 end
 
 function gcdisplay.SetToggle(name, val)
@@ -77,11 +71,7 @@ function gcdisplay.CreateToggle(name, default)
 end
 
 function gcdisplay.GetToggle(name)
-	if (Toggles[name] ~= nil) then
-		return Toggles[name];
-	else
-		return false;
-	end
+	return Toggles[name] or false;
 end
 
 function gcdisplay.GetToggles()

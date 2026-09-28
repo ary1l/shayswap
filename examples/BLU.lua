@@ -493,7 +493,6 @@ end
 profile.HandleDefault = function()
 	gFunc.EquipSet(sets.Idle);
 	
-    local zone = gData.GetEnvironment();
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -507,7 +506,8 @@ profile.HandleDefault = function()
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Evasion) end;
     --lazy equip weapons for salvage runs
-    if (zone.Area ~= nil) and zone.Area:contains('Remnants') then
+    local area = AshitaCore:GetResourceManager():GetString('zones.names', AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0));
+    if (area ~= nil) and area:contains('Remnants') then
         gFunc.EquipSet(sets.Salvage);
     end
     gcinclude.CheckDefault ();

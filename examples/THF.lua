@@ -367,11 +367,11 @@ profile.HandleDefault = function()
     end
 	
     if (sa == 1) and (ta == 1) then
-        gFunc.EquipSet('SATA');
+        gFunc.EquipSet(sets.SATA);
     elseif (sa == 1) then
-        gFunc.EquipSet('SA');
+        gFunc.EquipSet(sets.SA);
     elseif (ta == 1) then
-        gFunc.EquipSet('TA');
+        gFunc.EquipSet(sets.TA);
     end
     
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
