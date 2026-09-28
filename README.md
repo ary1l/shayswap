@@ -42,7 +42,7 @@ Full reference: `COMMANDS.md`.
 - **Magic burst** (RDM BLM SCH GEO), `/mbmode` cycles:
   - `Off`: normal nuke set, nothing automatic.
   - `Chain`: Burst set only when the nuke will land inside a live skillchain of its element on that target.
-  - `Auto`: Chain, plus it casts the chain's nuke itself (tier I/III/V by `/mbtier`, Light/Dark skipped).
+  - `Auto`: Chain, plus it casts the chain's nuke itself (tier I/III/V by `/mbtier`; Transfixion/Compression: SCH helix).
   - `Force`: Burst set on every nuke, no skillchain check.
 - **Received gear**: when anyone starts casting Cure/Cura/Curaga, Phalanx, Protect, Shell, Regen, Refresh or
   Cursna on you, the matching `*_Received` set goes on until it lands (8s max). Waltzes are instant abilities,

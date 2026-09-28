@@ -75,7 +75,8 @@ Autonuke:
 - Targets a chain on a mob you or your party are engaged on, or your target. Not engaged: it
   targets the chained mob first.
 - Casts the chain element's nuke (Fire, Blizzard, Aero, Stone, Thunder, Water) at the tier.
-  Light/Dark are skipped.
+  Light/Darkness chains use those elements. Transfixion/Compression (Light or Dark only): SCH casts
+  Luminohelix/Noctohelix (II with 1200 JP); other jobs have no Light/Dark nuke, so they skip it.
 - Tries the tier on each chain element, then one tier lower (`MBFallback`). Blizzard V on recast
   during Distortion → Water V.
 - Only casts if it lands inside the window (`MBWindow` 10s; cast time is learned from your last casts),
@@ -89,7 +90,8 @@ Autonuke:
 count. Cast time per skill is learned from your own start/finish packets (slowest of the last 5);
 until one cast is seen it falls back to `gSettings.FastCast`.
 
-The HUD marks toggle mixes `/mbmode` never makes with `*`, e.g. `Off*` = autonuke without burst gear.
+If you turn `/autonuke` or `/automb` on or off by hand, the HUD may show a combo `/mbmode` doesn't have,
+marked `*`: e.g. `Off*` = casting bursts itself, but not wearing the Burst set.
 
 ## Action checks
 

@@ -129,7 +129,7 @@
 		MBWindow = 10; -- magic burst window in seconds from the skillchain (BG: 10); another WS on the mob ends it
 		-- /autonuke casts the chain element's single-target nuke (Fire, Blizzard, Aero, Stone, Thunder,
 		-- Water) at this tier: 'Low' = I, 'Mid' = III, 'High' = V. /mbtier changes it in game.
-		-- Light/Dark chain elements have no such nuke and are skipped. Per job: gcinclude.MBTier = 'High'.
+		-- Light/Dark have no tiered nuke: SCH falls back to Luminohelix/Noctohelix. Per job: gcinclude.MBTier = 'High'.
 		MBTier = 'Mid';
 		MBFallback = true; -- tier not castable / on recast / short MP: try the next tier down (V > IV > III > II > I)
 		MBSkills = T{'Elemental Magic'}; -- skills /automb dresses; add 'Dark Magic' etc. as you like

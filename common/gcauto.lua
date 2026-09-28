@@ -495,8 +495,12 @@ local function usable(name)
     return res;
 end
 
--- Chain element -> single-target nuke. Light/Dark have none and are skipped.
+-- Chain element -> single-target tiered nuke.
 local NUKE = { Fire = 'Fire', Ice = 'Blizzard', Wind = 'Aero', Earth = 'Stone', Thunder = 'Thunder', Water = 'Water' };
+-- Light/Dark have no tiered nuke; the helix is the fallback (SCH only; II needs 1200 JP, CanCast checks).
+-- Tried after the tiered nukes, so Light/Darkness chains still prefer Fire/Aero/Thunder or Blizzard/Stone/Water,
+-- and Transfixion/Compression (Light or Dark only) get a helix instead of nothing.
+local HELIX = { Light = { 'Luminohelix II', 'Luminohelix' }, Dark = { 'Noctohelix II', 'Noctohelix' } };
 local ROMAN = { '', ' II', ' III', ' IV', ' V' };
 
 -- Spell for the next burst on chain r. Tier = /mbtier (Low I, Mid III, High V). Tries that tier on
@@ -508,7 +512,7 @@ local function pick_spell(r, st)
     local cand, seen = {}, {};
     for _, pr in ipairs(r.props) do
         for _, el in ipairs(MBELEM[pr] or {}) do
-            if (NUKE[el] ~= nil) and not seen[el] then
+            if ((NUKE[el] ~= nil) or (HELIX[el] ~= nil)) and not seen[el] then
                 seen[el] = true;
                 cand[#cand + 1] = el;
             end
@@ -523,12 +527,20 @@ local function pick_spell(r, st)
         if not (schLocked and (t >= 4)) then
             for k = 0, #cand - 1 do
                 local el = cand[((start + k) % #cand) + 1];
-                local name = NUKE[el] .. ROMAN[t];
-                local res = usable(name);
-                if (res ~= nil) then return name, el, res end
+                if (NUKE[el] ~= nil) then
+                    local name = NUKE[el] .. ROMAN[t];
+                    local res = usable(name);
+                    if (res ~= nil) then return name, el, res end
+                end
             end
         end
-        if (inc.settings.MBFallback == false) then return nil end
+        if (inc.settings.MBFallback == false) then break end
+    end
+    for _, el in ipairs(cand) do
+        for _, name in ipairs(HELIX[el] or {}) do
+            local res = usable(name);
+            if (res ~= nil) then return name, el, res end
+        end
     end
     return nil;
 end
