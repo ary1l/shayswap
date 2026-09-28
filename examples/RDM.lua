@@ -590,7 +590,7 @@ profile.HandleDefault = function()
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
     -- No Dual Wield + /wm none + engaged: Tp_Default's Thibron can't equip, use Genmei Shield.
-    if (player.Status == 'Engaged') and (not gcinclude.CanDualWield()) and (not gcinclude.IsWeaponValue(gcdisplay.GetCycle('Weapons'))) then
+    if (player.Status == 'Engaged') and (not gcinclude.IsWeaponValue(gcdisplay.GetCycle('Weapons'))) and (not gcinclude.CanDualWield()) then
         gFunc.Equip('Sub', 'Genmei Shield');
     end
     gcinclude.CheckDefault ();
@@ -638,9 +638,6 @@ profile.HandleMidcast = function()
     local spell = gData.GetAction();
     local target = gData.GetActionTarget();
     local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);
-    local player = gData.GetPlayer();
-
-
 
     if (spell.Skill == 'Enhancing Magic') then
         gFunc.EquipSet(sets.Enhancing);
@@ -688,7 +685,7 @@ profile.HandleMidcast = function()
         if string.match(spell.Name, 'helix') then
             gFunc.EquipSet(sets.Helix);
         end
-        if (player.MPP <= 40) then
+        if (gData.GetPlayer().MPP <= 40) then
             gFunc.EquipSet(sets.Mp_Body);
         end
     elseif (spell.Skill == 'Enfeebling Magic') then

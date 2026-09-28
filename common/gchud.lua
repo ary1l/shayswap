@@ -560,7 +560,7 @@ local function body()
         local w = textw(label(key));
         for i = 1, #rows do
             local c = cells[i][kind][key];
-            if (c ~= nil) then w = math.max(w, textw(c.text)) end
+            if (c ~= nil) then c.w = textw(c.text); w = math.max(w, c.w) end -- reused when the row is drawn
         end
         w = w + PADX * 2;
         cols[#cols + 1] = { key = key, kind = kind, x = x, w = w, center = center };
@@ -598,7 +598,7 @@ local function body()
         for _, col in ipairs(cols) do
             local c = cells[i][col.kind][col.key];
             if (c ~= nil) then
-                at(col, textw(c.text) + PADX * 2, false);
+                at(col, c.w + PADX * 2, false);
                 draw_cell(row, col.key, c);
             end
         end
@@ -673,7 +673,7 @@ local function render()
     imgui.PushStyleColor(ImGuiCol_ButtonHovered, COL_HOVER);
     imgui.PushStyleColor(ImGuiCol_ButtonActive, COL_HOVER);
     imgui.PushStyleColor(ImGuiCol_WindowBg, { 0.0, 0.0, 0.0, inc.settings.HUDAlpha or 0.45 });
-    imgui.PushStyleColor(ImGuiCol_Border, { 0.0, 0.0, 0.0, 0.0 });
+    imgui.PushStyleColor(ImGuiCol_Border, COL_CLEAR);
     local ok, err = true, nil;
     if imgui.Begin('GC##gchud', true, flags) then
         -- any error between Begin and End must not skip PopFont/End/Pop*, or ImGui asserts every frame after

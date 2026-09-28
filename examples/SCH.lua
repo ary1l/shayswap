@@ -497,13 +497,10 @@ profile.HandlePrecast = function()
 end
 
 profile.HandleMidcast = function()
-    local player = gData.GetPlayer();
-    local weather = gData.GetEnvironment();
     local spell = gData.GetAction();
     local target = gData.GetActionTarget();
     local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);
     local power = gcinclude.BuffCount('Ebullience') +  gcinclude.BuffCount('Rapture');
-    local klimaform = gcinclude.BuffCount('Klimaform');
 
     if (spell.Skill == 'Enhancing Magic') then
         gFunc.EquipSet(sets.Enhancing);
@@ -543,10 +540,10 @@ profile.HandleMidcast = function()
         if burst then
             gFunc.EquipSet(sets.Burst);
         end
-        if (spell.Element == weather.WeatherElement) and (klimaform > 0) then
+        if (gcinclude.BuffCount('Klimaform') > 0) and (spell.Element == gData.GetEnvironment().WeatherElement) then
                 gFunc.EquipSet(sets.Klimaform);
         end
-        if (player.MPP <= 40) then
+        if (gData.GetPlayer().MPP <= 40) then
             gFunc.EquipSet(sets.Mp_Body);
         end
         if string.contains(spell.Name, 'helix') then

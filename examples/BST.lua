@@ -83,14 +83,14 @@ profile.HandleCommand = function(args)
 end
 
 profile.HandleDefault = function()
-    local player = gData.GetPlayer();
     local petAction = gData.GetPetAction(); -- pet actions arrive here, not in HandleAbility
     if (petAction ~= nil) then
         if not ByName(petAction.Name) then gFunc.EquipSet(sets.PetAction) end
         return;
     end
+    local player = gData.GetPlayer();
     gFunc.EquipSet(sets.Idle);
-    if (gData.GetPet() ~= nil) and (player.Status ~= 'Engaged') then
+    if (player.Status ~= 'Engaged') and (gData.GetPet() ~= nil) then
         gFunc.EquipSet(sets.Idle_Pet);
     end
     if (player.Status == 'Engaged') then

@@ -306,9 +306,6 @@ function gcinclude.SetVariables()
         mJob = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJobId) or 'NON';
     end
 
-    -- Track the job we are building variables for
-    gcinclude.ActiveJob = mJob;
-
     gcinclude.UnlockSlots(nil);
     gcinclude.UnlockWeapons();
     gcinclude.Holds, gcinclude.Strip = {}, nil;
@@ -935,8 +932,9 @@ end
 	function gcinclude.HoldActive()
 		local guard = gcinclude.settings.WeaponTPGuard or 0;
 		if (guard <= 0) then return false end
-		local player = gData.GetPlayer();
-		return (player ~= nil) and (player.Status == 'Engaged') and (player.TP >= guard);
+		local mm = AshitaCore:GetMemoryManager();
+		local party = mm:GetParty();
+		return (party:GetMemberTP(0) >= guard) and (mm:GetEntity():GetStatus(party:GetMemberTargetIndex(0)) == 1); -- 1 = Engaged (LAC EntityStatus)
 	end
 
 	function gcinclude.UpdateHold()
@@ -1100,10 +1098,6 @@ end
 		for i = 2, #args do words:append(args[i]) end
 		if (#words == 0) then return end
 		gcinclude.StartReceived(table.concat(words, ' '));
-	end
-
-	function gcinclude.WearReceived(spellName)
-		gcinclude.StartReceived(spellName);
 	end
 
 	function gcinclude.CheckReceived()
@@ -1383,7 +1377,7 @@ end
 	function gcinclude.EquipMode(prefix)
 		gFunc.EquipSet(gProfile.Sets[prefix .. '_Default']);
 		local mode = gcdisplay.GetCycle('MeleeSet');
-		if (mode ~= 'Default') then gFunc.EquipSet(prefix .. '_' .. mode) end
+		if (mode ~= 'Default') then local n = prefix .. '_' .. mode; gFunc.EquipSet(gcinclude.FindSet(n) or n) end -- index, not LAC's scan of every set
 	end
 
 	-- Wears the set named after an action, then its /meleeset variant. False if there is none.
@@ -1407,8 +1401,7 @@ end
 
 	function gcinclude.CanDualWield()
 		if (gcinclude.AlwaysDualWield == true) then return true end
-		local player = gData.GetPlayer();
-		local sub = (player ~= nil) and player.SubJob or nil;
+		local sub = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', AshitaCore:GetMemoryManager():GetPlayer():GetSubJob());
 		if (sub == nil) or (sub == '') or (sub == 'NON') then
 			return (gcinclude.LastDualWield == true);
 		end
@@ -1436,14 +1429,14 @@ end
 				for k, v in pairs(set) do
 					local slot = gData.GetEquipSlot(k);
 					if gcinclude.WeaponSlots:contains(slot) then
-						equip[slot] = v;
+						equip[gcinclude.WeaponSlotNames[slot]] = v;
 					end
 				end
 			end
 		end
-		for slot, cname in ipairs(gcinclude.WeaponSlotNames) do
+		for _, cname in ipairs(gcinclude.WeaponSlotNames) do
 			local v = gcdisplay.GetCycle(cname);
-			if gcinclude.IsWeaponValue(v) then equip[slot] = gcinclude.WeaponItems[string.lower(v)] or v end
+			if gcinclude.IsWeaponValue(v) then equip[cname] = gcinclude.WeaponItems[string.lower(v)] or v end
 		end
 		-- Main/Sub/Range in the TH set stay on while /th is on, tagged or not: swapping them resets TP.
 		-- Sub only when you can dual wield; otherwise it is dropped (CheckTH skips it too).
@@ -1452,18 +1445,11 @@ end
 			if (th ~= nil) then
 				for k, v in pairs(th) do
 					local slot = gData.GetEquipSlot(k);
-					if gcinclude.HoldSlots:contains(slot) and ((slot ~= 2) or gcinclude.CanDualWield()) then equip[slot] = v end
+					if gcinclude.HoldSlots:contains(slot) and ((slot ~= 2) or gcinclude.CanDualWield()) then equip[gcinclude.WeaponSlotNames[slot]] = v end
 				end
 			end
 		end
-		local set = {};
-		local count = 0;
-		for slot, v in pairs(equip) do
-			set[gcinclude.WeaponSlotNames[slot]] = v;
-			count = count + 1;
-		end
-		if (count == 0) then return nil end
-		return set;
+		return (next(equip) ~= nil) and equip or nil;
 	end
 
 	function gcinclude.ApplyWeapons(force)
@@ -1684,8 +1670,8 @@ end
 		return gcauto.BurstLive(target.Id, spell.Element, landsAt);
 	end
 
-	function gcinclude.InCombat()
-		local player = gData.GetPlayer();
+	function gcinclude.InCombat(player)
+		player = player or gData.GetPlayer();
 		if (player ~= nil) and (player.Status == 'Engaged') then return true end
 		return (gcauto ~= nil) and (gcauto.InCombat ~= nil) and gcauto.InCombat();
 	end
@@ -1718,7 +1704,7 @@ end
 		end
 	end
 
-	function gcinclude.CheckWeapons()
+	function gcinclude.CheckWeapons(player)
 		local set = gcinclude.BuildWeaponLayer();
 		if (set ~= nil) then gFunc.EquipSet(set) end
 		gcinclude.CheckMDT();
@@ -1726,7 +1712,7 @@ end
 		gcinclude.CheckTH();
 		gcinclude.CheckReceived();
 		gcinclude.CheckBuffSets();
-		gcinclude.CheckXIRoll();
+		gcinclude.CheckXIRoll(player);
 	end
 
 	function gcinclude.IsBlockedAmmo(name)
@@ -1779,8 +1765,8 @@ end
 	end
 
 	-- Idle only: never over melee (engaged) or resting gear.
-	function gcinclude.CheckXIRoll()
-		local player = gData.GetPlayer();
+	function gcinclude.CheckXIRoll(player)
+		player = player or gData.GetPlayer();
 		if (player == nil) or (player.Status ~= 'Idle') then return end
 		if not gcinclude.XIRollActive() then return end
 		local set = gcinclude.FindSet('XIRoll') or gcinclude.settings.XIRollSet;
@@ -1876,31 +1862,30 @@ end
 		return 0;
 	end
 
+	-- Ring1/Ring2 only (slots 14/15), read the way LAC's gData.GetEquipment does, without its 16-slot walk.
 	function gcinclude.CheckLockingRings()
-		local rings = gData.GetEquipment();
-		for _, slot in ipairs(T{'Ring1', 'Ring2'}) do
-			local r = rings[slot];
-			if (r ~= nil) and gcinclude.LockingRings:contains(r.Name) then gFunc.Equip(slot, r.Name) end
+		for slot = 14, 15 do
+			local item = gEquip.GetCurrentEquip(slot).Item;
+			local res = (item ~= nil) and AshitaCore:GetResourceManager():GetItemById(item.Id) or nil;
+			if (res ~= nil) and gcinclude.LockingRings:contains(res.Name[1]) then gFunc.Equip(slot, res.Name[1]) end
 		end
 	end
 
 	function gcinclude.SetTownGear()
-		local zone = gData.GetEnvironment();
-		if (zone.Area ~= nil) and (gcinclude.Towns:contains(zone.Area)) then local t = gcinclude.FindSet('Town'); if (t ~= nil) then gFunc.EquipSet(t) end end
+		local area = AshitaCore:GetResourceManager():GetString('zones.names', AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0));
+		if (area ~= nil) and gcinclude.Towns:contains(area) then local t = gcinclude.FindSet('Town'); if (t ~= nil) then gFunc.EquipSet(t) end end
 	end
 
-	function gcinclude.SetRegenRefreshGear()
+	function gcinclude.SetRegenRefreshGear(player)
 		local cfg = gcinclude.settings;
 		if (cfg.AutoGear == false) then return end
-		local player = gData.GetPlayer();
-		if (player == nil) then return end
 		local function wear(name, pct, limit)
 			if ((limit or 0) <= 0) or (pct == nil) or (pct >= limit) then return end
 			local set = gcinclude.FindSet(name);
 			if (set ~= nil) then gFunc.EquipSet(set) end
 		end
 		-- Regen/Refresh only out of combat and never over a manual /dt; auto Dt any time.
-		if (gcdisplay.GetToggle('DTset') ~= true) and (not gcinclude.InCombat()) then
+		if (gcdisplay.GetToggle('DTset') ~= true) and (not gcinclude.InCombat(player)) then
 			wear('Idle_Regen', player.HPP, cfg.RegenGearHPP);
 			wear('Idle_Refresh', player.MPP, cfg.RefreshGearMPP);
 		end
@@ -2198,9 +2183,10 @@ function gcinclude.CheckDefault()
 
     -- Auto Regen/Refresh/DT/Pet_Dt and Town sets count as "your sets", so they go under the engine layers
     -- (README layer order: your sets -> weapons (+ TH weapons while /th is on) -> mdt/Aminon -> Hoxne -> TH -> received -> buffs -> XIRoll).
-    gcinclude.SetRegenRefreshGear();
+    local me = gData.GetPlayer(); -- one read for the auto sets, the combat check and XIRoll
+    gcinclude.SetRegenRefreshGear(me);
     gcinclude.SetTownGear();
-    gcinclude.CheckWeapons();
+    gcinclude.CheckWeapons(me);
     gcinclude.CheckCommonDebuffs();
     gcinclude.CheckLockingRings();
     for _, cmd in ipairs({'craftset', 'zeniset', 'fishset', 'rrset'}) do
@@ -2265,7 +2251,7 @@ end
 		gcinclude.SetVariables();
 		gcinclude.SetAlias();
 		gcinclude.ApplyKeybinds();
-		if (gcauto ~= nil) then gcauto.OnIncomingCast = gcinclude.WearReceived end
+		if (gcauto ~= nil) then gcauto.OnIncomingCast = gcinclude.StartReceived end
 		gcinclude.ApplyLockstyle();
 		gcauto.Start();
 		ashita.events.register('d3d_present', 'gcinclude_tphold', gcinclude.HoldTick);

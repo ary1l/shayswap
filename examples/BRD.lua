@@ -642,15 +642,10 @@ local sets = {
 };
 profile.Sets = sets;
 
--- No Dual Wield (sub not NIN/DNC): casting or not engaged = Ammurapi Shield, engaged = Genmei Shield.
-local function FixSub(casting)
+-- No Dual Wield (sub not NIN/DNC): engaged = Genmei Shield, casting or not engaged = Ammurapi Shield.
+local function FixSub(engaged)
     if gcinclude.CanDualWield() then return end
-    local player = gData.GetPlayer();
-    if (not casting) and (player ~= nil) and (player.Status == 'Engaged') then
-        gFunc.Equip('Sub', 'Genmei Shield');
-    else
-        gFunc.Equip('Sub', 'Ammurapi Shield');
-    end
+    gFunc.Equip('Sub', engaged and 'Genmei Shield' or 'Ammurapi Shield');
 end
 
 
@@ -684,7 +679,7 @@ profile.HandleDefault = function()
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
-    FixSub(false);
+    FixSub(player.Status == 'Engaged');
     gcinclude.CheckDefault ();
 end
     
@@ -700,7 +695,7 @@ profile.HandleAbility = function()
     end
 
     gcinclude.CheckCancels();
-    FixSub(false);
+    FixSub(gData.GetPlayer().Status == 'Engaged');
 end
 
 profile.HandleItem = function()
@@ -732,13 +727,11 @@ profile.HandlePrecast = function()
         end
 
     gcinclude.CheckCancels();
-    FixSub(true);
+    FixSub(false);
 end
 
 profile.HandleMidcast = function()
     local spell = gData.GetAction();
-    local target = gData.GetActionTarget();
-    local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);
 
     if (spell.Skill == 'Enhancing Magic') then
         gFunc.EquipSet(sets.Enhancing);
@@ -754,7 +747,7 @@ profile.HandleMidcast = function()
         end
     elseif (spell.Skill == 'Healing Magic') then
         gFunc.EquipSet(sets.Cure);
-        if (target.Name == me) then
+        if (gData.GetActionTarget().Name == AshitaCore:GetMemoryManager():GetParty():GetMemberName(0)) then
             gFunc.EquipSet(sets.Self_Cure);
         end
         if string.match(spell.Name, 'Cursna') then
@@ -808,7 +801,7 @@ profile.HandleMidcast = function()
         end
     end
 	gcinclude.CheckTH();
-    FixSub(true);
+    FixSub(false);
 end
 
 profile.HandlePreshot = function()
@@ -837,7 +830,7 @@ profile.HandleWeaponskill = function()
     if string.match(ws.Name, 'Savage Blade') then
         gcinclude.EquipMode('Savage');
     end
-    FixSub(false);
+    FixSub(gData.GetPlayer().Status == 'Engaged');
 end
 
 return profile;

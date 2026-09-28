@@ -103,9 +103,8 @@ profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
-        if (gcdisplay.GetCycle('TankSet') ~= 'None') then
-            gFunc.EquipSet('Tank_' .. gcdisplay.GetCycle('TankSet'));
-        end
+        local tank = gcdisplay.GetCycle('TankSet');
+        if (tank ~= 'None') then gFunc.EquipSet(gcinclude.FindSet('Tank_' .. tank)) end
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then

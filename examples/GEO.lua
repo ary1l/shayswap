@@ -565,7 +565,6 @@ end
 
 profile.HandleDefault = function()
     local player = gData.GetPlayer();
-    local pet = gData.GetPet();
 
     gFunc.EquipSet(sets.Idle);
 
@@ -576,12 +575,11 @@ profile.HandleDefault = function()
     end
 	
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
-    if (pet ~= nil) and (player.Status ~= 'Engaged') then
+    if (player.Status ~= 'Engaged') and (gData.GetPet() ~= nil) then
         gFunc.EquipSet(sets.Idle_Pet);
     end
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
-    if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
-    if (player.IsMoving == true) then gFunc.EquipSet(sets.Movement) end -- any status, over Dt
+    if (gcdisplay.GetToggle('Kite') == true) or (player.IsMoving == true) then gFunc.EquipSet(sets.Movement) end -- any status, over Dt
     gcinclude.CheckDefault ();
 end
 
@@ -618,7 +616,6 @@ profile.HandlePrecast = function()
 end
 
 profile.HandleMidcast = function()
-    local player = gData.GetPlayer();
     local spell = gData.GetAction();
     local target = gData.GetActionTarget();
     local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);
@@ -652,7 +649,7 @@ profile.HandleMidcast = function()
         if gcinclude.BurstWanted() then
             gFunc.EquipSet(sets.Burst);
         end
-        if (player.MPP <= 40) then
+        if (gData.GetPlayer().MPP <= 40) then
             gFunc.EquipSet(sets.Mp_Body);
         end
     elseif (spell.Skill == 'Enfeebling Magic') then
