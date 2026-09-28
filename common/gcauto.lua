@@ -121,9 +121,8 @@ local function check_soda(player, now)
     return true;
 end
 
+-- Called by tick only while AutoHolyWater is on and Doom is up.
 local function check_doom(player)
-    if (inc.settings.AutoHolyWater ~= true) then return false end
-    if (inc.BuffCount('Doom') == 0) then return false end
     local item = inc.settings.HolyWaterItem or 'Holy Water';
     if (item_count(item) == 0) then
         warn_once('doom', 'Doomed and no ' .. item .. ' in your bags.');
@@ -255,7 +254,7 @@ local function roll_abilities()
     local res = AshitaCore:GetResourceManager();
     for id = 0x200, 0x200 + 0x3FF do
         local ability = res:GetAbilityById(id);
-        if (ability ~= nil) and (ability.RecastTimerId == ROLL_RECAST) and (id >= 0x200) then
+        if (ability ~= nil) and (ability.RecastTimerId == ROLL_RECAST) then
             -- Ashita job ability resource id = packet id + 0x200 (LAC packethandlers / data.lua).
             rollAbilities[id - 0x200] = ability.Name[1];
         end
@@ -703,6 +702,16 @@ function gcauto.CreateToggles()
     seen = {};
 end
 
+-- on/off/toggle a boolean setting.
+local function flip(key, arg)
+    if (arg == 'on') or (arg == 'off') then
+        inc.settings[key] = (arg == 'on');
+    else
+        inc.settings[key] = not (inc.settings[key] == true);
+    end
+    return inc.settings[key];
+end
+
 local function onoff(name, arg)
     if (arg == 'on') then
         disp.CreateToggle(name, true);
@@ -729,25 +738,11 @@ function gcauto.HandleCommand(args)
         say('AutoSoda ' .. (on and 'on' or 'off') .. ' | ' .. (inc.settings.SodaItem or 'Frontier Soda'));
         return true;
     elseif (cmd == 'holywater') then
-        if (arg == 'on') then
-            inc.settings.AutoHolyWater = true;
-        elseif (arg == 'off') then
-            inc.settings.AutoHolyWater = false;
-        else
-            inc.settings.AutoHolyWater = not (inc.settings.AutoHolyWater == true);
-        end
-        say('Auto Holy Water ' .. (inc.settings.AutoHolyWater and 'on' or 'off'));
+        say('Auto Holy Water ' .. (flip('AutoHolyWater', arg) and 'on' or 'off'));
         return true;
     elseif (cmd == 'revit') then
-        if (arg == 'on') then
-            inc.settings.AutoRevitalizer = true;
-        elseif (arg == 'off') then
-            inc.settings.AutoRevitalizer = false;
-        else
-            inc.settings.AutoRevitalizer = not (inc.settings.AutoRevitalizer == true);
-        end
         seen = {};
-        say('Auto Revitalizer ' .. (inc.settings.AutoRevitalizer and 'on' or 'off'));
+        say('Auto Revitalizer ' .. (flip('AutoRevitalizer', arg) and 'on' or 'off'));
         return true;
     end
     return false;

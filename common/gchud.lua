@@ -85,15 +85,15 @@ local abbrCache = {};
 local function abbr(value)
     value = tostring(value or '');
     if (value == '') then return '' end
+    local hit = abbrCache[value]; -- cleared by gchud.Start, so HUDAbbr edits apply on reload
+    if (hit ~= nil) then return hit end
     local user = inc.settings.HUDAbbr;
     if (type(user) == 'table') then
         local lv = string.lower(value);
         for k, v in pairs(user) do
-            if (string.lower(tostring(k)) == lv) then return tostring(v) end
+            if (string.lower(tostring(k)) == lv) then abbrCache[value] = tostring(v); return abbrCache[value] end
         end
     end
-    local hit = abbrCache[value];
-    if (hit ~= nil) then return hit end
     local t = string.gsub(value, "['%.]", '');
     t = string.gsub(t, '[^%w%+]', ' ');
     t = string.gsub(t, '(%l)(%u)', '%1 %2');
@@ -228,8 +228,9 @@ local function write_state()
     }, '\t');
     local now = os.time();
     if (line == lastLine) and ((now - lastWriteTime) < 3) then return end
-    if not ashita.fs.exists(dir()) then ashita.fs.create_directory(dir()) end
-    local f = io.open(dir() .. player.Name .. '.txt', 'w');
+    local d = dir();
+    if not ashita.fs.exists(d) then ashita.fs.create_directory(d) end
+    local f = io.open(d .. player.Name .. '.txt', 'w');
     if (f == nil) then return end
     f:write(line .. '\t' .. tostring(now));
     f:close();
@@ -479,7 +480,7 @@ local function draw_cell(row, key, c)
 end
 
 -- Keys present on any box: canonical order first, then the rest as they appear.
-local function columns(orderKey, mapKey, canonical)
+local function columns(orderKey, canonical)
     local out, seen, present = {}, {}, {};
     for _, row in ipairs(rows) do
         for _, k in ipairs(row[orderKey]) do
@@ -505,8 +506,8 @@ local function body()
     end
 
     -- build cells, pick visible cycle columns
-    local ccols = columns('CycleOrder', 'Cycles', gchud.CycleOrder);
-    local tcols = columns('ToggleOrder', 'Toggles', gchud.ToggleOrder);
+    local ccols = columns('CycleOrder', gchud.CycleOrder);
+    local tcols = columns('ToggleOrder', gchud.ToggleOrder);
     local cells = {};
     local shown = {};
     for i, row in ipairs(rows) do
@@ -659,7 +660,7 @@ end
 local function render()
     if not visible then return end
     if (not placed) then
-        -- first draw: FirstUseEver; after /gchud pos: Always, or ImGui keeps the old position
+        -- Always: after /gchud pos ImGui would otherwise keep the old position
         imgui.SetNextWindowPos({ inc.settings.HUDX or 300, inc.settings.HUDY or 40 }, ImGuiCond_Always);
         placed = true;
     end

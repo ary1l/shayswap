@@ -597,16 +597,13 @@ profile.HandleItem = function()
 end
 
 profile.HandlePrecast = function()
-    local spell = gData.GetAction();
     gFunc.EquipSet(sets.Precast);
 
     gcinclude.CheckCancels();
 end
 
 profile.HandleMidcast = function()
-    local weather = gData.GetEnvironment();
     local spell = gData.GetAction();
-    local target = gData.GetActionTarget();
 
     if (spell.Skill == 'Enhancing Magic') then
         gFunc.EquipSet(sets.Enhancing);
@@ -659,7 +656,6 @@ profile.HandleWeaponskill = function()
     else
         local ws = gData.GetAction();
         if (gcinclude.CheckBlockedAmmoWS(ws.Name) == true) then return end
-        local weather = gData.GetEnvironment();
     
         gFunc.EquipSet(sets.Ws_Default)
         if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then

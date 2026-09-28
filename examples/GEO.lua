@@ -623,7 +623,6 @@ end
 
 profile.HandleMidcast = function()
     local player = gData.GetPlayer();
-    local weather = gData.GetEnvironment();
     local spell = gData.GetAction();
     local target = gData.GetActionTarget();
     local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);

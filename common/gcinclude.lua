@@ -299,8 +299,10 @@
 function gcinclude.SetVariables()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     local mJob = 'NON';
+    gcinclude.ActiveJobId = nil;
     if (player ~= nil) then
         local mainJobId = player:GetMainJob();
+        gcinclude.ActiveJobId = mainJobId;
         mJob = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJobId) or 'NON';
     end
 
@@ -319,9 +321,6 @@ function gcinclude.SetVariables()
     gcdisplay.CreateToggle('Kite', false);
     gcdisplay.CreateToggle('TH', false);
     gcdisplay.CreateCycle('MeleeSet', {[1] = 'Default', [2] = 'Hybrid', [3] = 'Acc'});
-    if (type(gcinclude.WeaponModes) == 'table') and (#gcinclude.WeaponModes > 0) then
-        gcdisplay.CreateCycle('Weapons', gcinclude.WeaponModes);
-    end
     gcinclude.BuildWeaponCycles(mJob);
     if (type(gcinclude.DefaultWeapons) == 'string') then
         gcinclude.SetWeaponCycle('Weapons', gcinclude.DefaultWeapons, true);
@@ -419,8 +418,6 @@ end
 				gcinclude.SetWeaponCycle('Hoxne', 'Locked', true);
 				gcinclude.CheckHoxne();
 				gcinclude.UseEnchanted(gcinclude.settings.HoxneItem, 'Ammo', true);
-				toggle = 'Hoxne';
-				status = gcdisplay.GetCycle('Hoxne');
 			elseif (args[2] ~= nil) then
 				gcinclude.SetWeaponCycle('Hoxne', args[2], true);
 			else
@@ -776,8 +773,8 @@ end
 			local want = string.lower(args[i]);
 			local hit = false;
 			for _, name in ipairs(gcinclude.AllSlotNames) do
-				local n = gData.GetEquipSlot(name);
 				if (string.sub(string.lower(name), 1, string.len(want)) == want) then
+					local n = gData.GetEquipSlot(name);
 					hit = true;
 					if not slots:contains(n) then slots:append(n) end
 				end
@@ -1417,14 +1414,10 @@ end
 				end
 			end
 		end
-		local main = gcdisplay.GetCycle('Main');
-		if gcinclude.IsWeaponValue(main) then equip[1] = gcinclude.WeaponItems[string.lower(main)] or main end
-		local sub = gcdisplay.GetCycle('Sub');
-		if gcinclude.IsWeaponValue(sub) then equip[2] = gcinclude.WeaponItems[string.lower(sub)] or sub end
-		local rng = gcdisplay.GetCycle('Range');
-		if gcinclude.IsWeaponValue(rng) then equip[3] = gcinclude.WeaponItems[string.lower(rng)] or rng end
-		local ammo = gcdisplay.GetCycle('Ammo');
-		if gcinclude.IsWeaponValue(ammo) then equip[4] = gcinclude.WeaponItems[string.lower(ammo)] or ammo end
+		for slot, cname in ipairs(gcinclude.WeaponSlotNames) do
+			local v = gcdisplay.GetCycle(cname);
+			if gcinclude.IsWeaponValue(v) then equip[slot] = gcinclude.WeaponItems[string.lower(v)] or v end
+		end
 		local set = {};
 		local count = 0;
 		for slot, v in pairs(equip) do
@@ -1522,7 +1515,7 @@ end
 		local override = gcinclude.settings.EnchantDelays[name];
 		if (override == nil) then
 			for key, value in pairs(gcinclude.settings.EnchantDelays) do
-				if (string.lower(key) == string.lower(name)) then override = value end
+				if (string.lower(key) == string.lower(name)) then override = value; break end
 			end
 		end
 		if (tonumber(override) ~= nil) then return tonumber(override), 'setting' end
@@ -1828,13 +1821,9 @@ end
 
 	function gcinclude.CheckLockingRings()
 		local rings = gData.GetEquipment();
-		if (rings.Ring1 ~= nil) and (gcinclude.LockingRings:contains(rings.Ring1.Name)) then
-			local tempRing1 = rings.Ring1.Name;
-			gFunc.Equip('Ring1', tempRing1);
-		end
-		if (rings.Ring2 ~= nil) and (gcinclude.LockingRings:contains(rings.Ring2.Name)) then
-			local tempRing2 = rings.Ring2.Name;
-			gFunc.Equip('Ring2', tempRing2);
+		for _, slot in ipairs(T{'Ring1', 'Ring2'}) do
+			local r = rings[slot];
+			if (r ~= nil) and gcinclude.LockingRings:contains(r.Name) then gFunc.Equip(slot, r.Name) end
 		end
 	end
 
@@ -1854,7 +1843,7 @@ end
 			if (set ~= nil) then gFunc.EquipSet(set) end
 		end
 		-- Regen/Refresh only out of combat and never over a manual /dt; auto Dt any time.
-		if (gcdisplay.GetToggle('DTset') ~= true) and (player.Status ~= 'Engaged') and (not gcinclude.InCombat()) then
+		if (gcdisplay.GetToggle('DTset') ~= true) and (not gcinclude.InCombat()) then
 			wear('Idle_Regen', player.HPP, cfg.RegenGearHPP);
 			wear('Idle_Refresh', player.MPP, cfg.RefreshGearMPP);
 		end
@@ -1937,6 +1926,7 @@ end
 		for n = 1, #gcinclude.Rolls do
 			if gcinclude.Rolls[n][1] == roll then
 				print(chat.header('GCinclude'):append('[' .. chat.warning(roll) .. ']' .. '  [Lucky: ' .. chat.success(gcinclude.Rolls[n][2]) .. ']  [Unlucky: ' .. chat.error(gcinclude.Rolls[n][3]) .. ']'));
+				return;
 			end
 		end
 	end
@@ -2033,13 +2023,9 @@ end
 			release:once(1);
 		end
 
-		for k,v in pairs(spirits) do
-			if k == e.Day then
-				if v ~= nil then
-					spirit = v;
-					castspirit:once(3);
-				end
-			end
+		if (spirits[e.Day] ~= nil) then
+			spirit = spirits[e.Day];
+			castspirit:once(3);
 		end
 	end
 
@@ -2129,11 +2115,12 @@ end
 			AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Stoneskin" <me>');
 		end
 
+		if (action == nil) then return end
 		if (action.Name == 'Spectral Jig' and sneak ~=0) then
 			gFunc.CancelAction();
 			AshitaCore:GetChatManager():QueueCommand(-1, '/cancel Sneak');
 			do_jig:once(2);
-		elseif (action.Name == 'Sneak' and sneak ~= 0 and target.Name == me) then
+		elseif (action.Name == 'Sneak' and sneak ~= 0 and target ~= nil and target.Name == me) then
 			gFunc.CancelAction();
 			AshitaCore:GetChatManager():QueueCommand(-1, '/cancel Sneak');
 			do_sneak:once(1);
@@ -2147,14 +2134,9 @@ end
 function gcinclude.CheckDefault()
     -- Self-healing check: Rebuild toggles if the memory manager updates to a new job
     local player = AshitaCore:GetMemoryManager():GetPlayer();
-    if player ~= nil then
+    if (player ~= nil) and (gcinclude.ActiveJobId ~= nil) then
         local mainJobId = player:GetMainJob();
-        local currentJob = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJobId) or 'NON';
-        
-        -- If the memory has settled on a new job, rebuild the UI toggles
-        if currentJob ~= 'NON' and gcinclude.ActiveJob ~= nil and currentJob ~= gcinclude.ActiveJob then
-            gcinclude.SetVariables();
-        end
+        if (mainJobId ~= 0) and (mainJobId ~= gcinclude.ActiveJobId) then gcinclude.SetVariables() end
     end
 
     -- Auto Regen/Refresh/DT/Pet_Dt and Town sets count as "your sets", so they go under the engine layers

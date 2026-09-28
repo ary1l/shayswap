@@ -401,7 +401,6 @@ profile.HandleDefault = function()
 end
 
 profile.HandleAbility = function()
-    local ability = gData.GetAction();
 
     gcinclude.CheckCancels();
 end
@@ -431,8 +430,6 @@ profile.HandlePrecast = function()
 end
 
 profile.HandleMidcast = function()
-    local player = gData.GetPlayer();
-    local weather = gData.GetEnvironment();
     local spell = gData.GetAction();
     local target = gData.GetActionTarget();
     local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);

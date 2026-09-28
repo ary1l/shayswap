@@ -150,7 +150,6 @@ profile.HandleItem = function()
 end
 
 profile.HandlePrecast = function()
-    local spell = gData.GetAction();
     gFunc.EquipSet(sets.Precast);
     gcinclude.CheckCancels();
 end
