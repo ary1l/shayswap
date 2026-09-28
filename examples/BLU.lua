@@ -563,9 +563,7 @@ profile.HandleMidcast = function()
     if (ef>=1) then gFunc.EquipSet(sets.Efflux) end
     if (diff>=1) then gFunc.EquipSet(sets.Diffusion) end
     
-    if (gcinclude.BluMagTH:contains(spell.Name)) and (gcdisplay.GetToggle('TH') == true) then
-        gFunc.EquipSet(sets.TH);
-    end
+    if gcinclude.BluMagTH:contains(spell.Name) then gcinclude.CheckTH(true) end -- AoE: tags the adds too
 end
 
 profile.HandlePreshot = function()
@@ -575,7 +573,7 @@ end
 profile.HandleMidshot = function()
     gFunc.EquipSet(sets.Midshot);
 
-    if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+    gcinclude.CheckTH();
 end
 
 profile.HandleWeaponskill = function()

@@ -317,6 +317,7 @@ local sets = {
     
     },
     ['TH'] = {
+        Sub = 'Gandring', -- held while /th is on, even after the tag (a Sub swap resets TP)
 		Head = 'herculean helm',
 		Hands = 'Plun. Armlets +3',
     },
@@ -401,7 +402,7 @@ profile.HandlePrecast = function()
 end
 
 profile.HandleMidcast = function()
-    if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+    gcinclude.CheckTH();
 end
 
 profile.HandlePreshot = function()
@@ -411,7 +412,7 @@ end
 profile.HandleMidshot = function()
     gFunc.EquipSet(sets.Midshot);
     
-    if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+    gcinclude.CheckTH();
 end
 
 profile.HandleWeaponskill = function()

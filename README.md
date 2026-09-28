@@ -34,7 +34,7 @@ Full reference: `COMMANDS.md`.
   Can't dual wield (wrong subjob): uses the `_1h` version of the mode.
 - **Layers**, lowest to highest: your sets → weapons → MDT/Aminon → Hoxne → received gear → TH → buff sets → XIRoll.
 - **Automatic**: obi/Orpheus by day, weather and distance; Moonshade under 1750 TP on every WS; Holy Water
-  on Doom; food and soda; TH gear until the mob is tagged; lockstyle on load if `LockstyleSet` is set.
+  on Doom; food and soda; TH gear until the mob is tagged (TH weapons stay on while `/th` is on); lockstyle on load if `LockstyleSet` is set.
 - **Action checks**: spells, abilities and WS that would fail are cancelled before any gear moves, with the
   reason in chat. A recast back within 5s is queued and fires when ready.
 - **Holds**: `/naked` `/weaponsonly` `/abysseaproc` strip slots and keep them bare; `/capacity` `/jubilee`

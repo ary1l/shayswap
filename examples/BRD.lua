@@ -807,7 +807,7 @@ profile.HandleMidcast = function()
             gFunc.EquipSet(sets.Harp);
         end
     end
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+	gcinclude.CheckTH();
     FixSub(true);
 end
 
@@ -817,7 +817,7 @@ end
 
 profile.HandleMidshot = function()
     gFunc.EquipSet(sets.Midshot);
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+	gcinclude.CheckTH();
 end
 
 profile.HandleWeaponskill = function()
