@@ -570,13 +570,9 @@ profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
 
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-			gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet')) end
+        gcinclude.EquipMode('Tp');
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
-    elseif (player.IsMoving == true) then
-		gFunc.EquipSet(sets.Movement);
     end
 	
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
@@ -585,7 +581,7 @@ profile.HandleDefault = function()
     end
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
-	if (player.IsMoving == true) then gFunc.EquipSet(sets.Movement) end;
+    if (player.IsMoving == true) then gFunc.EquipSet(sets.Movement) end -- any status, over Dt
     gcinclude.CheckDefault ();
 end
 
@@ -688,36 +684,21 @@ profile.HandleMidshot = function()
 end
 
 profile.HandleWeaponskill = function()
-    local canWS = gcinclude.CheckWsBailout();
-    if (canWS == false) then gFunc.CancelAction() return;
-    else
-        local ws = gData.GetAction();
-    
-        gFunc.EquipSet(sets.Ws_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet')) end
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
 
-        if string.match(ws.Name, 'Black Halo') then
-            gFunc.EquipSet(sets.BH_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('BH_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Aeolian Edge') then
-            gFunc.EquipSet(sets.Aedge_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Aedge_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif (ws.Name == 'Exudation') then
-            gFunc.EquipSet(sets.Exudation_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Exudation_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif (ws.Name == 'Judgment') then
-            gFunc.EquipSet(sets.Judgment_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Judgment_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif (ws.Name == 'Shining Strike') or (ws.Name == 'Seraph Strike') then
-            gFunc.EquipSet(sets.Strike_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Strike_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
+    gcinclude.EquipMode('Ws');
+
+    if string.match(ws.Name, 'Black Halo') then
+        gcinclude.EquipMode('BH');
+    elseif string.match(ws.Name, 'Aeolian Edge') then
+        gcinclude.EquipMode('Aedge');
+    elseif (ws.Name == 'Exudation') then
+        gcinclude.EquipMode('Exudation');
+    elseif (ws.Name == 'Judgment') then
+        gcinclude.EquipMode('Judgment');
+    elseif (ws.Name == 'Shining Strike') or (ws.Name == 'Seraph Strike') then
+        gcinclude.EquipMode('Strike');
     end
 end
 

@@ -67,29 +67,7 @@ profile.Sets = sets;
 profile.Packer = {
 };
 
--- Wears the set named after an action, then its /meleeset variant. False if there is none.
-local function ByName(name)
-    local set = gcinclude.FindSet(name);
-    if (set == nil) then return false end
-    gFunc.EquipSet(set);
-    local mode = gcdisplay.GetCycle('MeleeSet');
-    if (mode ~= nil) and (mode ~= 'Default') then
-        local v = gcinclude.FindSet(name .. '_' .. mode);
-        if (v ~= nil) then gFunc.EquipSet(v) end
-    end
-    return true;
-end
-
--- 'Utsusemi: Ni' -> 'Utsusemi', 'Drain III' -> 'Drain'.
-local function Family(name)
-    local base = string.match(name, '^(.-):') or name;
-    return (string.gsub(base, ' [IVX]+$', ''));
-end
-
--- Pet actions arrive in HandleDefault (LuAshitacast: gData.GetPetAction).
-local function HandlePetAction(petAction)
-    if not ByName(petAction.Name) then gFunc.EquipSet(sets.PetAction) end
-end
+local ByName, Family = gcinclude.ByName, gcinclude.Family;
 
 profile.OnLoad = function()
     gSettings.AllowAddSet = true;
@@ -108,9 +86,9 @@ end
 
 profile.HandleDefault = function()
     local player = gData.GetPlayer();
-    local petAction = gData.GetPetAction();
+    local petAction = gData.GetPetAction(); -- pet actions arrive here, not in HandleAbility
     if (petAction ~= nil) then
-        HandlePetAction(petAction);
+        if not ByName(petAction.Name) then gFunc.EquipSet(sets.PetAction) end
         return;
     end
     gFunc.EquipSet(sets.Idle);
@@ -118,10 +96,7 @@ profile.HandleDefault = function()
         gFunc.EquipSet(sets.Idle_Pet);
     end
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default);
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet'));
-        end
+        gcinclude.EquipMode('Tp');
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -170,10 +145,7 @@ end
 profile.HandleWeaponskill = function()
     if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
     local ws = gData.GetAction();
-    gFunc.EquipSet(sets.Ws_Default);
-    if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet'));
-    end
+    gcinclude.EquipMode('Ws');
     ByName(ws.Name);
 end
 
