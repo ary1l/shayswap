@@ -83,6 +83,8 @@ Autonuke:
   during Distortion → Water V.
 - Only casts if it lands inside the window (`MBWindow` 10s; cast time is learned from your last casts),
   is castable, off recast, affordable, and you're not moving.
+- Waits out the game's delay after your own actions: 3s after a spell finishes or is interrupted,
+  2s after a WS or job ability (BG-Wiki). Its own wait ends when its cast finishes (5s if no finish is seen).
 - SCH IV/V need Addendum: Black or Enlightenment. Tier V: BLM 86, SCH 91, RDM/GEO 100 JP gift.
 - `MBCasts` (1) per chain, `MBRotate` rotates elements, `MBMinMP` holds fire.
 - Default tier `settings.MBTier = 'Mid'`; per job `gcinclude.MBTier` before `Initialize()`.
