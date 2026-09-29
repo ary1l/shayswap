@@ -42,7 +42,7 @@ gcinclude.WeaponItemMap = {
 |---|---|
 | `/def` | none → DT → MDT → Aminon → SIRD → none, one at a time (Ctrl+grave) |
 | `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set |
-| `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; combat only by default (`SIRCombatOnly`, `CombatWindow` 6s) |
+| `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
 | `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo; Locked also locks Ammo and Range |
 | `/hoxne use` | Locked, equip, wait its delay, use |
 | `/lock` | Lock Main, Sub, Ammo |

@@ -150,7 +150,6 @@
 			['Garland of Bliss'] = 'Light', ['Omniscience'] = 'Dark',
 			['Flaming Arrow'] = 'Fire', ['Hot Shot'] = 'Fire', ['Wildfire'] = 'Fire', ['Trueflight'] = 'Light', ['Leaden Salute'] = 'Dark',
 		};
-		SIRCombatOnly = true; -- /sir only while in combat (engaged, or hit/acted within CombatWindow)
 		CombatWindow = 6; -- seconds; Selindrile uses 6
 		SIRSkip = T{}; -- spell names /sir leaves alone, e.g. T{'Phalanx','Reprisal'}
 		HoxneItem = 'Hoxne Ampulla'; -- what the Hoxne states keep in your ammo slot
@@ -1646,7 +1645,6 @@ end
 		if (gcdisplay.GetToggle('SIR') ~= true) then return end
 		local action = gData.GetAction();
 		if (action == nil) then return end
-		if (gcinclude.settings.SIRCombatOnly == true) and (not gcinclude.InCombat()) then return end
 		local skip = gcinclude.SIRSkip or gcinclude.settings.SIRSkip; -- job file may set gcinclude.SIRSkip
 		if (type(skip) == 'table') and (skip:contains(action.Name)) then return end
 		local set = gcinclude.FindSet('SIR');
