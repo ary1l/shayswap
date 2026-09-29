@@ -642,14 +642,27 @@ local sets = {
 };
 profile.Sets = sets;
 
--- No Dual Wield (sub not NIN/DNC): casting or not engaged = Ammurapi Shield, engaged = Genmei Shield.
-local function FixSub(casting)
+-- No Dual Wield (sub not NIN/DNC): engaged = Genmei Shield, casting or not engaged = Ammurapi Shield.
+local function FixSub(engaged)
     if gcinclude.CanDualWield() then return end
-    local player = gData.GetPlayer();
-    if (not casting) and (player ~= nil) and (player.Status == 'Engaged') then
-        gFunc.Equip('Sub', 'Genmei Shield');
+    gFunc.Equip('Sub', engaged and 'Genmei Shield' or 'Ammurapi Shield');
+end
+
+-- /songlock: enemy songs keep main/sub (no TP loss), instruments still swap in Range.
+-- Buff songs always swap for full potency/duration. BG-Wiki Category:Enfeebling Songs.
+local EnemySongs = T{'Requiem', 'Lullaby', 'Elegy', 'Finale', 'Threnody', 'Nocturne', 'Virelai'};
+local function IsEnemySong(name)
+    for _, v in ipairs(EnemySongs) do
+        if string.contains(name, v) then return true end
+    end
+    return false;
+end
+local function SongWeapons(spell)
+    if (spell.Skill == 'Singing') and (gcdisplay.GetToggle('SongLock') == true) and IsEnemySong(spell.Name) then
+        gFunc.Equip('Main', 'ignore');
+        gFunc.Equip('Sub', 'ignore');
     else
-        gFunc.Equip('Sub', 'Ammurapi Shield');
+        FixSub(false);
     end
 end
 
@@ -674,9 +687,7 @@ profile.HandleDefault = function()
 	
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-			gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet')) end
+        gcinclude.EquipMode('Tp');
 	elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -686,7 +697,7 @@ profile.HandleDefault = function()
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
-    FixSub(false);
+    FixSub(player.Status == 'Engaged');
     gcinclude.CheckDefault ();
 end
     
@@ -702,7 +713,7 @@ profile.HandleAbility = function()
     end
 
     gcinclude.CheckCancels();
-    FixSub(false);
+    FixSub(gData.GetPlayer().Status == 'Engaged');
 end
 
 profile.HandleItem = function()
@@ -734,14 +745,11 @@ profile.HandlePrecast = function()
         end
 
     gcinclude.CheckCancels();
-    FixSub(true);
+    SongWeapons(spell);
 end
 
 profile.HandleMidcast = function()
-    local weather = gData.GetEnvironment();
     local spell = gData.GetAction();
-    local target = gData.GetActionTarget();
-    local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);
 
     if (spell.Skill == 'Enhancing Magic') then
         gFunc.EquipSet(sets.Enhancing);
@@ -757,7 +765,7 @@ profile.HandleMidcast = function()
         end
     elseif (spell.Skill == 'Healing Magic') then
         gFunc.EquipSet(sets.Cure);
-        if (target.Name == me) then
+        if (gData.GetActionTarget().Name == AshitaCore:GetMemoryManager():GetParty():GetMemberName(0)) then
             gFunc.EquipSet(sets.Self_Cure);
         end
         if string.match(spell.Name, 'Cursna') then
@@ -810,8 +818,8 @@ profile.HandleMidcast = function()
             gFunc.EquipSet(sets.Harp);
         end
     end
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
-    FixSub(true);
+	gcinclude.CheckTH();
+    SongWeapons(spell);
 end
 
 profile.HandlePreshot = function()
@@ -820,38 +828,27 @@ end
 
 profile.HandleMidshot = function()
     gFunc.EquipSet(sets.Midshot);
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+	gcinclude.CheckTH();
 end
 
 profile.HandleWeaponskill = function()
-    local canWS = gcinclude.CheckWsBailout();
-    if (canWS == false) then gFunc.CancelAction() return;
-    else
-        local ws = gData.GetAction();
-    
-        gFunc.EquipSet(sets.Ws_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet')) end
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
+
+    gcinclude.EquipMode('Ws');
    
-           if string.match(ws.Name, 'Mordant Rime') then
-            gFunc.EquipSet(sets.Mordant_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Mordant_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
-		
-		if string.match(ws.Name, 'Ruthless Stroke') then
-            gFunc.EquipSet(sets.Ruthless_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Ruthless_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
-   
-        if string.match(ws.Name, 'Savage Blade') then
-            gFunc.EquipSet(sets.Savage_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Savage_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
+       if string.match(ws.Name, 'Mordant Rime') then
+        gcinclude.EquipMode('Mordant');
     end
-    FixSub(false);
+	
+	if string.match(ws.Name, 'Ruthless Stroke') then
+        gcinclude.EquipMode('Ruthless');
+    end
+   
+    if string.match(ws.Name, 'Savage Blade') then
+        gcinclude.EquipMode('Savage');
+    end
+    FixSub(gData.GetPlayer().Status == 'Engaged');
 end
 
 return profile;

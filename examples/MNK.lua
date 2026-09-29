@@ -249,17 +249,12 @@ end
 
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
-    local impetus = gcinclude.BuffCount('Impetus');
-    local footwork = gcinclude.BuffCount('Footwork');
-	
 	local player = gData.GetPlayer();
     
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default);
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet')) end
-        if (impetus >= 1) then gFunc.EquipSet(sets.Impetus) end
-        if (footwork >= 1) then gFunc.EquipSet(sets.Footwork) end
+        gcinclude.EquipMode('Tp');
+        if (gcinclude.BuffCount('Impetus') > 0) then gFunc.EquipSet(sets.Impetus) end
+        if (gcinclude.BuffCount('Footwork') > 0) then gFunc.EquipSet(sets.Footwork) end
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -293,15 +288,13 @@ profile.HandleItem = function()
 end
 
 profile.HandlePrecast = function()
-    local spell = gData.GetAction();
     gFunc.EquipSet(sets.Precast);
 
     gcinclude.CheckCancels();
 end
 
 profile.HandleMidcast = function()
-    local spell = gData.GetAction();
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+	gcinclude.CheckTH();
 end
 
 profile.HandlePreshot = function()
@@ -310,38 +303,26 @@ end
 
 profile.HandleMidshot = function()
     gFunc.EquipSet(sets.Midshot);
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+	gcinclude.CheckTH();
 end
 
 profile.HandleWeaponskill = function()
-    local canWS = gcinclude.CheckWsBailout();
-    if (canWS == false) then gFunc.CancelAction() return;
-    else
-        local ws = gData.GetAction();
-        local impetus = gcinclude.BuffCount('Impetus');
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
 
-        gFunc.EquipSet(sets.Ws_Default)
+    gcinclude.EquipMode('Ws');
+
+    if string.match(ws.Name, 'Victory Smite') then
+        gFunc.EquipSet(sets.Victory_Default)
+        if (gcinclude.BuffCount('Impetus') > 0) then gFunc.EquipSet(sets.Victory_Imp) end
         if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet')) end
-
-	    if string.match(ws.Name, 'Victory Smite') then
-            gFunc.EquipSet(sets.Victory_Default)
-            if impetus > 0 then gFunc.EquipSet('Victory_Imp'); end
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Victory_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Shijin Spiral') then
-            gFunc.EquipSet(sets.Shijin_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Shijin_' .. gcdisplay.GetCycle('MeleeSet')); end
-		elseif string.match(ws.Name, 'Dragon Kick') or string.match(ws.Name, 'Tornado Kick') then
-            gFunc.EquipSet(sets.kickws_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('kickws_' .. gcdisplay.GetCycle('MeleeSet')); end
-		elseif string.match(ws.Name, 'Howling Fist') then
-            gFunc.EquipSet(sets.Howling_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Howling_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
+        gFunc.EquipSet('Victory_' .. gcdisplay.GetCycle('MeleeSet')); end
+    elseif string.match(ws.Name, 'Shijin Spiral') then
+        gcinclude.EquipMode('Shijin');
+	elseif string.match(ws.Name, 'Dragon Kick') or string.match(ws.Name, 'Tornado Kick') then
+        gcinclude.EquipMode('kickws');
+	elseif string.match(ws.Name, 'Howling Fist') then
+        gcinclude.EquipMode('Howling');
     end
 end
 

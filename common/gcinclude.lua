@@ -122,7 +122,7 @@
 		AutoSoda = false; -- /autosoda: keep Regain up with SodaItem
 		SodaItem = 'Frontier Soda';
 		ConsumableMaxTries = 2; -- AutoSoda disarms after this many tries without Regain showing up
-		AutoNuke = false; -- /autonuke (or /mbmode Auto): cast into live skillchains on your target (RDM/BLM/SCH/GEO). Sync's logic.
+		AutoNuke = false; -- /autonuke (or /mbmode Auto): cast into live skillchains on your target or a mob your party is engaged on (RDM/BLM/SCH/GEO). Sync's logic.
 		MBCasts = 1; -- bursts per chain (sync: count)
 		MBRotate = false; -- spread bursts across the chain's elements (sync: rotate)
 		MBMinMP = 0; -- hold fire below this MP (sync: mp)
@@ -150,7 +150,6 @@
 			['Garland of Bliss'] = 'Light', ['Omniscience'] = 'Dark',
 			['Flaming Arrow'] = 'Fire', ['Hot Shot'] = 'Fire', ['Wildfire'] = 'Fire', ['Trueflight'] = 'Light', ['Leaden Salute'] = 'Dark',
 		};
-		SIRCombatOnly = true; -- /sir only while in combat (engaged, or hit/acted within CombatWindow)
 		CombatWindow = 6; -- seconds; Selindrile uses 6
 		SIRSkip = T{}; -- spell names /sir leaves alone, e.g. T{'Phalanx','Reprisal'}
 		HoxneItem = 'Hoxne Ampulla'; -- what the Hoxne states keep in your ammo slot
@@ -193,7 +192,7 @@
 	end
 
 	gcinclude.AliasList = T{'gcmessages','wsdistance','setcycle','dt','mdt','th','kite','meleeset','gcdrain','gcaspir','nukeset','burst','automb','autonuke','weapon','elecycle','helix','weather','nuke','death','sir','tankset','proc',
-	'pupmode','weaponset','wm','mainset','subset','rangeset','ammoset','autofood','autosoda','revit','holywater','aminon','gchud','lock','unlock','hoxne','gchelp','gckey','def','mbmode','received','gcinfo','gce','xiroll','checksets','smartswap','autogear','gcbar','mbinfo','cormsg','forcestring','siphon','warpring','mea','holla','dem','rrset','craftset','zeniset','fishset','mbtier',
+	'pupmode','weaponset','wm','mainset','subset','rangeset','ammoset','autofood','autosoda','revit','holywater','aminon','gchud','lock','unlock','hoxne','gchelp','gckey','def','mbmode','received','gcinfo','gce','xiroll','checksets','smartswap','autogear','gcbar','mbinfo','cormsg','forcestring','songlock','siphon','warpring','mea','holla','dem','rrset','craftset','zeniset','fishset','mbtier',
 	'gctrace','naked','weaponsonly','abysseaproc','capacity','jubilee','gcstyle'};
 	-- Exit/use-on-self items: key = /command, value = exact /item name. Add a line, /lac reload.
 	gcinclude.ExitItems = {
@@ -208,6 +207,7 @@
 	gcinclude.DistanceWS = T{'Flaming Arrow','Piercing Arrow','Dulling Arrow','Sidewinder','Blast Arrow','Arching Arrow','Empyreal Arrow','Refulgent Arrow','Apex Arrow','Namas Arrow','Jishnu\'s Radiance','Hot Shot','Split Shot','Sniper Shot','Slug Shot','Blast Shot','Heavy Shot','Detonator','Numbing Shot','Last Stand','Coronach','Wildfire','Trueflight','Leaden Salute','Myrkr','Dagan','Moonlight','Starlight','Mistral Axe','Bora Axe','Sarv','Terminus'};
 	gcinclude.NoAmmoWS = T{'Myrkr','Dagan','Moonlight','Starlight','Mistral Axe','Bora Axe'};
 	gcinclude.BluMagDebuff = T{'Filamented Hold','Cimicine Discharge','Demoralizing Roar','Venom Shell','Light of Penance','Sandspray','Auroral Drape','Frightful Roar','Enervation','Infrasonics','Lowing','Cold Wave','Awful Eye','Voracious Trunk','Sheep Song','Soporific','Yawn','Dream Flower','Chaotic Eye','Sound Blast','Blank Gaze','Stinking Gas','Geist Wall','Feather Tickle','Reaving Wind','Mortal Ray','Absolute Terror','Blistering Roar','Cruel Joke'};
+	gcinclude.BluMagPhysical = T{'Foot Kick','Power Attack','Sprout Smack','Wild Oats','Queasyshroom','Battle Dance','Head Butt','Feather Storm','Helldive','Bludgeon','Claw Cyclone','Screwdriver','Grand Slam','Smite of Rage','Pinecone Bomb','Jet Stream','Uppercut','Terror Touch','Mandibular Bite','Sickle Slash','Death Scissors','Dimensional Death','Spiral Spin','Seedspray','Body Slam','Spinal Cleave','Frenetic Rip','Frypan','Hydro Shot','Tail Slap','Hysteric Barrage','Cannonball','Asuran Claws','Disseverment','Sub-zero Smash','Ram Charge','Vertical Cleave','Final Sting','Goblin Rush','Vanity Dive','Whirl of Rage','Benthic Typhoon','Quad. Continuum','Empty Thrash','Delta Thrust','Heavy Strike','Sudden Lunge','Quadrastrike','Tourbillion','Amorphic Spikes','Barbed Crescent','Paralyzing Triad','Glutinous Dart','Thrashing Assault','Sinker Drill','Sweeping Gouge','Saurian Slide','Bilgestorm','Bloodrake'};
 	gcinclude.BluMagStun = T{'Head Butt','Frypan','Tail Slap','Sub-zero Smash','Sudden Lunge'};
 	gcinclude.BluMagBuff = T{'Cocoon','Refueling','Feather Barrier','Memento Mori','Zephyr Mantle','Warm-Up','Amplification','Triumphant Roar','Saline Coat','Reactor Cool','Plasma Charge','Regeneration','Animating Wail','Battery Charge','Winds of Promy.','Barrier Tusk','Orcish Counterstance','Pyric Bulwark','Nat. Meditation','Restoral','Erratic Flutter','Carcharian Verve','Harden Shell','Mighty Guard'};
 	gcinclude.BluMagSkill = T{'Metallic Body','Diamondhide','Magic Barrier','Occultation','Atra. Libations'};
@@ -299,13 +299,12 @@
 function gcinclude.SetVariables()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     local mJob = 'NON';
+    gcinclude.ActiveJobId = nil;
     if (player ~= nil) then
         local mainJobId = player:GetMainJob();
+        gcinclude.ActiveJobId = mainJobId;
         mJob = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJobId) or 'NON';
     end
-
-    -- Track the job we are building variables for
-    gcinclude.ActiveJob = mJob;
 
     gcinclude.UnlockSlots(nil);
     gcinclude.UnlockWeapons();
@@ -319,9 +318,6 @@ function gcinclude.SetVariables()
     gcdisplay.CreateToggle('Kite', false);
     gcdisplay.CreateToggle('TH', false);
     gcdisplay.CreateCycle('MeleeSet', {[1] = 'Default', [2] = 'Hybrid', [3] = 'Acc'});
-    if (type(gcinclude.WeaponModes) == 'table') and (#gcinclude.WeaponModes > 0) then
-        gcdisplay.CreateCycle('Weapons', gcinclude.WeaponModes);
-    end
     gcinclude.BuildWeaponCycles(mJob);
     if (type(gcinclude.DefaultWeapons) == 'string') then
         gcinclude.SetWeaponCycle('Weapons', gcinclude.DefaultWeapons, true);
@@ -363,6 +359,7 @@ function gcinclude.SetVariables()
     end
     if (mJob == 'BRD') then
         gcdisplay.CreateToggle('String', false);
+        gcdisplay.CreateToggle('SongLock', false);
     end
     gcdisplay.MarkDefaults();
 end
@@ -419,8 +416,6 @@ end
 				gcinclude.SetWeaponCycle('Hoxne', 'Locked', true);
 				gcinclude.CheckHoxne();
 				gcinclude.UseEnchanted(gcinclude.settings.HoxneItem, 'Ammo', true);
-				toggle = 'Hoxne';
-				status = gcdisplay.GetCycle('Hoxne');
 			elseif (args[2] ~= nil) then
 				gcinclude.SetWeaponCycle('Hoxne', args[2], true);
 			else
@@ -591,6 +586,10 @@ end
 				gcdisplay.AdvanceToggle('String');
 				toggle = 'BRD Forced Harp';
 				status = gcdisplay.GetToggle('String');
+			elseif (args[1] == 'songlock') then
+				gcdisplay.AdvanceToggle('SongLock');
+				toggle = 'BRD Song Lock';
+				status = gcdisplay.GetToggle('SongLock');
 			end
 		end
 		if (player.MainJob == 'COR') then
@@ -776,8 +775,8 @@ end
 			local want = string.lower(args[i]);
 			local hit = false;
 			for _, name in ipairs(gcinclude.AllSlotNames) do
-				local n = gData.GetEquipSlot(name);
 				if (string.sub(string.lower(name), 1, string.len(want)) == want) then
+					local n = gData.GetEquipSlot(name);
 					hit = true;
 					if not slots:contains(n) then slots:append(n) end
 				end
@@ -938,8 +937,9 @@ end
 	function gcinclude.HoldActive()
 		local guard = gcinclude.settings.WeaponTPGuard or 0;
 		if (guard <= 0) then return false end
-		local player = gData.GetPlayer();
-		return (player ~= nil) and (player.Status == 'Engaged') and (player.TP >= guard);
+		local mm = AshitaCore:GetMemoryManager();
+		local party = mm:GetParty();
+		return (party:GetMemberTP(0) >= guard) and (mm:GetEntity():GetStatus(party:GetMemberTargetIndex(0)) == 1); -- 1 = Engaged (LAC EntityStatus)
 	end
 
 	function gcinclude.UpdateHold()
@@ -1103,10 +1103,6 @@ end
 		for i = 2, #args do words:append(args[i]) end
 		if (#words == 0) then return end
 		gcinclude.StartReceived(table.concat(words, ' '));
-	end
-
-	function gcinclude.WearReceived(spellName)
-		gcinclude.StartReceived(spellName);
 	end
 
 	function gcinclude.CheckReceived()
@@ -1381,10 +1377,36 @@ end
 		return setIndex[string.lower(name)];
 	end
 
+	-- Job-file helpers.
+	-- Wears <prefix>_Default, then <prefix>_<mode> when /meleeset is not Default.
+	function gcinclude.EquipMode(prefix)
+		gFunc.EquipSet(gProfile.Sets[prefix .. '_Default']);
+		local mode = gcdisplay.GetCycle('MeleeSet');
+		if (mode ~= 'Default') then local n = prefix .. '_' .. mode; gFunc.EquipSet(gcinclude.FindSet(n) or n) end -- index, not LAC's scan of every set
+	end
+
+	-- Wears the set named after an action, then its /meleeset variant. False if there is none.
+	function gcinclude.ByName(name)
+		local set = gcinclude.FindSet(name);
+		if (set == nil) then return false end
+		gFunc.EquipSet(set);
+		local mode = gcdisplay.GetCycle('MeleeSet');
+		if (mode ~= nil) and (mode ~= 'Default') then
+			local v = gcinclude.FindSet(name .. '_' .. mode);
+			if (v ~= nil) then gFunc.EquipSet(v) end
+		end
+		return true;
+	end
+
+	-- 'Utsusemi: Ni' -> 'Utsusemi', 'Drain III' -> 'Drain'.
+	function gcinclude.Family(name)
+		local base = string.match(name, '^(.-):') or name;
+		return (string.gsub(base, ' [IVX]+$', ''));
+	end
+
 	function gcinclude.CanDualWield()
 		if (gcinclude.AlwaysDualWield == true) then return true end
-		local player = gData.GetPlayer();
-		local sub = (player ~= nil) and player.SubJob or nil;
+		local sub = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', AshitaCore:GetMemoryManager():GetPlayer():GetSubJob());
 		if (sub == nil) or (sub == '') or (sub == 'NON') then
 			return (gcinclude.LastDualWield == true);
 		end
@@ -1412,27 +1434,27 @@ end
 				for k, v in pairs(set) do
 					local slot = gData.GetEquipSlot(k);
 					if gcinclude.WeaponSlots:contains(slot) then
-						equip[slot] = v;
+						equip[gcinclude.WeaponSlotNames[slot]] = v;
 					end
 				end
 			end
 		end
-		local main = gcdisplay.GetCycle('Main');
-		if gcinclude.IsWeaponValue(main) then equip[1] = gcinclude.WeaponItems[string.lower(main)] or main end
-		local sub = gcdisplay.GetCycle('Sub');
-		if gcinclude.IsWeaponValue(sub) then equip[2] = gcinclude.WeaponItems[string.lower(sub)] or sub end
-		local rng = gcdisplay.GetCycle('Range');
-		if gcinclude.IsWeaponValue(rng) then equip[3] = gcinclude.WeaponItems[string.lower(rng)] or rng end
-		local ammo = gcdisplay.GetCycle('Ammo');
-		if gcinclude.IsWeaponValue(ammo) then equip[4] = gcinclude.WeaponItems[string.lower(ammo)] or ammo end
-		local set = {};
-		local count = 0;
-		for slot, v in pairs(equip) do
-			set[gcinclude.WeaponSlotNames[slot]] = v;
-			count = count + 1;
+		for _, cname in ipairs(gcinclude.WeaponSlotNames) do
+			local v = gcdisplay.GetCycle(cname);
+			if gcinclude.IsWeaponValue(v) then equip[cname] = gcinclude.WeaponItems[string.lower(v)] or v end
 		end
-		if (count == 0) then return nil end
-		return set;
+		-- Main/Sub/Range in the TH set stay on while /th is on, tagged or not: swapping them resets TP.
+		-- Sub only when you can dual wield; otherwise it is dropped (CheckTH skips it too).
+		if (gcdisplay.GetToggle('TH') == true) then
+			local th = gcinclude.FindSet('TH');
+			if (th ~= nil) then
+				for k, v in pairs(th) do
+					local slot = gData.GetEquipSlot(k);
+					if gcinclude.HoldSlots:contains(slot) and ((slot ~= 2) or gcinclude.CanDualWield()) then equip[gcinclude.WeaponSlotNames[slot]] = v end
+				end
+			end
+		end
+		return (next(equip) ~= nil) and equip or nil;
 	end
 
 	function gcinclude.ApplyWeapons(force)
@@ -1451,17 +1473,35 @@ end
 	function gcinclude.DoMoonshade() end
 	function gcinclude.GetWeaponSet(mode) return gcinclude.FindSet('Weapon_' .. mode) end
 
-	function gcinclude.CheckTH()
+	-- TH gear until the action's target (else the selected one) is tagged; none for an action on you or an
+	-- ally. force skips both checks (AoE TH spells, which can be self-targeted). Main/Sub/Range are left to BuildWeaponLayer, so they don't come off at the tag. The TH set
+	-- minus those slots is built once per set table (the set itself when it has none, so /gctrace names it).
+	local thGear, thGearOf = nil, nil;
+	function gcinclude.CheckTH(force)
 		if (gcdisplay.GetToggle('TH') ~= true) then return end
 		local set = gcinclude.FindSet('TH');
 		if (set == nil) then return end
-		if (gcauto ~= nil) and (gcauto.IsTagged ~= nil) then
-			local target = gData.GetTarget();
-			if (target ~= nil) and (target.Type == 'Monster') and gcauto.IsTagged(target.Id) then
+		if (force ~= true) then
+			local action = gData.GetActionTarget();
+			if (action ~= nil) and (action.Type ~= 'Monster') then return end
+			local target = action or gData.GetTarget();
+			if (target ~= nil) and (target.Type == 'Monster') and (gcauto ~= nil) and (gcauto.IsTagged ~= nil) and gcauto.IsTagged(target.Id) then
 				return;
 			end
 		end
-		gFunc.EquipSet(set);
+		if (thGearOf ~= set) then
+			thGear, thGearOf = set, set;
+			for k, _ in pairs(set) do
+				if gcinclude.HoldSlots:contains(gData.GetEquipSlot(k)) then
+					thGear = {};
+					for k2, v2 in pairs(set) do
+						if not gcinclude.HoldSlots:contains(gData.GetEquipSlot(k2)) then thGear[k2] = v2 end
+					end
+					break;
+				end
+			end
+		end
+		gFunc.EquipSet(thGear);
 	end
 
 	gcinclude.HoxneOwned = T{};
@@ -1522,7 +1562,7 @@ end
 		local override = gcinclude.settings.EnchantDelays[name];
 		if (override == nil) then
 			for key, value in pairs(gcinclude.settings.EnchantDelays) do
-				if (string.lower(key) == string.lower(name)) then override = value end
+				if (string.lower(key) == string.lower(name)) then override = value; break end
 			end
 		end
 		if (tonumber(override) ~= nil) then return tonumber(override), 'setting' end
@@ -1581,6 +1621,7 @@ end
 			'weapons: /wm [name|N|none|default|role] [force], /mainset /subset /rangeset /ammoset',
 			'defense: /def (cycle DT > MDT > Aminon > SIRD > none), /dt /mdt /aminon /sir, /lock [slots] /unlock [slots]',
 			'hoxne  : /hoxne (Off > On > Locked)',
+			'toggles: /th (TH gear until the target is tagged; TH-set weapons while on), /kite, /meleeset (Default > Hybrid > Acc)',
 			'auto   : /autofood [on|off], /autosoda [on|off], /revit [on|off], /holywater [on|off]',
 			'hud    : /gchud [on|off|pos x y|debug]',
 			'checks : /checksets, /xiroll, /mbinfo',
@@ -1604,7 +1645,6 @@ end
 		if (gcdisplay.GetToggle('SIR') ~= true) then return end
 		local action = gData.GetAction();
 		if (action == nil) then return end
-		if (gcinclude.settings.SIRCombatOnly == true) and (not gcinclude.InCombat()) then return end
 		local skip = gcinclude.SIRSkip or gcinclude.settings.SIRSkip; -- job file may set gcinclude.SIRSkip
 		if (type(skip) == 'table') and (skip:contains(action.Name)) then return end
 		local set = gcinclude.FindSet('SIR');
@@ -1634,8 +1674,8 @@ end
 		return gcauto.BurstLive(target.Id, spell.Element, landsAt);
 	end
 
-	function gcinclude.InCombat()
-		local player = gData.GetPlayer();
+	function gcinclude.InCombat(player)
+		player = player or gData.GetPlayer();
 		if (player ~= nil) and (player.Status == 'Engaged') then return true end
 		return (gcauto ~= nil) and (gcauto.InCombat ~= nil) and gcauto.InCombat();
 	end
@@ -1668,7 +1708,7 @@ end
 		end
 	end
 
-	function gcinclude.CheckWeapons()
+	function gcinclude.CheckWeapons(player)
 		local set = gcinclude.BuildWeaponLayer();
 		if (set ~= nil) then gFunc.EquipSet(set) end
 		gcinclude.CheckMDT();
@@ -1676,7 +1716,7 @@ end
 		gcinclude.CheckTH();
 		gcinclude.CheckReceived();
 		gcinclude.CheckBuffSets();
-		gcinclude.CheckXIRoll();
+		gcinclude.CheckXIRoll(player);
 	end
 
 	function gcinclude.IsBlockedAmmo(name)
@@ -1729,8 +1769,8 @@ end
 	end
 
 	-- Idle only: never over melee (engaged) or resting gear.
-	function gcinclude.CheckXIRoll()
-		local player = gData.GetPlayer();
+	function gcinclude.CheckXIRoll(player)
+		player = player or gData.GetPlayer();
 		if (player == nil) or (player.Status ~= 'Idle') then return end
 		if not gcinclude.XIRollActive() then return end
 		local set = gcinclude.FindSet('XIRoll') or gcinclude.settings.XIRollSet;
@@ -1826,35 +1866,30 @@ end
 		return 0;
 	end
 
+	-- Ring1/Ring2 only (slots 14/15), read the way LAC's gData.GetEquipment does, without its 16-slot walk.
 	function gcinclude.CheckLockingRings()
-		local rings = gData.GetEquipment();
-		if (rings.Ring1 ~= nil) and (gcinclude.LockingRings:contains(rings.Ring1.Name)) then
-			local tempRing1 = rings.Ring1.Name;
-			gFunc.Equip('Ring1', tempRing1);
-		end
-		if (rings.Ring2 ~= nil) and (gcinclude.LockingRings:contains(rings.Ring2.Name)) then
-			local tempRing2 = rings.Ring2.Name;
-			gFunc.Equip('Ring2', tempRing2);
+		for slot = 14, 15 do
+			local item = gEquip.GetCurrentEquip(slot).Item;
+			local res = (item ~= nil) and AshitaCore:GetResourceManager():GetItemById(item.Id) or nil;
+			if (res ~= nil) and gcinclude.LockingRings:contains(res.Name[1]) then gFunc.Equip(slot, res.Name[1]) end
 		end
 	end
 
 	function gcinclude.SetTownGear()
-		local zone = gData.GetEnvironment();
-		if (zone.Area ~= nil) and (gcinclude.Towns:contains(zone.Area)) then local t = gcinclude.FindSet('Town'); if (t ~= nil) then gFunc.EquipSet(t) end end
+		local area = AshitaCore:GetResourceManager():GetString('zones.names', AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0));
+		if (area ~= nil) and gcinclude.Towns:contains(area) then local t = gcinclude.FindSet('Town'); if (t ~= nil) then gFunc.EquipSet(t) end end
 	end
 
-	function gcinclude.SetRegenRefreshGear()
+	function gcinclude.SetRegenRefreshGear(player)
 		local cfg = gcinclude.settings;
 		if (cfg.AutoGear == false) then return end
-		local player = gData.GetPlayer();
-		if (player == nil) then return end
 		local function wear(name, pct, limit)
 			if ((limit or 0) <= 0) or (pct == nil) or (pct >= limit) then return end
 			local set = gcinclude.FindSet(name);
 			if (set ~= nil) then gFunc.EquipSet(set) end
 		end
 		-- Regen/Refresh only out of combat and never over a manual /dt; auto Dt any time.
-		if (gcdisplay.GetToggle('DTset') ~= true) and (player.Status ~= 'Engaged') and (not gcinclude.InCombat()) then
+		if (gcdisplay.GetToggle('DTset') ~= true) and (not gcinclude.InCombat(player)) then
 			wear('Idle_Regen', player.HPP, cfg.RegenGearHPP);
 			wear('Idle_Refresh', player.MPP, cfg.RefreshGearMPP);
 		end
@@ -1937,6 +1972,7 @@ end
 		for n = 1, #gcinclude.Rolls do
 			if gcinclude.Rolls[n][1] == roll then
 				print(chat.header('GCinclude'):append('[' .. chat.warning(roll) .. ']' .. '  [Lucky: ' .. chat.success(gcinclude.Rolls[n][2]) .. ']  [Unlucky: ' .. chat.error(gcinclude.Rolls[n][3]) .. ']'));
+				return;
 			end
 		end
 	end
@@ -2033,13 +2069,9 @@ end
 			release:once(1);
 		end
 
-		for k,v in pairs(spirits) do
-			if k == e.Day then
-				if v ~= nil then
-					spirit = v;
-					castspirit:once(3);
-				end
-			end
+		if (spirits[e.Day] ~= nil) then
+			spirit = spirits[e.Day];
+			castspirit:once(3);
 		end
 	end
 
@@ -2129,11 +2161,12 @@ end
 			AshitaCore:GetChatManager():QueueCommand(-1, '/ma "Stoneskin" <me>');
 		end
 
+		if (action == nil) then return end
 		if (action.Name == 'Spectral Jig' and sneak ~=0) then
 			gFunc.CancelAction();
 			AshitaCore:GetChatManager():QueueCommand(-1, '/cancel Sneak');
 			do_jig:once(2);
-		elseif (action.Name == 'Sneak' and sneak ~= 0 and target.Name == me) then
+		elseif (action.Name == 'Sneak' and sneak ~= 0 and target ~= nil and target.Name == me) then
 			gFunc.CancelAction();
 			AshitaCore:GetChatManager():QueueCommand(-1, '/cancel Sneak');
 			do_sneak:once(1);
@@ -2147,21 +2180,17 @@ end
 function gcinclude.CheckDefault()
     -- Self-healing check: Rebuild toggles if the memory manager updates to a new job
     local player = AshitaCore:GetMemoryManager():GetPlayer();
-    if player ~= nil then
+    if (player ~= nil) and (gcinclude.ActiveJobId ~= nil) then
         local mainJobId = player:GetMainJob();
-        local currentJob = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", mainJobId) or 'NON';
-        
-        -- If the memory has settled on a new job, rebuild the UI toggles
-        if currentJob ~= 'NON' and gcinclude.ActiveJob ~= nil and currentJob ~= gcinclude.ActiveJob then
-            gcinclude.SetVariables();
-        end
+        if (mainJobId ~= 0) and (mainJobId ~= gcinclude.ActiveJobId) then gcinclude.SetVariables() end
     end
 
     -- Auto Regen/Refresh/DT/Pet_Dt and Town sets count as "your sets", so they go under the engine layers
-    -- (README layer order: your sets -> weapons -> mdt/Aminon -> Hoxne -> received -> TH -> buffs -> XIRoll).
-    gcinclude.SetRegenRefreshGear();
+    -- (README layer order: your sets -> weapons (+ TH weapons while /th is on) -> mdt/Aminon -> Hoxne -> TH -> received -> buffs -> XIRoll).
+    local me = gData.GetPlayer(); -- one read for the auto sets, the combat check and XIRoll
+    gcinclude.SetRegenRefreshGear(me);
     gcinclude.SetTownGear();
-    gcinclude.CheckWeapons();
+    gcinclude.CheckWeapons(me);
     gcinclude.CheckCommonDebuffs();
     gcinclude.CheckLockingRings();
     for _, cmd in ipairs({'craftset', 'zeniset', 'fishset', 'rrset'}) do
@@ -2226,7 +2255,7 @@ end
 		gcinclude.SetVariables();
 		gcinclude.SetAlias();
 		gcinclude.ApplyKeybinds();
-		if (gcauto ~= nil) then gcauto.OnIncomingCast = gcinclude.WearReceived end
+		if (gcauto ~= nil) then gcauto.OnIncomingCast = gcinclude.StartReceived end
 		gcinclude.ApplyLockstyle();
 		gcauto.Start();
 		ashita.events.register('d3d_present', 'gcinclude_tphold', gcinclude.HoldTick);
