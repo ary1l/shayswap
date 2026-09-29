@@ -4,6 +4,14 @@ local inc = nil;
 local disp = nil;
 local nextTick = 0;
 local busyUntil = 0;
+local nukeSent = false; -- busyUntil is an auto nuke's fallback hold; its finish/interrupt packet ends it
+-- Forced delay after my own actions, counted from the finish packet. BG-Wiki (Forced Delay, Casting
+-- Time Gauge): 3s after a spell finishes, 2s after a WS or job ability; FFXIclopedia (Chainspell):
+-- "approximate 2.5 - 3 second". Too soon gets "Unable to cast spells at this time." No source gives an
+-- interrupted cast's delay, so it gets the spell's 3s. Items: no source, so no delay is added.
+local lockUntil = 0;
+local LOCK = { [3] = 2.0, [4] = 3.0, [6] = 2.0, [14] = 2.0, [15] = 2.0 };
+local SPELL_LOCK = 3.0;
 local warned = {};
 local seen = {};
 
@@ -55,9 +63,10 @@ end
 
 gcauto.ItemCount = item_count;
 
-local function queue(cmd, hold)
-    AshitaCore:GetChatManager():QueueCommand(-1, cmd);
+local function queue(cmd, hold, mode)
+    AshitaCore:GetChatManager():QueueCommand(mode or -1, cmd);
     busyUntil = os.clock() + hold;
+    nukeSent = false;
 end
 
 local function food_list()
@@ -121,9 +130,8 @@ local function check_soda(player, now)
     return true;
 end
 
+-- Called by tick only while AutoHolyWater is on and Doom is up.
 local function check_doom(player)
-    if (inc.settings.AutoHolyWater ~= true) then return false end
-    if (inc.BuffCount('Doom') == 0) then return false end
     local item = inc.settings.HolyWaterItem or 'Holy Water';
     if (item_count(item) == 0) then
         warn_once('doom', 'Doomed and no ' .. item .. ' in your bags.');
@@ -165,8 +173,17 @@ local function check_auto_items(player)
     return false;
 end
 
--- TH tags: drop a mob once it is at 0 HP, so a respawn with the same id gets TH again.
+-- TH tags: a mob my melee (1), ranged (2), WS (3), spell (4), ability (6), step/flourish (14) or
+-- Effusion (15) hit (XiPackets 0x0028 cmd_no). Spells, steps and Effusions count only when they land.
+-- Dropped at 0 HP (a respawn with the same id gets TH again) and on zone.
 local tagged = {};
+-- Messages for a spell or ability that didn't land (Windower Resources action_messages): resisted
+-- 85 284 653-656, no effect 75 114 156 283 323 423 659, missed 158 324 658, out of range / too far /
+-- can't see 4 78 154 198 217 219 313 328.
+local NOLAND = { [4]=true, [75]=true, [78]=true, [85]=true, [114]=true, [154]=true, [156]=true, [158]=true,
+    [198]=true, [217]=true, [219]=true, [283]=true, [284]=true, [313]=true, [323]=true, [324]=true,
+    [328]=true, [423]=true, [653]=true, [654]=true, [655]=true, [656]=true, [658]=true, [659]=true };
+local TAGCAT = { [1]='any', [2]='any', [3]='any', [4]='landed', [6]='any', [14]='landed', [15]='landed' };
 local function prune_tags()
     if (next(tagged) == nil) then return end
     local ent = AshitaCore:GetMemoryManager():GetEntity();
@@ -182,7 +199,7 @@ local function tick()
     nextTick = now + 0.5;
     if (inc == nil) or (disp == nil) then return end
     prune_tags();
-    if (now < busyUntil) then return end
+    if (now < busyUntil) or (now < lockUntil) then return end
     if (gState == nil) or (gState.PlayerAction ~= nil) then return end
     local player = gData.GetPlayer();
     if (player == nil) then return end
@@ -218,7 +235,7 @@ local function rd(n)
     return value;
 end
 
-local A = { tgt = {}, nres = {}, first = {}, rval = {}, rmsg = {}, rkind = {} };
+local A = { tgt = {}, nres = {}, first = {}, rmiss = {}, rval = {}, rmsg = {}, rkind = {} };
 local function parse_action(data)
     -- Lua index 6 = byte 0x05: skip the 4-byte header and the size byte (XiPackets 0x0028 Reversing.md;
     -- LAC reads the actor at e.data 0x05 + 1).
@@ -237,7 +254,8 @@ local function parse_action(data)
         A.first[t] = k + 1;
         for _ = 1, results do
             k = k + 1;
-            rd(3); rd(2); rd(12); rd(5); rd(5);
+            A.rmiss[k] = rd(3); -- XiPackets: 0 hit, 1 miss, 2 guard, 3 parry, 4 block
+            rd(2); rd(12); rd(5); rd(5);
             A.rval[k] = rd(17);
             A.rmsg[k] = rd(10);
             rd(31);
@@ -246,6 +264,8 @@ local function parse_action(data)
         end
     end
     pdata = nil;
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    A.me = party and party:GetMemberServerId(0); -- my server id, read once for every handler
     return A;
 end
 
@@ -255,18 +275,12 @@ local function roll_abilities()
     local res = AshitaCore:GetResourceManager();
     for id = 0x200, 0x200 + 0x3FF do
         local ability = res:GetAbilityById(id);
-        if (ability ~= nil) and (ability.RecastTimerId == ROLL_RECAST) and (id >= 0x200) then
+        if (ability ~= nil) and (ability.RecastTimerId == ROLL_RECAST) then
             -- Ashita job ability resource id = packet id + 0x200 (LAC packethandlers / data.lua).
             rollAbilities[id - 0x200] = ability.Name[1];
         end
     end
     return rollAbilities;
-end
-
-local function my_id()
-    local party = AshitaCore:GetMemoryManager():GetParty();
-    if (party == nil) then return nil end
-    return party:GetMemberServerId(0);
 end
 
 -- Combat window, Selindrile-style: a monster hits me or a party/alliance member
@@ -310,7 +324,7 @@ local function is_ally(id)
 end
 
 local function combat_packet(P)
-    local me = my_id();
+    local me = P.me;
     if (me == nil) then return end
     local category = P.cat;
     local hostile = ((category == 1) or (category == 2) or (category == 11)) and is_monster(P.actor);
@@ -336,7 +350,7 @@ local castRatio = {};   -- [skill] = { ratios }
 local function cast_packet(P)
     local cat = P.cat;
     if (cat ~= 8) and (cat ~= 4) then return end
-    local me = my_id();
+    local me = P.me;
     if (me == nil) or (P.actor ~= me) then return end
     if (cat == 8) then
         local id = (P.ntgt > 0) and (P.nres[1] > 0) and P.rval[P.first[1]] or nil;
@@ -368,7 +382,7 @@ end
 
 -- Magic burst, ported from sync (sync_packethandler H028.sc + geo_mod.mb.tick).
 -- Chain property = the result's proc kind (6 bits, 1..16 -> scdata.PROPNUM; LSB ActionProcSkillChain),
--- counted when the action is in scdata.BYCAT for its category (3 WS, 4 spell, 13 pet, 14); any WS chain counts.
+-- counted when the action is in scdata.BYCAT for its category (4 spell, 13 pet, 14); any WS chain counts.
 -- Window: settings.MBWindow seconds (BG: 10) from the chain packet; another WS on the mob ends it.
 -- A burst is cast only if its cast time (gcauto.CastTime) lands it inside the window.
 local scdata = nil;
@@ -383,7 +397,7 @@ local MBELEM = {
     Radiance = { 'Fire', 'Wind', 'Thunder', 'Light' }, Umbra = { 'Ice', 'Earth', 'Water', 'Dark' },
 };
 local mbres = {};   -- [mob server id] = { props, ts, dur, step }
-local mbst = {};    -- [mob server id] = { fired, elu, k_ts, k_step }
+local mbst = {};    -- [mob server id] = { fired, k_ts, k_step }
 
 local function mb_packet(P)
     if (scdata == nil) then return end
@@ -400,7 +414,7 @@ local function mb_packet(P)
         if (msg ~= nil) and scdata.PETMSG[msg] then cat = 13 end
         local tbl = scdata.BYCAT[cat];
         local act = tbl and tbl[bit.band(P.param, 0xFFFF)];
-        local chained = (prop ~= nil) and (scdata.CHAIN[prop] ~= nil);
+        local chained = (prop ~= nil); -- every PROPNUM value is a skillchain property
         -- XiPackets documents proc_kind as the skillchain id for weapon skills (cmd 3), so a WS chain
         -- counts even when the WS is missing from scdata; other categories still need their table entry.
         if chained and ((act ~= nil) or (cat == 3)) and is_monster(target) then
@@ -548,8 +562,14 @@ end
 -- /autonuke, sync's geo_mod.mb.tick for one box. For each live chain on an armed mob: burst n
 -- casts the nth spell of the element's list. If the chained mob is not your target and you are
 -- not engaged, it targets it first (sync's set_target_safe: ITarget:SetTarget(index, false)).
+-- The cast names the mob by server id, so it goes to the chained mob even while you are engaged
+-- on another. Sent as menu input (mode 0), as Thorny's Shorthand sends '/ma "<spell>" <server id>'.
+-- Your target's chain goes first. Engaged on another mob, a chained mob past SPELL_RANGE is skipped.
+-- FFXIclopedia (Distance): 21.8' is the "maximum distance for most targeted spells cast by a player.
+-- This varies with the size of the target." Entity GetDistance is squared (LAC data.lua GetEntity).
+local SPELL_RANGE = 21.8;
 function gcauto.NukeTick(player, now)
-    if (disp.GetToggle('AutoNuke') ~= true) then return false end
+    if (disp.GetToggle('AutoNuke') ~= true) or (next(mbres) == nil) then return false end
     if has_buff('Silence') or has_buff('Mute') then return false end
     if (player.IsMoving == true) then return false end
     local mm = AshitaCore:GetMemoryManager();
@@ -562,27 +582,37 @@ function gcauto.NukeTick(player, now)
         end
     end
     local minmp = inc.settings.MBMinMP or 0;
-    for sid, r in pairs(mbres) do
-        local idx = sids[sid];
+    local tm = mm:GetTarget();
+    local mine = target_index(tm);
+    local order = {};
+    for sid in pairs(mbres) do
+        if (sids[sid] == mine) then table.insert(order, 1, sid) else order[#order + 1] = sid end
+    end
+    for _, sid in ipairs(order) do
+        local r, idx = mbres[sid], sids[sid];
         local st = mbst[sid];
-        if (st == nil) then st = { fired = 0, elu = {} }; mbst[sid] = st end
+        if (st == nil) then st = { fired = 0 }; mbst[sid] = st end
         if (st.k_ts ~= r.ts) or (st.k_step ~= r.step) then
-            st.k_ts, st.k_step, st.fired, st.elu = r.ts, r.step, 0, {};
+            st.k_ts, st.k_step, st.fired = r.ts, r.step, 0;
         end
         if (now < r.ts + r.dur) and (st.fired < (inc.settings.MBCasts or 1)) then
-            local spell, spellEl, res = pick_spell(r, st);
+            local spell, _, res = pick_spell(r, st);
             -- Only cast if it can land inside the window (learned cast time, see gcauto.CastTime).
             local castTime = gcauto.CastTime(res);
             local fits = (res ~= nil) and ((now + castTime + 0.5) <= (r.ts + r.dur));
             if (spell ~= nil) and fits and ((minmp <= 0) or (mm:GetParty():GetMemberMP(0) >= minmp)) then
-                local tm = mm:GetTarget();
-                if (target_index(tm) ~= idx) and (player.Status ~= 'Engaged') and (tm ~= nil) then
-                    pcall(function() tm:SetTarget(idx, false) end);
+                local far = false;
+                if (idx ~= mine) then
+                    if (player.Status ~= 'Engaged') then
+                        if (tm ~= nil) then pcall(function() tm:SetTarget(idx, false) end) end
+                    else
+                        far = (math.sqrt(ent:GetDistance(idx) or 0) > SPELL_RANGE);
+                    end
                 end
-                if (target_index(tm) == idx) then
+                if not far then
                     st.fired = st.fired + 1;
-                    st.elu[spellEl] = (st.elu[spellEl] or 0) + 1;
-                    queue('/ma "' .. spell .. '" <t>', math.max(castTime, 5.0));
+                    queue(string.format('/ma "%s" %d', spell, sid), math.max(castTime, 5.0), 0); -- fallback if no finish packet
+                    nukeSent = true;
                     return true;
                 end
             end
@@ -611,10 +641,9 @@ local function roll_recompute()
 end
 
 local function roll_packet(P)
-    local actor, category, param = P.actor, P.cat, P.param;
+    local actor, category, param, me = P.actor, P.cat, P.param, P.me;
     -- Magic (Start) from anyone else, aimed at me: gear up while it is still in the air.
     if (category == 8) then
-        local me = my_id();
         if (me ~= nil) and (actor ~= me) and (gcauto.OnIncomingCast ~= nil) then
             for t = 1, P.ntgt do
                 if (P.tgt[t] == me) then
@@ -630,20 +659,20 @@ local function roll_packet(P)
         end
         return;
     end
-    if (category == 1) or (category == 2) or (category == 3) or (category == 6) then
-        local me = my_id();
+    local tagcat = TAGCAT[category];
+    if (tagcat ~= nil) then
         if (me ~= nil) and (actor == me) then
             for t = 1, P.ntgt do
-                if is_monster(P.tgt[t]) then tagged[P.tgt[t]] = true end
+                local k = P.first[t];
+                local ok = (tagcat == 'any') or ((P.nres[t] > 0) and (P.rmiss[k] == 0) and (not NOLAND[P.rmsg[k]]));
+                if ok and is_monster(P.tgt[t]) then tagged[P.tgt[t]] = true end
             end
             -- category 6 falls through: your own Phantom Roll / Double-Up is also a roll packet.
             if (category ~= 6) then return end
         end
     end
     local rollName = (category == 6) and roll_abilities()[param] or nil;
-    if (rollName == nil) then return end
-    local me = my_id();
-    if (me == nil) then return end
+    if (rollName == nil) or (me == nil) then return end
     for t = 1, P.ntgt do
         if (P.tgt[t] == me) then
             local k = P.first[t];
@@ -658,8 +687,9 @@ local function roll_packet(P)
     roll_recompute();
 end
 
+-- Only an 11 can be dropped by a recompute here; roll_packet recomputes after every roll.
 function gcauto.RollEleven()
-    if (next(rolls) ~= nil) then roll_recompute() end
+    if rollEleven then roll_recompute() end
     return rollEleven;
 end
 
@@ -672,6 +702,7 @@ function gcauto.ClearTags()
 end
 
 function gcauto.RollInfo()
+    roll_recompute();
     local now = os.clock();
     local parts = {};
     for id, entry in pairs(rolls) do
@@ -703,6 +734,16 @@ function gcauto.CreateToggles()
     seen = {};
 end
 
+-- on/off/toggle a boolean setting.
+local function flip(key, arg)
+    if (arg == 'on') or (arg == 'off') then
+        inc.settings[key] = (arg == 'on');
+    else
+        inc.settings[key] = not (inc.settings[key] == true);
+    end
+    return inc.settings[key];
+end
+
 local function onoff(name, arg)
     if (arg == 'on') then
         disp.CreateToggle(name, true);
@@ -729,28 +770,29 @@ function gcauto.HandleCommand(args)
         say('AutoSoda ' .. (on and 'on' or 'off') .. ' | ' .. (inc.settings.SodaItem or 'Frontier Soda'));
         return true;
     elseif (cmd == 'holywater') then
-        if (arg == 'on') then
-            inc.settings.AutoHolyWater = true;
-        elseif (arg == 'off') then
-            inc.settings.AutoHolyWater = false;
-        else
-            inc.settings.AutoHolyWater = not (inc.settings.AutoHolyWater == true);
-        end
-        say('Auto Holy Water ' .. (inc.settings.AutoHolyWater and 'on' or 'off'));
+        say('Auto Holy Water ' .. (flip('AutoHolyWater', arg) and 'on' or 'off'));
         return true;
     elseif (cmd == 'revit') then
-        if (arg == 'on') then
-            inc.settings.AutoRevitalizer = true;
-        elseif (arg == 'off') then
-            inc.settings.AutoRevitalizer = false;
-        else
-            inc.settings.AutoRevitalizer = not (inc.settings.AutoRevitalizer == true);
-        end
         seen = {};
-        say('Auto Revitalizer ' .. (inc.settings.AutoRevitalizer and 'on' or 'off'));
+        say('Auto Revitalizer ' .. (flip('AutoRevitalizer', arg) and 'on' or 'off'));
         return true;
     end
     return false;
+end
+
+-- My action finished (or my cast was interrupted, cmd_no 8 with an 'sp' arg, XiPackets 0x0028):
+-- start the forced delay, and end an auto nuke's fallback hold.
+local function lock_packet(P)
+    local me = P.me;
+    if (me == nil) or (P.actor ~= me) then return end
+    local lock = LOCK[P.cat];
+    if (P.cat == 8) and (bit.band(P.param, 0xFFFF) == 28787) then lock = SPELL_LOCK end
+    if (lock == nil) then return end
+    lockUntil = os.clock() + lock;
+    if nukeSent and ((P.cat == 4) or (P.cat == 8)) then
+        busyUntil = 0;
+        nukeSent = false;
+    end
 end
 
 function gcauto.Start()
@@ -758,9 +800,9 @@ function gcauto.Start()
     ashita.events.register('packet_in', 'gcauto_packet', function (e)
         if (e.id == 0x0028) then
             local ok, P = pcall(parse_action, e.data);
-            if ok then pcall(roll_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P) end
+            if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P) end
         end
-        if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
+        if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
     end);
 end
 

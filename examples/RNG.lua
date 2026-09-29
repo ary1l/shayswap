@@ -381,9 +381,7 @@ profile.HandleDefault = function()
 	
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-			gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet')) end
+        gcinclude.EquipMode('Tp');
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -412,16 +410,13 @@ profile.HandleItem = function()
 end
 
 profile.HandlePrecast = function()
-    local spell = gData.GetAction();
     gFunc.EquipSet(sets.Precast);
 
     gcinclude.CheckCancels();
 end
 
 profile.HandleMidcast = function()
-    local weather = gData.GetEnvironment();
     local spell = gData.GetAction();
-    local target = gData.GetActionTarget();
 
     if (spell.Skill == 'Enhancing Magic') then
         gFunc.EquipSet(sets.Enhancing);
@@ -437,7 +432,7 @@ profile.HandleMidcast = function()
             gFunc.EquipSet(sets.Drain);
         end
     end
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+	gcinclude.CheckTH();
 end
 
 profile.HandlePreshot = function()
@@ -471,42 +466,26 @@ profile.HandleMidshot = function()
         gFunc.EquipSet(sets.Midshot_Acc);
         gFunc.EquipSet(sets.Barrage);
     end
-	if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+	gcinclude.CheckTH();
 end
 
 profile.HandleWeaponskill = function()
-    local canWS = gcinclude.CheckWsBailout();
-    if (canWS == false) then gFunc.CancelAction() return;
-    else
-        local ws = gData.GetAction();
-        if (gcinclude.CheckBlockedAmmoWS(ws.Name) == true) then return end
-        local weather = gData.GetEnvironment();
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
+    if (gcinclude.CheckBlockedAmmoWS(ws.Name) == true) then return end
+
+    gcinclude.EquipMode('Ws');
     
-        gFunc.EquipSet(sets.Ws_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet')) end
-        
-        if string.match(ws.Name, 'Savage Blade') then
-            gFunc.EquipSet(sets.Savage_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Savage_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Aeolian Edge') then
-            gFunc.EquipSet(sets.Aedge_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Aedge_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Trueflight') then
-            gFunc.EquipSet(sets.TrueFlight_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('TrueFlight_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Hot Shot') then
-            gFunc.EquipSet(sets.HS_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('HS_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Wildfire') then
-            gFunc.EquipSet(sets.Wildfire_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Wildfire_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
+    if string.match(ws.Name, 'Savage Blade') then
+        gcinclude.EquipMode('Savage');
+    elseif string.match(ws.Name, 'Aeolian Edge') then
+        gcinclude.EquipMode('Aedge');
+    elseif string.match(ws.Name, 'Trueflight') then
+        gcinclude.EquipMode('TrueFlight');
+    elseif string.match(ws.Name, 'Hot Shot') then
+        gcinclude.EquipMode('HS');
+    elseif string.match(ws.Name, 'Wildfire') then
+        gcinclude.EquipMode('Wildfire');
     end
 end
 

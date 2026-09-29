@@ -317,6 +317,7 @@ local sets = {
     
     },
     ['TH'] = {
+        Sub = 'Gandring', -- held while /th is on, even after the tag (a Sub swap resets TP)
 		Head = 'herculean helm',
 		Hands = 'Plun. Armlets +3',
     },
@@ -358,9 +359,7 @@ profile.HandleDefault = function()
 	
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
-        gFunc.EquipSet(sets.Tp_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-			gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet')) end
+        gcinclude.EquipMode('Tp');
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     elseif (player.IsMoving == true) then
@@ -368,11 +367,11 @@ profile.HandleDefault = function()
     end
 	
     if (sa == 1) and (ta == 1) then
-        gFunc.EquipSet('SATA');
+        gFunc.EquipSet(sets.SATA);
     elseif (sa == 1) then
-        gFunc.EquipSet('SA');
+        gFunc.EquipSet(sets.SA);
     elseif (ta == 1) then
-        gFunc.EquipSet('TA');
+        gFunc.EquipSet(sets.TA);
     end
     
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
@@ -397,14 +396,13 @@ profile.HandleItem = function()
 end
 
 profile.HandlePrecast = function()
-    local spell = gData.GetAction();
     gFunc.EquipSet(sets.Precast);
 
     gcinclude.CheckCancels();
 end
 
 profile.HandleMidcast = function()
-    if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+    gcinclude.CheckTH();
 end
 
 profile.HandlePreshot = function()
@@ -414,45 +412,32 @@ end
 profile.HandleMidshot = function()
     gFunc.EquipSet(sets.Midshot);
     
-    if (gcdisplay.GetToggle('TH') == true) then gFunc.EquipSet(sets.TH) end
+    gcinclude.CheckTH();
 end
 
 profile.HandleWeaponskill = function()
-    local canWS = gcinclude.CheckWsBailout();
-    if (canWS == false) then gFunc.CancelAction() return;
-    else
-        local ws = gData.GetAction();
-        local sa = gcinclude.BuffCount('Sneak Attack');
-        local ta = gcinclude.BuffCount('Trick Attack');
-    
-        gFunc.EquipSet(sets.Ws_Default)
-        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet')) end
-        if (sa == 1) and (ta == 1) then
-            gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_SATA');
-        elseif (sa == 1) then
-            gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_SA');
-        elseif (ta == 1) then
-            gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_TA');
-        end
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
+    local sa = gcinclude.BuffCount('Sneak Attack');
+    local ta = gcinclude.BuffCount('Trick Attack');
 
-        if string.match(ws.Name, 'Savage Blade') then
-            gFunc.EquipSet(sets.Savage_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Savage_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Evisceration') then
-            gFunc.EquipSet(sets.Evis_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Evis_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Aeolian Edge') then
-            gFunc.EquipSet(sets.AE_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('AE_' .. gcdisplay.GetCycle('MeleeSet')); end
-        elseif string.match(ws.Name, 'Rudra\'s Storm') then
-            gFunc.EquipSet(sets.Rudra_Default)
-            if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
-            gFunc.EquipSet('Rudra_' .. gcdisplay.GetCycle('MeleeSet')); end
-        end
+    gcinclude.EquipMode('Ws');
+    if (sa == 1) and (ta == 1) then
+        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_SATA');
+    elseif (sa == 1) then
+        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_SA');
+    elseif (ta == 1) then
+        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_TA');
+    end
+
+    if string.match(ws.Name, 'Savage Blade') then
+        gcinclude.EquipMode('Savage');
+    elseif string.match(ws.Name, 'Evisceration') then
+        gcinclude.EquipMode('Evis');
+    elseif string.match(ws.Name, 'Aeolian Edge') then
+        gcinclude.EquipMode('AE');
+    elseif string.match(ws.Name, 'Rudra\'s Storm') then
+        gcinclude.EquipMode('Rudra');
     end
 end
 
