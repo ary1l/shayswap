@@ -227,7 +227,7 @@ Glyphs: `wpn` Weapons, `ml` MeleeSet, `m` `s` `r` `a` Main/Sub/Range/Ammo, `nk` 
 | `/proc` | SAM NIN | Proc set; NIN also disables ammo |
 | `/pupmode` | PUP | Tank → Melee → Ranger → Mage |
 | `/forcestring` | BRD | Force harp |
-| `/songlock` | BRD | Songs keep main/sub (no TP loss); instruments still swap |
+| `/songlock` | BRD | Enemy songs (Requiem, Lullaby, Elegy, Finale, Threnody, Nocturne, Virelai) keep main/sub (no TP loss); buff songs and instruments still swap |
 | `/cormsg` | COR | Roll messages |
 | `/siphon` | SMN | Swap to day's spirit, Elemental Siphon, resummon |
 

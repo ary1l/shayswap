@@ -648,9 +648,17 @@ local function FixSub(engaged)
     gFunc.Equip('Sub', engaged and 'Genmei Shield' or 'Ammurapi Shield');
 end
 
--- /songlock: songs keep main/sub (no TP loss), instruments still swap in Range.
+-- /songlock: enemy songs keep main/sub (no TP loss), instruments still swap in Range.
+-- Buff songs always swap for full potency/duration. BG-Wiki Category:Enfeebling Songs.
+local EnemySongs = T{'Requiem', 'Lullaby', 'Elegy', 'Finale', 'Threnody', 'Nocturne', 'Virelai'};
+local function IsEnemySong(name)
+    for _, v in ipairs(EnemySongs) do
+        if string.contains(name, v) then return true end
+    end
+    return false;
+end
 local function SongWeapons(spell)
-    if (spell.Skill == 'Singing') and (gcdisplay.GetToggle('SongLock') == true) then
+    if (spell.Skill == 'Singing') and (gcdisplay.GetToggle('SongLock') == true) and IsEnemySong(spell.Name) then
         gFunc.Equip('Main', 'ignore');
         gFunc.Equip('Sub', 'ignore');
     else
