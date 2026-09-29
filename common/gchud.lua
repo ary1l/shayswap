@@ -67,7 +67,7 @@ local SHORT = {
 local FULL = {
     DTset = 'DT set', MDTset = 'MDT set', Aminon = 'Aminon', SIR = 'Spell interrupt', TH = 'Treasure Hunter',
     Kite = 'Kite', AutoFood = 'Auto food', AutoSoda = 'Auto soda', PROC = 'Proc',
-    Burst = 'Burst (force)', AutoMB = 'Auto MB', AutoNuke = 'Auto nuke', String = 'Harp (force string)', SongLock = 'Song lock (songs keep main/sub)',
+    Burst = 'Burst (force)', AutoMB = 'Auto MB', AutoNuke = 'Auto nuke', String = 'Harp (force string)', SongLock = 'Song lock (enemy songs keep main/sub)',
     Death = 'Death', Weapons = 'Weapon set',
     Def = 'Defense (click = /def: DT > MDT > Aminon > SIRD > none)',
     MB = 'Magic burst mode (click = /mbmode: Off > Chain > Auto > Force); Auto shows its nuke tier',
