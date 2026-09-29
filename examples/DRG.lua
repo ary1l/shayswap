@@ -1,0 +1,181 @@
+local profile = {};
+gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
+
+-- DRG template. No gear is filled in: put your own items in each set.
+-- Sets named after an ability, spell, skill or weapon skill (['Jump'], ['Savage Blade'])
+-- are worn by name; add '<Name>_Hybrid' / '<Name>_Acc' for /meleeset. Empty sets do nothing.
+local sets = {
+    Cure_Received = {},
+    Cursna_Received = {},
+    Phalanx_Received = {},
+    Protect_Shell_Received = {},
+    Regen_Received = {},
+    Refresh_Received = {},
+    Waltz_Received = {},
+
+    -- Weapon modes: add a Weapon_<Mode> set and the mode to WeaponModes in OnLoad.
+    -- Weapon_Example = { Main = 'Item Name', Sub = 'Item Name' },
+
+    Idle = {},
+    Idle_Regen = {},
+    Idle_Refresh = {},
+    Resting = {},
+    Town = {},
+    Movement = {},
+    Dt = {},
+    mdt = {},
+    Aminon = {},
+    SIR = {},
+    TH = {},
+    Idle_Pet = {},
+    Pet_Dt = {},
+
+    Tp_Default = {},
+    Tp_Hybrid = {},
+    Tp_Acc = {},
+
+    Precast = {},
+    Midcast = {},
+    Preshot = {},
+    Midshot = {},
+    PetAction = {}, -- default for wyvern breaths; add a set named after the breath to override
+
+    Ws_Default = {},
+    Ws_Hybrid = {},
+    Ws_Acc = {},
+    -- ['Weapon Skill Name'] = {}, ['Weapon Skill Name_Acc'] = {},
+
+    ['Jump'] = {},
+    ['High Jump'] = {},
+    ['Spirit Jump'] = {},
+    ['Soul Jump'] = {},
+    ['Super Jump'] = {},
+    ['Call Wyvern'] = {},
+    ['Angon'] = {},
+    ['Ancient Circle'] = {},
+    ['Spirit Link'] = {},
+    ['Steady Wing'] = {},
+    ['Spirit Surge'] = {},
+    ['Deep Breathing'] = {},
+    ['Restoring Breath'] = {},
+    ['Smiting Breath'] = {},
+    Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
+    Absorb_TP = {}, -- Absorb-TP on top of Absorb
+};
+profile.Sets = sets;
+
+profile.Packer = {
+};
+
+-- Wears the set named after an action, then its /meleeset variant. False if there is none.
+local function ByName(name)
+    local set = gcinclude.FindSet(name);
+    if (set == nil) then return false end
+    gFunc.EquipSet(set);
+    local mode = gcdisplay.GetCycle('MeleeSet');
+    if (mode ~= nil) and (mode ~= 'Default') then
+        local v = gcinclude.FindSet(name .. '_' .. mode);
+        if (v ~= nil) then gFunc.EquipSet(v) end
+    end
+    return true;
+end
+
+-- 'Utsusemi: Ni' -> 'Utsusemi', 'Drain III' -> 'Drain'.
+local function Family(name)
+    local base = string.match(name, '^(.-):') or name;
+    return (string.gsub(base, ' [IVX]+$', ''));
+end
+
+-- Pet actions arrive in HandleDefault (LuAshitacast: gData.GetPetAction).
+local function HandlePetAction(petAction)
+    if not ByName(petAction.Name) then gFunc.EquipSet(sets.PetAction) end
+end
+
+profile.OnLoad = function()
+    gSettings.AllowAddSet = true;
+    gcinclude.WeaponModes = {'None'}; -- e.g. {'None', 'Example'} with a Weapon_Example set
+    gcinclude.DefaultWeapons = 'None';
+    gcinclude.Initialize();
+end
+
+profile.OnUnload = function()
+    gcinclude.Unload();
+end
+
+profile.HandleCommand = function(args)
+    gcinclude.HandleCommands(args);
+end
+
+profile.HandleDefault = function()
+    local player = gData.GetPlayer();
+    local petAction = gData.GetPetAction();
+    if (petAction ~= nil) then
+        HandlePetAction(petAction);
+        return;
+    end
+    gFunc.EquipSet(sets.Idle);
+    if (gData.GetPet() ~= nil) and (player.Status ~= 'Engaged') then
+        gFunc.EquipSet(sets.Idle_Pet);
+    end
+    if (player.Status == 'Engaged') then
+        gFunc.EquipSet(sets.Tp_Default);
+        if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
+            gFunc.EquipSet('Tp_' .. gcdisplay.GetCycle('MeleeSet'));
+        end
+    elseif (player.Status == 'Resting') then
+        gFunc.EquipSet(sets.Resting);
+    elseif (player.IsMoving == true) then
+        gFunc.EquipSet(sets.Movement);
+    end
+
+    -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
+    if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end
+    if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end
+    gcinclude.CheckDefault();
+end
+
+profile.HandleAbility = function()
+    local ability = gData.GetAction();
+    ByName(ability.Name);
+    gcinclude.CheckCancels();
+end
+
+profile.HandleItem = function()
+    local item = gData.GetAction();
+    if string.match(item.Name, 'Holy Water') then gFunc.EquipSet(gcinclude.sets.Holy_Water) end
+end
+
+profile.HandlePrecast = function()
+    local spell = gData.GetAction();
+    gFunc.EquipSet(sets.Precast);
+    gcinclude.CheckCancels();
+end
+
+profile.HandleMidcast = function()
+    local spell = gData.GetAction();
+    gFunc.EquipSet(sets.Midcast);
+    ByName(spell.Skill);
+    if not ByName(spell.Name) then ByName(Family(spell.Name)) end
+    gcinclude.CheckTH();
+end
+
+profile.HandlePreshot = function()
+    gFunc.EquipSet(sets.Preshot);
+end
+
+profile.HandleMidshot = function()
+    gFunc.EquipSet(sets.Midshot);
+    gcinclude.CheckTH();
+end
+
+profile.HandleWeaponskill = function()
+    if (gcinclude.CheckWsBailout() == false) then gFunc.CancelAction(); return end
+    local ws = gData.GetAction();
+    gFunc.EquipSet(sets.Ws_Default);
+    if (gcdisplay.GetCycle('MeleeSet') ~= 'Default') then
+        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet'));
+    end
+    ByName(ws.Name);
+end
+
+return profile;
