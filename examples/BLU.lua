@@ -547,7 +547,7 @@ profile.HandleMidcast = function()
     local ef = gcinclude.BuffCount('Efflux');
     local spell = gData.GetAction();
 
-    if (spell.Skill == 'Blue Magic') then gFunc.EquipSet(sets.BluMagical) end -- non-blue spells (Utsusemi etc.) keep precast gear
+    if (spell.Skill == 'Blue Magic') then gFunc.EquipSet(gcinclude.BluMagPhysical:contains(spell.Name) and sets.BluPhysical or sets.BluMagical) end -- non-blue spells (Utsusemi etc.) keep precast gear
     if (gcinclude.BluMagDebuff:contains(spell.Name)) then gFunc.EquipSet(sets.BluMagicAccuracy)
     elseif (gcinclude.BluMagStun:contains(spell.Name, 'Sudden Lunge')) then gFunc.EquipSet(sets.BluStun);
     elseif (gcinclude.BluMagBuff:contains(spell.Name)) then gFunc.EquipSet(sets.CMP);
