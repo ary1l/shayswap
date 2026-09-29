@@ -648,6 +648,16 @@ local function FixSub(engaged)
     gFunc.Equip('Sub', engaged and 'Genmei Shield' or 'Ammurapi Shield');
 end
 
+-- /songlock: songs keep main/sub (no TP loss), instruments still swap in Range.
+local function SongWeapons(spell)
+    if (spell.Skill == 'Singing') and (gcdisplay.GetToggle('SongLock') == true) then
+        gFunc.Equip('Main', 'ignore');
+        gFunc.Equip('Sub', 'ignore');
+    else
+        FixSub(false);
+    end
+end
+
 
 profile.OnLoad = function()
 	gSettings.AllowAddSet = true;
@@ -727,7 +737,7 @@ profile.HandlePrecast = function()
         end
 
     gcinclude.CheckCancels();
-    FixSub(false);
+    SongWeapons(spell);
 end
 
 profile.HandleMidcast = function()
@@ -801,7 +811,7 @@ profile.HandleMidcast = function()
         end
     end
 	gcinclude.CheckTH();
-    FixSub(false);
+    SongWeapons(spell);
 end
 
 profile.HandlePreshot = function()

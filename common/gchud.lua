@@ -46,6 +46,7 @@ gchud.ToggleCommands = {
     AutoMB = 'automb',
     AutoNuke = 'autonuke',
     String = 'forcestring',
+    SongLock = 'songlock',
     Death = 'death',
 };
 
@@ -56,7 +57,7 @@ gchud.ToggleOrder = { 'DTset', 'MDTset', 'Aminon', 'SIR', 'TH', 'Kite', 'AutoFoo
 local SHORT = {
     DTset = 'dt', MDTset = 'md', Aminon = 'am', SIR = 'si', TH = 'th', Kite = 'kt',
     AutoFood = 'fd', AutoSoda = 'sd', PROC = 'pr',
-    Burst = 'bs', AutoMB = 'mb', AutoNuke = 'an', String = 'hp', Death = 'dh',
+    Burst = 'bs', AutoMB = 'mb', AutoNuke = 'an', String = 'hp', SongLock = 'sl', Death = 'dh',
     Def = 'def', MB = 'mb', MBTier = 'tier',
     Weapons = 'wpn', MeleeSet = 'ml', Main = 'm', Sub = 's', Range = 'r', Ammo = 'a',
     NukeSet = 'nk', Element = 'el', TankSet = 'tk', Hoxne = 'hx', PupMode = 'pp', Weapon = 'w',
@@ -66,7 +67,7 @@ local SHORT = {
 local FULL = {
     DTset = 'DT set', MDTset = 'MDT set', Aminon = 'Aminon', SIR = 'Spell interrupt', TH = 'Treasure Hunter',
     Kite = 'Kite', AutoFood = 'Auto food', AutoSoda = 'Auto soda', PROC = 'Proc',
-    Burst = 'Burst (force)', AutoMB = 'Auto MB', AutoNuke = 'Auto nuke', String = 'Harp (force string)',
+    Burst = 'Burst (force)', AutoMB = 'Auto MB', AutoNuke = 'Auto nuke', String = 'Harp (force string)', SongLock = 'Song lock (songs keep main/sub)',
     Death = 'Death', Weapons = 'Weapon set',
     Def = 'Defense (click = /def: DT > MDT > Aminon > SIRD > none)',
     MB = 'Magic burst mode (click = /mbmode: Off > Chain > Auto > Force); Auto shows its nuke tier',

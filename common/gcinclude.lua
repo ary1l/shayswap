@@ -193,7 +193,7 @@
 	end
 
 	gcinclude.AliasList = T{'gcmessages','wsdistance','setcycle','dt','mdt','th','kite','meleeset','gcdrain','gcaspir','nukeset','burst','automb','autonuke','weapon','elecycle','helix','weather','nuke','death','sir','tankset','proc',
-	'pupmode','weaponset','wm','mainset','subset','rangeset','ammoset','autofood','autosoda','revit','holywater','aminon','gchud','lock','unlock','hoxne','gchelp','gckey','def','mbmode','received','gcinfo','gce','xiroll','checksets','smartswap','autogear','gcbar','mbinfo','cormsg','forcestring','siphon','warpring','mea','holla','dem','rrset','craftset','zeniset','fishset','mbtier',
+	'pupmode','weaponset','wm','mainset','subset','rangeset','ammoset','autofood','autosoda','revit','holywater','aminon','gchud','lock','unlock','hoxne','gchelp','gckey','def','mbmode','received','gcinfo','gce','xiroll','checksets','smartswap','autogear','gcbar','mbinfo','cormsg','forcestring','songlock','siphon','warpring','mea','holla','dem','rrset','craftset','zeniset','fishset','mbtier',
 	'gctrace','naked','weaponsonly','abysseaproc','capacity','jubilee','gcstyle'};
 	-- Exit/use-on-self items: key = /command, value = exact /item name. Add a line, /lac reload.
 	gcinclude.ExitItems = {
@@ -360,6 +360,7 @@ function gcinclude.SetVariables()
     end
     if (mJob == 'BRD') then
         gcdisplay.CreateToggle('String', false);
+        gcdisplay.CreateToggle('SongLock', false);
     end
     gcdisplay.MarkDefaults();
 end
@@ -586,6 +587,10 @@ end
 				gcdisplay.AdvanceToggle('String');
 				toggle = 'BRD Forced Harp';
 				status = gcdisplay.GetToggle('String');
+			elseif (args[1] == 'songlock') then
+				gcdisplay.AdvanceToggle('SongLock');
+				toggle = 'BRD Song Lock';
+				status = gcdisplay.GetToggle('SongLock');
 			end
 		end
 		if (player.MainJob == 'COR') then

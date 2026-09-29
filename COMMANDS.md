@@ -186,7 +186,7 @@ GEO  Idr  Def  Macc  -    Chain  .  .  .  sd
 
 Glyphs: `wpn` Weapons, `ml` MeleeSet, `m` `s` `r` `a` Main/Sub/Range/Ammo, `nk` NukeSet,
 `el` Element, `tk` TankSet, `hx` Hoxne, `pp` PupMode, `w` Weapon, `th` TH, `kt` Kite,
-`fd` AutoFood, `sd` AutoSoda, `hp` String, `pr` PROC, `dh` Death, `tier` MBTier.
+`fd` AutoFood, `sd` AutoSoda, `hp` String, `sl` SongLock, `pr` PROC, `dh` Death, `tier` MBTier.
 
 | Setting | Default | |
 |---|---|---|
@@ -227,6 +227,7 @@ Glyphs: `wpn` Weapons, `ml` MeleeSet, `m` `s` `r` `a` Main/Sub/Range/Ammo, `nk` 
 | `/proc` | SAM NIN | Proc set; NIN also disables ammo |
 | `/pupmode` | PUP | Tank → Melee → Ranger → Mage |
 | `/forcestring` | BRD | Force harp |
+| `/songlock` | BRD | Songs keep main/sub (no TP loss); instruments still swap |
 | `/cormsg` | COR | Roll messages |
 | `/siphon` | SMN | Swap to day's spirit, Elemental Siphon, resummon |
 
