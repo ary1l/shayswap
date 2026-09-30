@@ -13,7 +13,7 @@ One box: `/ms sendto <name> /lac fwd <cmd>`.
 | `/wm none` | Stop managing weapons (`TH`-set weapons still apply while `/th` is on) |
 | `/wm default` | This job's `DefaultWeapons` |
 | `/wm melee` | Role name from `gcinclude.WeaponRoles` |
-| `/wm leaden force` | Swap even at 1000+ TP engaged |
+| `/wm leaden force` | Swap even at 1000+ TP |
 | `/mainset` `/subset` `/rangeset` `/ammoset` `[name\|N\|none]` | Per-slot cycles, on jobs that define them |
 
 - A weapon mode is what you return to at rest. Action sets that swap weapons still do.
@@ -21,7 +21,7 @@ One box: `/ms sendto <name> /lac fwd <cmd>`.
   `/mainset` changes the melee weapon.
 - `/th` on: Main/Sub/Range in the `TH` set override the mode and per-slot cycles, tagged or not (Sub only if
   you can dual wield). `/th` off gives them back.
-- **TP hold:** engaged at 1000+ TP, Main/Sub/Range don't change (songs, rolls, cures, enfeebling,
+- **TP hold:** at 1000+ TP, engaged or not, Main/Sub/Range don't change (songs, rolls, cures, enfeebling,
   enhancing, geomancy excepted). `force` overrides; `settings.WeaponTPGuard = 0` disables.
 - `Weapon_<Mode>_1h` is used when the subjob can't dual wield. `gcinclude.AlwaysDualWield = true`
   forces the DW pair (BLU, THF). The same check decides whether the `TH` set's Sub is used.
@@ -41,9 +41,9 @@ gcinclude.WeaponItemMap = {
 | Command | Does |
 |---|---|
 | `/def` | none → DT → MDT → Aminon → SIRD → none, one at a time (Ctrl+grave) |
-| `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub/Range/Ammo (the set's items, else what you wear) until off; other slots still swap for actions |
+| `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub (the set's items, else what you wear) plus Range/Ammo when the set names them, until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
-| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo; Locked also locks Ammo and Range |
+| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range |
 | `/hoxne use` | Locked, equip, wait its delay, use |
 | `/lock` | Lock Main, Sub, Ammo |
 | `/lock ear1 back` | Lock any slots by name |

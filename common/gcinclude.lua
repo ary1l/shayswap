@@ -75,7 +75,7 @@
 		mea_Ring = 'Dim. Ring (Mea)';
 		dem_Ring = 'Dim. Ring (Dem)';
 		holla_Ring = 'Dim. Ring (Holla)';
-		WeaponTPGuard = 1000; -- while engaged at or above this TP, main/sub/range are held and weapon commands are refused unless you add force, 0 to disable
+		WeaponTPGuard = 1000; -- at or above this TP (engaged or not), main/sub/range are held and weapon commands are refused unless you add force, 0 to disable
 		HoldExemptSkills = T{'Singing', 'Geomancy', 'Healing Magic', 'Enfeebling Magic', 'Enhancing Magic'}; -- spells of these skills always get their weapon swaps
 		HoldExemptAbilities = T{'Corsair Roll'}; -- ability types that always get their weapon swaps
 		SmartSwap = true; -- keep main/sub/range on the spells below instead of losing TP to a weapon swap, /smartswap to toggle
@@ -711,7 +711,7 @@ end
 		local arg = (#words > 0) and table.concat(words, ' ') or nil;
 		if (cname == 'Weapons') and (arg ~= nil) and (string.lower(arg) == 'default') and (type(gcinclude.DefaultWeapons) == 'table') then
 			if (not force) and gcinclude.HoldActive() then
-				gcinclude.Err('Weapons kept: engaged at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
+				gcinclude.Err('Weapons kept: at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
 				return;
 			end
 			for dname, dval in pairs(gcinclude.DefaultWeapons) do gcinclude.SetWeaponCycle(dname, dval, true) end
@@ -743,7 +743,7 @@ end
 		if (new == old) then return end
 		if (cname ~= 'Ammo') and (not force) and gcinclude.HoldActive() then
 			gcdisplay.SetCycle(cname, old);
-			gcinclude.Err(cname .. ' kept on ' .. tostring(old) .. ': engaged at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
+			gcinclude.Err(cname .. ' kept on ' .. tostring(old) .. ': at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
 			return;
 		end
 		gcinclude.ApplyWeapons(force);
@@ -939,9 +939,7 @@ end
 	function gcinclude.HoldActive()
 		local guard = gcinclude.settings.WeaponTPGuard or 0;
 		if (guard <= 0) then return false end
-		local mm = AshitaCore:GetMemoryManager();
-		local party = mm:GetParty();
-		return (party:GetMemberTP(0) >= guard) and (mm:GetEntity():GetStatus(party:GetMemberTargetIndex(0)) == 1); -- 1 = Engaged (LAC EntityStatus)
+		return (AshitaCore:GetMemoryManager():GetParty():GetMemberTP(0) >= guard); -- any status: a Main/Sub/Range swap resets TP idle too
 	end
 
 	function gcinclude.UpdateHold()
@@ -1052,6 +1050,7 @@ end
 	-- gFunc.ForceEquipSet sends packets directly and ignores gState.Disabled, so /lock and the TP hold
 	-- would be bypassed. Engine force-equips drop disabled slots first.
 	function gcinclude.ForceUnlocked(set)
+		set = gcinclude.DropAmmoWeapon(set);
 		if (type(set) ~= 'table') then return end
 		local out, n = {}, 0;
 		for k, v in pairs(set) do
@@ -1508,6 +1507,54 @@ end
 
 	gcinclude.HoxneOwned = T{};
 
+	-- Bows, guns and crossbows (Archery 25 / Marksmanship 26) need matching ammo, so the ampulla can't sit with
+	-- them. While Hoxne is On or Locked, any set asking for one in Range has that entry dropped.
+	gcinclude.AmmoSkills = T{25, 26};
+	local ammoWeapon = {};
+	function gcinclude.NeedsAmmo(item)
+		local name = (type(item) == 'table') and item.Name or item;
+		if (type(name) ~= 'string') then return false end
+		name = string.lower(name);
+		if (ammoWeapon[name] == nil) then
+			local r = AshitaCore:GetResourceManager():GetItemByName(name, 0);
+			ammoWeapon[name] = (r ~= nil) and gcinclude.AmmoSkills:contains(r.Skill);
+		end
+		return ammoWeapon[name];
+	end
+
+	function gcinclude.HoxneOn()
+		local state = gcdisplay.GetCycle('Hoxne');
+		return (state == 'On') or (state == 'Locked');
+	end
+
+	function gcinclude.DropAmmoWeapon(set)
+		if (type(set) == 'string') then set = gcinclude.FindSet(set) or set end
+		if (type(set) ~= 'table') or (not gcinclude.HoxneOn()) then return set end
+		for k, v in pairs(set) do
+			if (gData.GetEquipSlot(k) == 3) and gcinclude.NeedsAmmo(v) then
+				local out = {};
+				for k2, v2 in pairs(set) do if (k2 ~= k) then out[k2] = v2 end end
+				return out;
+			end
+		end
+		return set;
+	end
+
+	-- Filters every gFunc.EquipSet / gFunc.Equip call, job files included. gFunc outlives profile reloads,
+	-- so the originals are kept on it and wrapped once.
+	function gcinclude.WrapEquip()
+		if (gFunc.GcRawEquipSet ~= nil) then return end
+		gFunc.GcRawEquipSet, gFunc.GcRawEquip = gFunc.EquipSet, gFunc.Equip;
+		gFunc.EquipSet = function(set)
+			if (gcinclude ~= nil) and (gcinclude.DropAmmoWeapon ~= nil) then set = gcinclude.DropAmmoWeapon(set) end
+			return gFunc.GcRawEquipSet(set);
+		end
+		gFunc.Equip = function(slot, item)
+			if (gcinclude ~= nil) and (gcinclude.HoxneOn ~= nil) and gcinclude.HoxneOn() and (gData.GetEquipSlot(slot) == 3) and gcinclude.NeedsAmmo(item) then return end
+			return gFunc.GcRawEquip(slot, item);
+		end
+	end
+
 	function gcinclude.CheckHoxne()
 		local state = gcdisplay.GetCycle('Hoxne');
 		if (state == 'Locked') then
@@ -1517,6 +1564,11 @@ end
 				for _, slot in ipairs(gcinclude.SlotNumbers(gcinclude.settings.HoxneLockSlots, 1)) do
 					if (gcinclude.LockedSlots[slot] == nil) then gcinclude.HoxneOwned:append(slot) end
 				end
+				-- Settle Ammo/Range before locking them, else a bow already on stays locked in.
+				local range = gData.GetEquipment().Range;
+				local settle = { Ammo = gcinclude.settings.HoxneItem };
+				if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then settle.Range = 'remove' end
+				gcinclude.ForceUnlocked(settle);
 				if (#gcinclude.HoxneOwned > 0) then gcinclude.LockSlots(gcinclude.HoxneOwned) end
 			end
 		elseif (gcinclude.HoxneLocked == true) then
@@ -1525,7 +1577,10 @@ end
 			gcinclude.HoxneOwned = T{};
 		end
 		if (state ~= 'On') and (state ~= 'Locked') then return end
-		gFunc.EquipSet({ Ammo = gcinclude.settings.HoxneItem });
+		local set = { Ammo = gcinclude.settings.HoxneItem };
+		local range = gData.GetEquipment().Range;
+		if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then set.Range = 'remove' end
+		gFunc.EquipSet(set);
 	end
 
 	gcinclude.BoundKeys = T{};
@@ -1621,7 +1676,7 @@ end
 	function gcinclude.Help()
 		local lines = T{
 			'weapons: /wm [name|N|none|default|role] [force], /mainset /subset /rangeset /ammoset',
-			'defense: /def (cycle DT > MDT > Aminon > SIRD > none), /dt /mdt /aminon (also locks main/sub/range/ammo) /sir, /lock [slots] /unlock [slots]',
+			'defense: /def (cycle DT > MDT > Aminon > SIRD > none), /dt /mdt /aminon (also locks main/sub, range/ammo if in the set) /sir, /lock [slots] /unlock [slots]',
 			'hoxne  : /hoxne (Off > On > Locked)',
 			'toggles: /th (TH gear until the target is tagged; TH-set weapons while on), /kite, /meleeset (Default > Hybrid > Acc)',
 			'auto   : /autofood [on|off], /autosoda [on|off], /revit [on|off], /holywater [on|off]',
@@ -1694,10 +1749,12 @@ end
 		end
 	end
 
-	-- /aminon locks Main/Sub/Range/Ammo while on: puts on the set's items for those slots first (else keeps
-	-- what you wear), then locks them so action sets can't swap them. Other slots still swap for actions.
+	-- /aminon locks Main/Sub while on, plus Range/Ammo only when the set names them (BRD instruments keep
+	-- swapping): puts on the set's items for those slots first (else keeps what you wear), then locks them so
+	-- action sets can't swap them. Other slots still swap for actions.
 	-- Slots already /locked or Hoxne-locked are left alone; off releases only what it took. /unlock re-locks.
 	gcinclude.AminonSlots = T{'Main', 'Sub', 'Range', 'Ammo'};
+	gcinclude.AminonAlways = T{1, 2}; -- Main, Sub
 	gcinclude.AminonOwned = T{};
 	function gcinclude.CheckAminonLock()
 		if (gcdisplay.GetToggle('Aminon') ~= true) then
@@ -1709,10 +1766,12 @@ end
 		local wear, take = {}, T{};
 		for _, name in ipairs(gcinclude.AminonSlots) do
 			local slot = gData.GetEquipSlot(name);
-			if (gcinclude.LockedSlots[slot] == nil) then
-				for k, v in pairs(set) do
-					if (gData.GetEquipSlot(k) == slot) then wear[k] = v end -- set keys in any case
-				end
+			local key = nil;
+			for k, _ in pairs(set) do
+				if (gData.GetEquipSlot(k) == slot) then key = k end -- set keys in any case
+			end
+			if (gcinclude.LockedSlots[slot] == nil) and ((key ~= nil) or gcinclude.AminonAlways:contains(slot)) then
+				if (key ~= nil) then wear[key] = set[key] end
 				take:append(slot);
 				if not gcinclude.AminonOwned:contains(slot) then gcinclude.AminonOwned:append(slot) end
 			end
@@ -2237,6 +2296,10 @@ end
 			if (gchud ~= nil) then gchud.Stop() end
 			gcinclude.UnlockSlots(nil);
 			gcinclude.UnlockWeapons();
+			if (gFunc.GcRawEquipSet ~= nil) then
+				gFunc.EquipSet, gFunc.Equip = gFunc.GcRawEquipSet, gFunc.GcRawEquip;
+				gFunc.GcRawEquipSet, gFunc.GcRawEquip = nil, nil;
+			end
 			gcdisplay.Unload();
 			gcinclude.ClearAlias();
 	end
@@ -2295,6 +2358,7 @@ end
 
 	function gcinclude.Initialize()
 		gcinclude.WrapHoldHandlers();
+		gcinclude.WrapEquip();
 		gcinclude.InitStep(0);
 	end
 

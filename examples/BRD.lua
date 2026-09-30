@@ -44,6 +44,10 @@ local sets = {
         Main = 'Naegling',
         Sub = 'Genmei Shield',
     },
+    Aminon = { -- /aminon locks these; no Range/Ammo here, so instruments still swap for songs
+        Main = 'Carnwenhan',
+        Sub = 'Ammurapi Shield',
+    },
     Weapon_Hoxne = {
         Range = 'remove',
         Ammo = 'Hoxne Ampulla',

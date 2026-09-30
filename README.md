@@ -32,7 +32,7 @@ Full reference: `COMMANDS.md`.
 
 ## What it does
 
-- **Weapons**: weapon modes per job (`/wm`). Engaged at 1000+ TP, weapons don't change so you keep TP.
+- **Weapons**: weapon modes per job (`/wm`). At 1000+ TP, engaged or not, weapons don't change so you keep TP.
   Can't dual wield (wrong subjob): uses the `_1h` version of the mode.
 - **Layers**, lowest to highest: your sets → weapons (+ `TH`-set weapons while `/th` is on) → MDT/Aminon → Hoxne →
   TH → received gear → buff sets → XIRoll → debuff and craft/zeni/fish/rr sets. Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
