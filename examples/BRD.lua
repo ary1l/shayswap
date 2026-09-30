@@ -550,12 +550,6 @@ local sets = {
 	--main = '',
 	},
 
-	--Preshot = {},
-    --Midshot = {
-        Ear1 = 'Telos Earring',
-        Ear2 = 'Crep. Earring',
-    --},
-
     Ws_Default = {
         Range = { Name = 'Linos', Augment = { [1] = 'Weapon skill damage +2%', [2] = 'Attack+13', [3] = 'STR+8' } },
         Head = 'Nyame Helm',
