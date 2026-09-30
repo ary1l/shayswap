@@ -132,7 +132,7 @@ local sets = {
 
     Precast = {
         Ammo = 'Sapience Orb', --2
-        Head = 'Peda. M.Board +3', 
+        Head = 'Peda. M.Board +3',
         Neck = 'voltsurge torque', --4
         Ear1 = 'Loquac. Earring', --2
         Ear2 = 'Malignance Earring', --4
@@ -451,7 +451,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetCycle('Weapon') == 'Staff') then
         gFunc.EquipSet(sets.Idle_Staff);

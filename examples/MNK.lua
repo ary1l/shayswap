@@ -149,7 +149,7 @@ local sets = {
     },
     Shijin_Hybrid = {},
     Shijin_Acc = {},
-	
+
 	Howling_Default = {
         Ammo = 'Knobkierrie',
         Head = 'Mpaca\'s Cap',
@@ -166,8 +166,8 @@ local sets = {
     },
     Howling_Hybrid = {},
     Howling_Acc = {},
-	
-	
+
+
 	kickws_Default = {
         Ammo = 'Knobkierrie',
         Head = 'Mpaca\'s Cap',
@@ -184,7 +184,7 @@ local sets = {
     },
     kickws_Hybrid = {},
     kickws_Acc = {},
-	
+
 
     Impetus = {--over rides your TP set if impetus is up
 		Ear2 = 'dedition earring',
@@ -250,7 +250,7 @@ end
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
 	local player = gData.GetPlayer();
-    
+
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
         if (gcinclude.BuffCount('Impetus') > 0) then gFunc.EquipSet(sets.Impetus) end
@@ -260,7 +260,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;

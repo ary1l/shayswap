@@ -475,7 +475,7 @@ local sets = {
         Back = { Name = 'Camulus\'s Mantle', Augment = { [1] = 'Phys. dmg. taken -10%', [2] = 'HP+60', [3] = '"Snapshot"+10', [4] = 'Mag. Evasion+20', [5] = 'Evasion+20' } },
 		Legs = 'desultor tassets',
     },
-	
+
 	Bolt = { -- it will put on ur DT gear set first then layer this set on for phantom roll (not dbl up), use /dt if you think you need to lock dt set while rolling
         Main = { Name = 'Rostam', AugPath='C' },
 		Neck = 'null loop',
@@ -544,7 +544,7 @@ end
 
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
-	
+
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -553,7 +553,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
@@ -563,7 +563,7 @@ end
 profile.HandleAbility = function()
     local ability = gData.GetAction();
 
-	if (ability.Name == 'Bolter\'s Roll') then 
+	if (ability.Name == 'Bolter\'s Roll') then
 		gFunc.EquipSet(sets.Dt);
 		gFunc.EquipSet(sets.Bolt);
 		gcinclude.DoCORmsg(ability.Name);
@@ -654,7 +654,7 @@ profile.HandleWeaponskill = function()
     if (gcinclude.CheckBlockedAmmoWS(ws.Name) == true) then return end
 
     gcinclude.EquipMode('Ws');
-    
+
     if string.match(ws.Name, 'Savage Blade') then
         gcinclude.EquipMode('Savage');
     elseif string.match(ws.Name, 'Evisceration') then

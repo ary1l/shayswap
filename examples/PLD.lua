@@ -155,7 +155,7 @@ local sets = {
     },
 
     --These will overwrite any above TP profile.Sets if /tankset is used
-    Tank_Main = {--Default Tanking,  dt 
+    Tank_Main = {--Default Tanking,  dt
         Ammo = 'coiste bodhar',
         Head = { Name = 'nyame helm', Priority = 91 },
         Neck = 'unmoving collar +1',
@@ -170,7 +170,7 @@ local sets = {
         Legs = { Name = 'nyame flanchard', Priority = 114 },
         Feet = { Name = 'nyame sollerets', Priority = 68 },
         },
-		
+
     Tank_MEVA = {
         Ammo = 'vanir battery',
         Head = { Name = 'nyame helm', Priority = 91 },
@@ -197,7 +197,7 @@ local sets = {
         Hands = { Name = 'Leyline Gloves', Priority = 25 },--6
 		Ring1 = 'murky ring',
 		Ring2 = 'kishar ring',
-		Back = { Name = 'Rudianos\'s Mantle', Augment = { [1] = '"Fast Cast"+10', [2] = 'Phys. dmg. taken -10%', [3] = 'Mag. Evasion+30', [4] = 'HP+60', [5] = 'Evasion+20' }, Priority = 60 },    
+		Back = { Name = 'Rudianos\'s Mantle', Augment = { [1] = '"Fast Cast"+10', [2] = 'Phys. dmg. taken -10%', [3] = 'Mag. Evasion+30', [4] = 'HP+60', [5] = 'Evasion+20' }, Priority = 60 },
 		Waist = 'plat. mog. belt',
         Legs = { Name = 'odyssean cuisses', Priority = 54 },--6
         Feet = { Name = 'chev. sabatons +3', Priority = 52 },--7
@@ -223,7 +223,7 @@ local sets = {
 		Ring2 = { Name = 'moonlight ring', Priority = 110 },
 		Back = { Name = 'Rudianos\'s Mantle', Augment = { [1] = 'Phys. dmg. taken -10%', [2] = 'Evasion+20', [3] = 'HP+60', [4] = 'Mag. Evasion+30', [5] = 'Enmity+10' }, Priority = 60 },
         Waist = 'audumbla sash',--10
-        Legs = { Name = 'cab. breeches +4', Priority = 82 },--10 
+        Legs = { Name = 'cab. breeches +4', Priority = 82 },--10
         Feet = { Name = 'Odyssean Greaves', Priority = 20 },
     },
     Enmity = {
@@ -257,7 +257,7 @@ local sets = {
         Legs = { Name = 'cab. breeches +4', Priority = 82 },--10SIR
         Feet = { Name = 'odyssean greaves', Priority = 20 },--12/20SIR
     },
-	
+
     Phalanx = { -- +36phalanx received
 		Main = { Name = 'Sakpata\'s sword', Priority = 100 }, --5
 		Sub = { Name = 'priwen', Priority = 30 }, --3
@@ -275,7 +275,7 @@ local sets = {
         Legs = { Name = 'sakpata\'s cuisses', Priority = 114 }, --5
         Feet = { Name = 'souveran schuhs +1', Priority = 122 }, --5
 	},
-		
+
 	Stoneskin = {
 		Ammo = 'staunch tathlum +1',
         Head = { Name = 'chev. armet +3', Priority = 145 },
@@ -291,7 +291,7 @@ local sets = {
         Legs = 'haven hose',
         Feet = { Name = 'sakpata\'s leggings', Priority = 68 },
     },
-	
+
     Reprisal = { --105 SIR
         Ammo = 'staunch tathlum +1',--10
         Head = { Name = 'souv. schaller +1', Priority = 175 },--20
@@ -307,8 +307,8 @@ local sets = {
         Legs = { Name = 'cab. breeches +4', Priority = 82 },--10
         Feet = { Name = 'odyssean greaves', Priority = 20 },--20
     },
-	
-    Absorb_TP = { 
+
+    Absorb_TP = {
         Head = { Name = 'Chev. Armet +3', Priority = 145 },
         Neck = { Name = 'Null Loop', Priority = 50 },
 		Ear1 = 'chev. earring +1',
@@ -342,7 +342,7 @@ local sets = {
 		Range = 'ullr',
 		Ammo = 'chapuli arrow',
 		},
-		
+
     Midshot = {
 		Head = { Name = 'nyame helm', Priority = 91 },
 		Neck = { Name = 'sanctity necklace', Priority = 35 },
@@ -467,7 +467,7 @@ local sets = {
     },
     sanguine_Hybrid = {},
     sanguine_Acc = {},
-	
+
 	shining_Default = {
         Ammo = 'Pemphredo Tathlum',
         Head = { Name = 'Nyame Helm', Priority = 91 },
@@ -485,7 +485,7 @@ local sets = {
     },
     shining_Hybrid = {},
     shining_Acc = {},
-	
+
 	KOR_Default = {
         Ammo = 'crepuscular pebble',
         Head = { Name = 'nyame helm', Priority = 91 },
@@ -599,7 +599,7 @@ local sets = {
         Legs = { Name = 'Cab. Breeches +4', Priority = 82 },
         Feet = { Name = 'chev. sabatons +3', Priority = 52 },--15
 		},
-		
+
     Cover = {
         --Head = 'Rev. Coronet +1',
 		Ammo = 'Sapience Orb',--2
@@ -648,7 +648,7 @@ local sets = {
         Legs = { Name = 'cab. breeches +4', Priority = 82 },--9
 		Feet = { Name = 'rev. leggings +4', Priority = 92 },
 		},
-		
+
 	palisade = {
 		Sub = 'diamond aspis',
 		Ammo = 'Sapience Orb',--2
@@ -665,7 +665,7 @@ local sets = {
         Legs = { Name = 'cab. breeches +4', Priority = 82 },--9
         Feet = { Name = 'chev. sabatons +3', Priority = 52 },--15
 		},
-	
+
 	chiv = {
         Head = { Name = 'loess barbuta +1', Priority = 105 },--19
         Neck = 'Moonlight Necklace', -- 15
@@ -680,7 +680,7 @@ local sets = {
         Legs = { Name = 'cab. breeches +4', Priority = 82 },--9
         Feet = { Name = 'chev. sabatons +3', Priority = 52 },--15
 		},
-		
+
     intervene = {
 		Sub = 'duban',
 		Ammo = 'Sapience Orb',--2
@@ -701,7 +701,7 @@ local sets = {
         Ammo = 'Per. Lucky Egg',
 		Waist = 'Chaac Belt',
 	},
-	
+
     Movement = {
         Ammo = 'Staunch Tathlum +1',
         Head = { Name = 'chev. armet +3', Priority = 145 },
@@ -716,8 +716,8 @@ local sets = {
         Waist = { Name = 'carrier\'s sash', Priority = 20 },
         Legs = { Name = 'chev. cuisses +3', Priority = 127 },
         Feet = { Name = 'nyame sollerets', Priority = 68 },
-	},	
-	
+	},
+
 	kite = {
 		Main = 'burtgang',
 		Sub = 'aegis',
@@ -757,7 +757,7 @@ end
 
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
-	
+
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -768,12 +768,12 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     local cover = gcinclude.BuffCount('Cover');
 	if (cover >= 1) then
 		gFunc.EquipSet(sets.Fealty); -- same set as fealty
 	end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.kite) end;
@@ -867,7 +867,7 @@ profile.HandleWeaponskill = function()
     local ws = gData.GetAction();
 
     gcinclude.EquipMode('Ws');
-   
+
     if string.match(ws.Name, 'Chant du Cygne') then
         gcinclude.EquipMode('Chant');
     elseif string.match(ws.Name, 'Savage Blade') then

@@ -113,7 +113,7 @@ local sets = {
     Resting = {},
     Idle_Regen = {
         Ring1 = 'Chirich Ring +1',
-		Waist = 'null belt',	
+		Waist = 'null belt',
     },
     Idle_Refresh = {
         Main = 'Bolelabunga',
@@ -215,7 +215,7 @@ local sets = {
         Waist = 'Siegel Sash',
     },
 
-	
+
     Cure = {--I cap is 50, II cap is 30
         Main = 'bunzi\'s rod',--30
         Sub = 'genmei Shield',
@@ -425,7 +425,7 @@ local sets = {
     },
     Ws_Acc = {
     },
-	
+
 	BH_Default = {
         Ammo = 'Oshasha\'s Treatise',
         Head = 'Nyame Helm',
@@ -530,7 +530,7 @@ local sets = {
 
     Bolster = {Body = 'Bagua Tunic +3'},
 	fc = {Head = 'Azimuth Hood +3',
-		  Body = 'geo. tunic +4',},	
+		  Body = 'geo. tunic +4',},
     TH = {
         Ammo = 'Per. Lucky Egg',
 		Waist = 'Chaac Belt',
@@ -540,7 +540,7 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
-};	
+};
 profile.Sets = sets;
 
 profile.Packer = {
@@ -573,7 +573,7 @@ profile.HandleDefault = function()
     elseif (player.Status == 'Resting') then
         gFunc.EquipSet(sets.Resting);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (player.Status ~= 'Engaged') and (gData.GetPet() ~= nil) then
         gFunc.EquipSet(sets.Idle_Pet);
@@ -611,7 +611,7 @@ profile.HandlePrecast = function()
     elseif (spell.Skill == 'Healing Magic') then
         gFunc.EquipSet(sets.Cure_Precast);
     end
-	
+
     gcinclude.CheckCancels();
 end
 

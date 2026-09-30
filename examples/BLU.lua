@@ -103,7 +103,7 @@ local sets = {
         Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
     },
-	
+
 	Dt = {
 		Ammo = 'Staunch Tathlum +1',
         Head = 'Nyame Helm',
@@ -119,7 +119,7 @@ local sets = {
 		Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
 	},
-	
+
 	Tp_Default = {
 		--sub = 'thibron',
         Ammo = 'coiste bodhar',
@@ -148,7 +148,7 @@ local sets = {
         },
 	Tp_Acc = {
         },
-	
+
 	Precast = {--64
         Ammo = 'Sapience Orb',--2
         Head = 'Carmine Mask +1', --14
@@ -312,11 +312,11 @@ local sets = {
 
     Preshot = {
 		Range = 'aliyat chakram',
-		Ammo = empty,
+		Ammo = 'remove',
     },
     Midshot = {
 		Range = 'aliyat chakram',
-		Ammo = empty,
+		Ammo = 'remove',
         Ear1 = 'Telos Earring',
         Ear2 = 'Crep. Earring',
     },
@@ -492,7 +492,7 @@ end
 
 profile.HandleDefault = function()
 	gFunc.EquipSet(sets.Idle);
-	
+
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -501,7 +501,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Evasion) end;
@@ -535,7 +535,7 @@ profile.HandlePrecast = function()
         gFunc.EquipSet(sets.Blu_Precast);
     elseif string.contains(spell.Name, 'Stoneskin') then
         gFunc.EquipSet(sets.Stoneskin_Precast);
-    end 
+    end
 
     gcinclude.CheckCancels();
 end
@@ -549,7 +549,7 @@ profile.HandleMidcast = function()
 
     if (spell.Skill == 'Blue Magic') then gFunc.EquipSet(gcinclude.BluMagPhysical:contains(spell.Name) and sets.BluPhysical or sets.BluMagical) end -- non-blue spells (Utsusemi etc.) keep precast gear
     if (gcinclude.BluMagDebuff:contains(spell.Name)) then gFunc.EquipSet(sets.BluMagicAccuracy)
-    elseif (gcinclude.BluMagStun:contains(spell.Name, 'Sudden Lunge')) then gFunc.EquipSet(sets.BluStun);
+    elseif (gcinclude.BluMagStun:contains(spell.Name)) then gFunc.EquipSet(sets.BluStun);
     elseif (gcinclude.BluMagBuff:contains(spell.Name)) then gFunc.EquipSet(sets.CMP);
     elseif (gcinclude.BluMagSkill:contains(spell.Name)) then gFunc.EquipSet(sets.BluSkill);
     elseif (gcinclude.BluMagCure:contains(spell.Name)) then gFunc.EquipSet(sets.Cure);
@@ -562,7 +562,7 @@ profile.HandleMidcast = function()
     if (ba>=1) then gFunc.EquipSet(sets.Ba) end
     if (ef>=1) then gFunc.EquipSet(sets.Efflux) end
     if (diff>=1) then gFunc.EquipSet(sets.Diffusion) end
-    
+
     if gcinclude.BluMagTH:contains(spell.Name) then gcinclude.CheckTH(true) end -- AoE: tags the adds too
 end
 
@@ -581,7 +581,7 @@ profile.HandleWeaponskill = function()
     local ws = gData.GetAction();
 
     gcinclude.EquipMode('Ws');
-   
+
     if string.match(ws.Name, 'Chant du Cygne') then
         gcinclude.EquipMode('Chant');
     elseif string.match(ws.Name, 'Savage Blade') then

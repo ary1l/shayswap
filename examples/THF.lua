@@ -196,7 +196,7 @@ local sets = {
     Evis_Default_SA = {
     },
     Evis_Default_TA = {
-        
+
     },
     Evis_Default_SATA = {
     },
@@ -224,12 +224,12 @@ local sets = {
         Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
     },
-    Rudra_SA = {
+    Rudra_Default_SA = {
     },
-    Rudra_TA = {
-        
+    Rudra_Default_TA = {
+
     },
-    Rudra_SATA = {
+    Rudra_Default_SATA = {
     },
     Rudra_Hybrid = {
     },
@@ -241,7 +241,7 @@ local sets = {
     Rudra_Acc_SA = {},
     Rudra_Acc_TA = {},
     Rudra_Acc_SATA = {},
-	
+
 	Savage_Default = {
 		Ammo = 'coiste bodhar',
         Head = 'Nyame Helm',
@@ -256,12 +256,12 @@ local sets = {
         Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
     },
-    Savage_SA = {
+    Savage_Default_SA = {
     },
-    Savage_TA = {
-        
+    Savage_Default_TA = {
+
     },
-    Savage_SATA = {
+    Savage_Default_SATA = {
     },
     Savage_Hybrid = {
     },
@@ -273,7 +273,7 @@ local sets = {
     Savage_Acc_SA = {},
     Savage_Acc_TA = {},
     Savage_Acc_SATA = {},
-	
+
 	AE_Default = {
 		Ammo = "C. Palug Stone",
         Head = 'Nyame Helm',
@@ -289,12 +289,12 @@ local sets = {
         Feet = 'Nyame Sollerets',
     },
 
-    AE_SA = {
+    AE_Default_SA = {
     },
-    
-	AE_TA = { 
+
+	AE_Default_TA = {
     },
-    AE_SATA = {
+    AE_Default_SATA = {
     },
     AE_Hybrid = {
     },
@@ -308,13 +308,13 @@ local sets = {
     AE_Acc_SATA = {},
 
     SATA = {
-        
+
     },
     SA = {
-        
+
     },
     TA = {
-    
+
     },
     ['TH'] = {
         Sub = 'Gandring', -- held while /th is on, even after the tag (a Sub swap resets TP)
@@ -356,7 +356,7 @@ profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
     local sa = gcinclude.BuffCount('Sneak Attack');
     local ta = gcinclude.BuffCount('Trick Attack');
-	
+
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -365,7 +365,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     if (sa == 1) and (ta == 1) then
         gFunc.EquipSet(sets.SATA);
     elseif (sa == 1) then
@@ -373,7 +373,7 @@ profile.HandleDefault = function()
     elseif (ta == 1) then
         gFunc.EquipSet(sets.TA);
     end
-    
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
@@ -411,7 +411,7 @@ end
 
 profile.HandleMidshot = function()
     gFunc.EquipSet(sets.Midshot);
-    
+
     gcinclude.CheckTH();
 end
 
@@ -421,23 +421,27 @@ profile.HandleWeaponskill = function()
     local sa = gcinclude.BuffCount('Sneak Attack');
     local ta = gcinclude.BuffCount('Trick Attack');
 
-    gcinclude.EquipMode('Ws');
-    if (sa == 1) and (ta == 1) then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_SATA');
-    elseif (sa == 1) then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_SA');
-    elseif (ta == 1) then
-        gFunc.EquipSet('Ws_' .. gcdisplay.GetCycle('MeleeSet') .. '_TA');
+    local prefix = 'Ws';
+    if string.match(ws.Name, 'Savage Blade') then
+        prefix = 'Savage';
+    elseif string.match(ws.Name, 'Evisceration') then
+        prefix = 'Evis';
+    elseif string.match(ws.Name, 'Aeolian Edge') then
+        prefix = 'AE';
+    elseif string.match(ws.Name, 'Rudra\'s Storm') then
+        prefix = 'Rudra';
     end
 
-    if string.match(ws.Name, 'Savage Blade') then
-        gcinclude.EquipMode('Savage');
-    elseif string.match(ws.Name, 'Evisceration') then
-        gcinclude.EquipMode('Evis');
-    elseif string.match(ws.Name, 'Aeolian Edge') then
-        gcinclude.EquipMode('AE');
-    elseif string.match(ws.Name, 'Rudra\'s Storm') then
-        gcinclude.EquipMode('Rudra');
+    gcinclude.EquipMode('Ws');
+    if (prefix ~= 'Ws') then gcinclude.EquipMode(prefix) end
+
+    -- SA/TA on top of the WS set: <prefix>_<mode>_SA/_TA/_SATA, or Ws_<mode>_... when that one is missing or empty.
+    local suffix = ((sa > 0) and (ta > 0) and 'SATA') or ((sa > 0) and 'SA') or ((ta > 0) and 'TA') or nil;
+    if (suffix ~= nil) then
+        local mode = gcdisplay.GetCycle('MeleeSet');
+        local set = gcinclude.FindSet(prefix .. '_' .. mode .. '_' .. suffix);
+        if (set == nil) or (next(set) == nil) then set = gcinclude.FindSet('Ws_' .. mode .. '_' .. suffix) end
+        if (set ~= nil) then gFunc.EquipSet(set) end
     end
 end
 

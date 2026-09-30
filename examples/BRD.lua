@@ -64,7 +64,7 @@ local sets = {
         Back = 'shadow mantle',
 		Waist = 'carrier\'s sash',
 		Legs = 'fili rhingrave +3',
-        Feet = 'nyame sollerets',	
+        Feet = 'nyame sollerets',
     },
     ['Idle'] = {
         Main = 'Carnwenhan',
@@ -81,7 +81,7 @@ local sets = {
         Back = 'shadow mantle',
 		Waist = 'carrier\'s sash',
 		Legs = 'fili rhingrave +3',
-        Feet = 'nyame sollerets',	
+        Feet = 'nyame sollerets',
     },
     Resting = {},
     Idle_Regen = {
@@ -233,7 +233,7 @@ local sets = {
 		Legs = 'Kaykaus tights +1', --7
         Feet = 'Fili Cothurnes +3',--13
     },
-	
+
     Cure = {--I cap is 50, II cap is 30
        --Main = 'Bunzi\'s Rod',--I 30
         Sub = 'Ammurapi Shield',
@@ -252,7 +252,7 @@ local sets = {
     Self_Cure = {--cap 30
         Waist = 'Gishdubar Sash',
     },
-    Regen = {	
+    Regen = {
         Main = 'Bolelabunga',
         Sub = 'Ammurapi Shield',
         Body = 'Telchine Chas.',
@@ -359,9 +359,9 @@ local sets = {
     Harp = {--use /forcestring in game to lock this on all songs, I personally just use Paeons
         Range = 'Daurdabla', -- This should be ur extra song harp, whichever you use
 	},
-	
-	
-	
+
+
+
     Foe = {
         Main = 'Carnwenhan',
 		Sub = 'Ammurapi Shield',
@@ -508,7 +508,7 @@ local sets = {
         Legs = 'Inyanga Shalwar +2',
         Feet = 'Mou. Crackows +1',
     },
-	
+
 	Etude = {
         Main = 'Carnwenhan',
         Sub = 'Kali',
@@ -545,11 +545,11 @@ local sets = {
     },
 
     Drain = {},
-	
+
     Nuke = {
 	--main = '',
 	},
-    
+
 	--Preshot = {},
     --Midshot = {
         Ear1 = 'Telos Earring',
@@ -609,7 +609,7 @@ local sets = {
     },
     Savage_Hybrid = {},
     Savage_Acc = {},
-	
+
 	Ruthless_Default = {
         Range = { Name = 'Linos', Augment = { [1] = 'Weapon skill damage +2%', [2] = 'Attack+13', [3] = 'STR+8' } },
 		Head = 'nyame helm',
@@ -627,7 +627,7 @@ local sets = {
     },
     Ruthless_Hybrid = {},
     Ruthless_Acc = {},
-	
+
     Nitro = {--includes legs for soul voice as well
         Body = 'Bihu Just. +4',
         Legs = 'Bihu Cannions',
@@ -675,7 +675,7 @@ profile.OnLoad = function()
 	gSettings.AllowAddSet = true;
     gcinclude.WeaponModes = {'None', 'Naegling', 'Carnwenhan', 'CarnwenhanAcc', 'Hoxne'};
     gcinclude.DefaultWeapons = 'Naegling';
-    gcinclude.Initialize();	
+    gcinclude.Initialize();
 end
 
 profile.OnUnload = function()
@@ -688,7 +688,7 @@ end
 
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
-	
+
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -697,22 +697,22 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
     FixSub(player.Status == 'Engaged');
     gcinclude.CheckDefault ();
 end
-    
+
 profile.HandleAbility = function()
     local ability = gData.GetAction();
-    
-    if string.match(ability.Name, 'Troubadour') 
-        or string.match(ability.Name, 'Nightingale') 
-        or string.match(ability.Name, 'Soul Voice') 
+
+    if string.match(ability.Name, 'Troubadour')
+        or string.match(ability.Name, 'Nightingale')
+        or string.match(ability.Name, 'Soul Voice')
         or string.match(ability.Name, 'Clarion Call') then
-        
+
         gFunc.EquipSet(sets.Nitro)
     end
 
@@ -840,15 +840,15 @@ profile.HandleWeaponskill = function()
     local ws = gData.GetAction();
 
     gcinclude.EquipMode('Ws');
-   
+
        if string.match(ws.Name, 'Mordant Rime') then
         gcinclude.EquipMode('Mordant');
     end
-	
+
 	if string.match(ws.Name, 'Ruthless Stroke') then
         gcinclude.EquipMode('Ruthless');
     end
-   
+
     if string.match(ws.Name, 'Savage Blade') then
         gcinclude.EquipMode('Savage');
     end

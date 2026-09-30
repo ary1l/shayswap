@@ -1,7 +1,7 @@
 -- Action checks, mini-queue and set trace. Loaded and bound by gcinclude.
 local gcaction = {};
 
-local inc, disp = nil, nil;
+local inc = nil;
 local queued = nil;   -- { name, cmd, index, token, res, kind, untilT }
 local tracing = nil;  -- { label, parts } while a handler runs with /gctrace on
 local traceHead = nil;-- precast/preshot line waiting for its midcast/midshot
@@ -16,8 +16,8 @@ local MP_CUT = { 'Manafont', 'Manawell', 'Parsimony', 'Penury', 'Addendum: White
 
 local MP_SPECIAL = { ['Embrava'] = true, ['Kaustra'] = true }; -- cost is 20% of max MP, not the resource's
 
-function gcaction.Bind(gcinclude, gcdisplay)
-    inc, disp = gcinclude, gcdisplay;
+function gcaction.Bind(gcinclude)
+    inc = gcinclude;
 end
 
 local function say(msg) inc.Say(msg) end
