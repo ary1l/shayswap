@@ -41,7 +41,7 @@ gcinclude.WeaponItemMap = {
 | Command | Does |
 |---|---|
 | `/def` | none → DT → MDT → Aminon → SIRD → none, one at a time (Ctrl+grave) |
-| `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set |
+| `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub/Range/Ammo (the set's items, else what you wear) until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
 | `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo; Locked also locks Ammo and Range |
 | `/hoxne use` | Locked, equip, wait its delay, use |
@@ -52,7 +52,7 @@ gcinclude.WeaponItemMap = {
 | `/naked` `/weaponsonly` `/abysseaproc` `[on\|off]` | Strip all 16 / the 12 armor slots / head, hands, legs, feet and keep them bare. One at a time |
 | `/capacity` `/jubilee` `[on\|off]` | Wear and hold the first carried of `CapacityCapes` (Back) / Jubilee Ring (`JubileeSlot`, Ring1) |
 
-Defense toggles only wear gear. `/lock` is absolute until `/unlock`, even against force-equips.
+Defense toggles only wear gear, except `/aminon`, which also locks the weapon slots. `/lock` is absolute until `/unlock`, even against force-equips.
 Unknown slot names are refused. Holds skip slots already locked or TP-held; off releases only what they took.
 
 ## Magic burst (RDM BLM SCH GEO)
