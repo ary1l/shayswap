@@ -13,7 +13,7 @@ One box: `/ms sendto <name> /lac fwd <cmd>`.
 | `/wm none` | Stop managing weapons (`TH`-set weapons still apply while `/th` is on) |
 | `/wm default` | This job's `DefaultWeapons` |
 | `/wm melee` | Role name from `gcinclude.WeaponRoles` |
-| `/wm leaden force` | Swap even at 1000+ TP engaged |
+| `/wm leaden force` | Swap even at 1000+ TP |
 | `/mainset` `/subset` `/rangeset` `/ammoset` `[name\|N\|none]` | Per-slot cycles, on jobs that define them |
 
 - A weapon mode is what you return to at rest. Action sets that swap weapons still do.
@@ -21,7 +21,7 @@ One box: `/ms sendto <name> /lac fwd <cmd>`.
   `/mainset` changes the melee weapon.
 - `/th` on: Main/Sub/Range in the `TH` set override the mode and per-slot cycles, tagged or not (Sub only if
   you can dual wield). `/th` off gives them back.
-- **TP hold:** engaged at 1000+ TP, Main/Sub/Range don't change (songs, rolls, cures, enfeebling,
+- **TP hold:** at 1000+ TP, engaged or not, Main/Sub/Range don't change (songs, rolls, cures, enfeebling,
   enhancing, geomancy excepted). `force` overrides; `settings.WeaponTPGuard = 0` disables.
 - `Weapon_<Mode>_1h` is used when the subjob can't dual wield. `gcinclude.AlwaysDualWield = true`
   forces the DW pair (BLU, THF). The same check decides whether the `TH` set's Sub is used.

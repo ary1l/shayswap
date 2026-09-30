@@ -75,7 +75,7 @@
 		mea_Ring = 'Dim. Ring (Mea)';
 		dem_Ring = 'Dim. Ring (Dem)';
 		holla_Ring = 'Dim. Ring (Holla)';
-		WeaponTPGuard = 1000; -- while engaged at or above this TP, main/sub/range are held and weapon commands are refused unless you add force, 0 to disable
+		WeaponTPGuard = 1000; -- at or above this TP (engaged or not), main/sub/range are held and weapon commands are refused unless you add force, 0 to disable
 		HoldExemptSkills = T{'Singing', 'Geomancy', 'Healing Magic', 'Enfeebling Magic', 'Enhancing Magic'}; -- spells of these skills always get their weapon swaps
 		HoldExemptAbilities = T{'Corsair Roll'}; -- ability types that always get their weapon swaps
 		SmartSwap = true; -- keep main/sub/range on the spells below instead of losing TP to a weapon swap, /smartswap to toggle
@@ -711,7 +711,7 @@ end
 		local arg = (#words > 0) and table.concat(words, ' ') or nil;
 		if (cname == 'Weapons') and (arg ~= nil) and (string.lower(arg) == 'default') and (type(gcinclude.DefaultWeapons) == 'table') then
 			if (not force) and gcinclude.HoldActive() then
-				gcinclude.Err('Weapons kept: engaged at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
+				gcinclude.Err('Weapons kept: at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
 				return;
 			end
 			for dname, dval in pairs(gcinclude.DefaultWeapons) do gcinclude.SetWeaponCycle(dname, dval, true) end
@@ -743,7 +743,7 @@ end
 		if (new == old) then return end
 		if (cname ~= 'Ammo') and (not force) and gcinclude.HoldActive() then
 			gcdisplay.SetCycle(cname, old);
-			gcinclude.Err(cname .. ' kept on ' .. tostring(old) .. ': engaged at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
+			gcinclude.Err(cname .. ' kept on ' .. tostring(old) .. ': at ' .. tostring(gData.GetPlayer().TP) .. ' TP (add force to override)');
 			return;
 		end
 		gcinclude.ApplyWeapons(force);
@@ -939,9 +939,7 @@ end
 	function gcinclude.HoldActive()
 		local guard = gcinclude.settings.WeaponTPGuard or 0;
 		if (guard <= 0) then return false end
-		local mm = AshitaCore:GetMemoryManager();
-		local party = mm:GetParty();
-		return (party:GetMemberTP(0) >= guard) and (mm:GetEntity():GetStatus(party:GetMemberTargetIndex(0)) == 1); -- 1 = Engaged (LAC EntityStatus)
+		return (AshitaCore:GetMemoryManager():GetParty():GetMemberTP(0) >= guard); -- any status: a Main/Sub/Range swap resets TP idle too
 	end
 
 	function gcinclude.UpdateHold()
