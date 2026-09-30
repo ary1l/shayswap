@@ -58,7 +58,7 @@ local sets = {
     Idle = {
 		Main = 'excalibur',
 		Sub = 'diamond aspis',
-		Range = empty,
+		Range = 'remove',
 		Ammo = 'staunch tathlum',
         Head = 'leth. chappel +3',
         Neck = 'Warder\'s Charm +1',
@@ -85,7 +85,7 @@ local sets = {
 		Hands = 'merlinic dastanas',
 		Feet = 'merlinic crackows',
     },
-	
+
     Town = {
         Main = 'Excalibur',
         Sub = 'diamond aspis',
@@ -138,11 +138,11 @@ local sets = {
         Legs = 'malignance tights',
         Feet = 'malignance boots',
     },
-	
+
     Tp_Hybrid = {
         Ring1 = 'murky Ring',
     },
-	
+
     Tp_Acc = {
         Ring1 = 'Chirich Ring +1',
         Ring2 = 'Cacoethic Ring +1',
@@ -151,7 +151,7 @@ local sets = {
 
     Precast = {--30 from traits, 80 from gear
 		Main = 'Sakpata\'s sword',--10
-		Sub = 'diamond aspis',	
+		Sub = 'diamond aspis',
         Head = 'Atro. Chapeau +2',--14
         Neck = 'voltsurge torque',--4
         Ear1 = 'leth. earring +2',--8
@@ -183,7 +183,7 @@ local sets = {
 		Main = 'daybreak',
 		Sub = 'ammurapi shield',
 		Range = 'ullr',
-		Ammo = empty,
+		Ammo = 'remove',
 		Head = 'Atro. Chapeau +2',--12
         Neck = 'voltsurge torque',--4
         Ear1 = 'leth. earring +2',--8
@@ -276,7 +276,7 @@ local sets = {
 		Feet = 'Leth. Houseaux +3',
     },
     Self_Refresh = {},
-	
+
 	Gain = {
         Sub = 'Ammurapi Shield',
         Ammo = 'hydrocera',
@@ -293,7 +293,7 @@ local sets = {
         Legs = 'Telchine Braconi',
         Feet = 'Leth. Houseaux +3',
 	},
-	
+
 	aquaveil = {
 		Sub = 'Ammurapi Shield',
         Ammo = 'hydrocera',
@@ -339,7 +339,7 @@ local sets = {
         Main = 'Daybreak',
         Sub = 'Ammurapi Shield',
         Range = 'Ullr',
-		Ammo = empty,
+		Ammo = 'remove',
         Head = 'viti. chapeau +4',
 		Neck = 'Dls. Torque +2',
         Ear1 = 'Malignance Earring',
@@ -372,7 +372,7 @@ local sets = {
         Hands = 'Atrophy Gloves +2',
         Ring1 = 'Metamor. Ring +1',
         Ring2 = 'stikini ring +1',
-        Back = { Name = 'Sucellos\'s Cape', Augment = { [1] = 'Phys. dmg. taken -10%', [2] = '"Mag. Atk. Bns."+10', [3] = 'Mag. Acc.+20', [4] = 'INT+20', [5] = 'Magic Damage+20' } }, 
+        Back = { Name = 'Sucellos\'s Cape', Augment = { [1] = 'Phys. dmg. taken -10%', [2] = '"Mag. Atk. Bns."+10', [3] = 'Mag. Acc.+20', [4] = 'INT+20', [5] = 'Magic Damage+20' } },
         Waist = 'Fucho-no-Obi',
         Legs = 'leth. fuseau +3',
         Feet = 'Leth. Houseaux +3',
@@ -468,7 +468,7 @@ local sets = {
     },
     Chant_Hybrid = {},
     Chant_Acc = {},
-	
+
 	BH_Default = {
         Ammo = 'coiste bodhar',
         Head = 'Viti. Chapeau +4',
@@ -485,7 +485,7 @@ local sets = {
     },
     BH_Hybrid = {},
     BH_Acc = {},
-	
+
 	shining_Default = {
         Ammo = 'Voluspa Tathlum',
         Head = 'leth. chappel +3',
@@ -502,7 +502,7 @@ local sets = {
     },
     shining_Hybrid = {},
     shining_Acc = {},
-	
+
 	sanguine_Default = {
         Ammo = 'oshasha\'s treatise',
         Head = 'pixie hairpin +1',
@@ -513,14 +513,14 @@ local sets = {
         Hands = 'leth. ganth. +3',
         Ring1 = 'Metamor. ring +1',
         Ring2 = 'archon ring',
-        Back = { Name = 'Sucellos\'s Cape', Augment = { [1] = 'Phys. dmg. taken -10%', [2] = '"Mag. Atk. Bns."+10', [3] = 'Mag. Acc.+20', [4] = 'INT+20', [5] = 'Magic Damage+20' } }, 
+        Back = { Name = 'Sucellos\'s Cape', Augment = { [1] = 'Phys. dmg. taken -10%', [2] = '"Mag. Atk. Bns."+10', [3] = 'Mag. Acc.+20', [4] = 'INT+20', [5] = 'Magic Damage+20' } },
         Waist = 'orpheus\'s sash',
         Legs = 'leth. fuseau +3',
         Feet = 'leth. houseaux +3',
     },
     sanguine_Hybrid = {},
     sanguine_Acc = {},
-	
+
 	KOR_Default = {
         Ammo = 'coiste bodhar',
         Head = 'viti. chapeau +4',
@@ -542,11 +542,11 @@ local sets = {
     CS = {
 		Body = 'Viti. Tabard +4',
 	},
-	
+
 	sab = {
 		Body = 'diamond aspis',
 	},
-	
+
     TH = {
         Ammo = 'Per. Lucky Egg',
 		Waist = 'Chaac Belt',
@@ -576,7 +576,7 @@ end
 
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
-	
+
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -585,7 +585,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
@@ -602,7 +602,7 @@ profile.HandleAbility = function()
     if ability.Name == 'Chainspell' then
         gFunc.EquipSet(sets.CS);
     end
-    
+
 	if ability.Name == 'Saboteur' then
         gFunc.EquipSet(sets.sab);
     end
@@ -706,8 +706,8 @@ profile.HandleMidcast = function()
         gFunc.EquipSet(sets.EnfeeblingACC); -- mostly MACC anyways
         if (string.contains(spell.Name, 'Aspir') or string.contains(spell.Name, 'Drain')) then
             gFunc.EquipSet(sets.Drain);
+        end
     end
-end 
 
 	gcinclude.CheckTH();
 end
@@ -726,7 +726,7 @@ profile.HandleWeaponskill = function()
     local ws = gData.GetAction();
 
     gcinclude.EquipMode('Ws');
-   
+
     if string.match(ws.Name, 'Chant du Cygne') then
         gcinclude.EquipMode('Chant');
 	elseif string.match(ws.Name, 'Sanguine Blade') then

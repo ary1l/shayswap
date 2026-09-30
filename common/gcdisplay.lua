@@ -21,7 +21,7 @@ function gcdisplay.AdvanceCycle(name)
 	if (type(ctable) ~= 'table') then
 		return;
 	end
-	
+
 	ctable.Index = ctable.Index + 1;
 	if (ctable.Index > #ctable.Array) then
 		ctable.Index = 1;
@@ -33,7 +33,7 @@ function gcdisplay.SetCycle(name,val)
 	if (type(ctable) ~= 'table') then
 		return;
 	end
-	
+
 	for k,v in pairs(ctable.Array) do
 		if val == v then
 			ctable.Index = k
@@ -55,7 +55,7 @@ end
 function gcdisplay.Update()
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     if (player == nil) then return; end
-    
+
     local MID = player:GetMainJob();
     local SID = player:GetSubJob();
     Def = player:GetDefense();
@@ -179,6 +179,24 @@ local function track_drag()
 	end
 end
 
+local function bar_body()
+	imgui.Text(string.format('%d%s/%d%s  Atk:%d  Def:%d', MainLV, Main, SubLV, Sub, Attk, Def));
+	for _, k in ipairs(sorted_keys(Toggles)) do
+		imgui.SameLine();
+		imgui.PushStyleColor(ImGuiCol_Text, (Toggles[k] == true) and COL_ON or COL_OFF);
+		imgui.Text(k);
+		imgui.PopStyleColor();
+	end
+	for _, k in ipairs(sorted_keys(Cycles)) do
+		local c = Cycles[k];
+		imgui.SameLine();
+		imgui.PushStyleColor(ImGuiCol_Text, COL_VAL);
+		imgui.Text(k .. ':' .. tostring(c.Array[c.Index]));
+		imgui.PopStyleColor();
+	end
+	track_drag();
+end
+
 local function render_bar()
 	if (cfg == nil) or (cfg.DisplayBar ~= true) then return end
 	if (not barPlaced) then
@@ -189,25 +207,14 @@ local function render_bar()
 		ImGuiWindowFlags_NoTitleBar, ImGuiWindowFlags_NoScrollbar, ImGuiWindowFlags_NoResize);
 	imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, { 4, 2 });
 	imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, { 6, 1 });
+	local ok, err = true, nil;
 	if imgui.Begin('GC##gcdisplay_bar', true, flags) then
-		imgui.Text(string.format('%d%s/%d%s  Atk:%d  Def:%d', MainLV, Main, SubLV, Sub, Attk, Def));
-		for _, k in ipairs(sorted_keys(Toggles)) do
-			imgui.SameLine();
-			imgui.PushStyleColor(ImGuiCol_Text, (Toggles[k] == true) and COL_ON or COL_OFF);
-			imgui.Text(k);
-			imgui.PopStyleColor();
-		end
-		for _, k in ipairs(sorted_keys(Cycles)) do
-			local c = Cycles[k];
-			imgui.SameLine();
-			imgui.PushStyleColor(ImGuiCol_Text, COL_VAL);
-			imgui.Text(k .. ':' .. tostring(c.Array[c.Index]));
-			imgui.PopStyleColor();
-		end
-		track_drag();
+		-- an error here must not skip End/PopStyleVar, or ImGui asserts every frame after (as in gchud)
+		ok, err = pcall(bar_body);
 	end
 	imgui.End();
 	imgui.PopStyleVar(2);
+	if (ok ~= true) then error(err, 0) end
 end
 
 function gcdisplay.BarCommand(args)

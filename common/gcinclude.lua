@@ -327,7 +327,7 @@ function gcinclude.SetVariables()
         end
     end
     gcauto.Bind(gcinclude, gcdisplay);
-    gcaction.Bind(gcinclude, gcdisplay);
+    gcaction.Bind(gcinclude);
     if (gchud ~= nil) then gchud.Bind(gcinclude, gcdisplay) end
     gcauto.CreateToggles();
     if (mJob == 'RDM') or (mJob == 'BLM') or (mJob == 'SCH') or (mJob == 'GEO') then
@@ -370,12 +370,12 @@ end
 		local player = gData.GetPlayer();
 		local toggle = nil;
 		local status = nil;
-		
+
 		if args[1] == 'gcmessages' then
 			gcinclude.settings.Messages = not gcinclude.settings.Messages;
 			gcinclude.Say('Chat messages ' .. (gcinclude.settings.Messages and 'on' or 'off'));
 		elseif (args[1] == 'wsdistance') then
-			if (tonumber(args[2])) then 
+			if (tonumber(args[2])) then
 				gcinclude.settings.WScheck = true;
 				gcinclude.settings.WSdistance = tonumber(args[2]);
 				gcinclude.Say('WS Distance is on and set to ' .. gcinclude.settings.WSdistance);
@@ -983,8 +983,8 @@ end
 	end
 
 	gcinclude.SlotBits = T{ Main = 1, Sub = 2, Range = 4, Ammo = 8, Head = 16, Body = 32,
-		Hands = 64, Legs = 128, Feet = 256, Neck = 512, Waist = 1024, Ear1 = 2048, Ear2 = 2048,
-		Ring1 = 8192, Ring2 = 8192, Back = 32768 };
+		Hands = 64, Legs = 128, Feet = 256, Neck = 512, Waist = 1024, Ear1 = 2048, Ear2 = 4096,
+		Ring1 = 8192, Ring2 = 16384, Back = 32768 }; -- item resource Slots bits: 2^(LAC slot - 1), as LAC equip.lua tests them
 
 	gcinclude.WeakTo = T{ Fire = 'Water', Ice = 'Fire', Wind = 'Ice', Earth = 'Wind',
 		Thunder = 'Earth', Water = 'Thunder', Light = 'Dark', Dark = 'Light' };
@@ -1381,7 +1381,8 @@ end
 	-- Job-file helpers.
 	-- Wears <prefix>_Default, then <prefix>_<mode> when /meleeset is not Default.
 	function gcinclude.EquipMode(prefix)
-		gFunc.EquipSet(gProfile.Sets[prefix .. '_Default']);
+		local base = gcinclude.FindSet(prefix .. '_Default');
+		if (base ~= nil) then gFunc.EquipSet(base) end
 		local mode = gcdisplay.GetCycle('MeleeSet');
 		if (mode ~= 'Default') then local n = prefix .. '_' .. mode; gFunc.EquipSet(gcinclude.FindSet(n) or n) end -- index, not LAC's scan of every set
 	end
@@ -2126,7 +2127,7 @@ end
 
 	function gcinclude.DoSiphon()
 		local recast = gcinclude.CheckAbilityRecast('Elemental Siphon');
-		if recast ~= 0 then 
+		if recast ~= 0 then
 			print(chat.header('GCinclude'):append(chat.warning('Elemental Siphon not available yet!')));
 			return;
 		end
@@ -2135,7 +2136,7 @@ end
 		local spirit = 'none';
 		local spirits = {['Firesday'] = 'Fire Spirit', ['Earthsday'] = 'Earth Spirit', ['Watersday'] = 'Water Spirit', ['Windsday'] = 'Air Spirit', ['Iceday'] = 'Ice Spirit', ['Lightningday'] = 'Thunder Spirit', ['Lightsday'] = 'Light Spirit', ['Darksday'] = 'Dark Spirit'};
 		local e = gData.GetEnvironment();
-		
+
 		local function release()
 			AshitaCore:GetChatManager():QueueCommand(-1, '/ja "Release" <me>');
 		end
@@ -2240,7 +2241,7 @@ end
 		local stoneskin = gcinclude.BuffCount('Stoneskin');
 		local target = gData.GetActionTarget();
 		local me = AshitaCore:GetMemoryManager():GetParty():GetMemberName(0);
-		
+
 		local function do_jig()
 			AshitaCore:GetChatManager():QueueCommand(-1, '/ja "Spectral Jig" <me>');
 		end

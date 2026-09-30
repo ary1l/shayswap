@@ -214,7 +214,7 @@ local sets = {
     Barrage = {
         Hands = 'Orion Bracers',
     },
-    Midshot_Acc = {--will be over written by barrage set still 
+    Midshot_Acc = {--will be over written by barrage set still
         Head = 'Malignance Chapeau',
         Neck = 'Iskur Gorget',
         Ear1 = 'Crep. Earring',
@@ -378,7 +378,7 @@ end
 
 profile.HandleDefault = function()
     gFunc.EquipSet(sets.Idle);
-	
+
 	local player = gData.GetPlayer();
     if (player.Status == 'Engaged') then
         gcinclude.EquipMode('Tp');
@@ -387,7 +387,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
@@ -475,7 +475,7 @@ profile.HandleWeaponskill = function()
     if (gcinclude.CheckBlockedAmmoWS(ws.Name) == true) then return end
 
     gcinclude.EquipMode('Ws');
-    
+
     if string.match(ws.Name, 'Savage Blade') then
         gcinclude.EquipMode('Savage');
     elseif string.match(ws.Name, 'Aeolian Edge') then

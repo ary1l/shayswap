@@ -391,7 +391,7 @@ profile.HandleDefault = function()
     elseif (player.IsMoving == true) then
 		gFunc.EquipSet(sets.Movement);
     end
-	
+
     -- job layers go before CheckDefault so engine layers (weapons, mdt/Aminon, Hoxne, TH, received, buffs, XIRoll) sit on top
     if (gcdisplay.GetToggle('DTset') == true) then gFunc.EquipSet(sets.Dt) end;
     if (gcdisplay.GetToggle('Kite') == true) then gFunc.EquipSet(sets.Movement) end;
