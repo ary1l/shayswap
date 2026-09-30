@@ -1676,7 +1676,7 @@ end
 	function gcinclude.Help()
 		local lines = T{
 			'weapons: /wm [name|N|none|default|role] [force], /mainset /subset /rangeset /ammoset',
-			'defense: /def (cycle DT > MDT > Aminon > SIRD > none), /dt /mdt /aminon (also locks main/sub/range/ammo) /sir, /lock [slots] /unlock [slots]',
+			'defense: /def (cycle DT > MDT > Aminon > SIRD > none), /dt /mdt /aminon (also locks main/sub, range/ammo if in the set) /sir, /lock [slots] /unlock [slots]',
 			'hoxne  : /hoxne (Off > On > Locked)',
 			'toggles: /th (TH gear until the target is tagged; TH-set weapons while on), /kite, /meleeset (Default > Hybrid > Acc)',
 			'auto   : /autofood [on|off], /autosoda [on|off], /revit [on|off], /holywater [on|off]',
@@ -1749,10 +1749,12 @@ end
 		end
 	end
 
-	-- /aminon locks Main/Sub/Range/Ammo while on: puts on the set's items for those slots first (else keeps
-	-- what you wear), then locks them so action sets can't swap them. Other slots still swap for actions.
+	-- /aminon locks Main/Sub while on, plus Range/Ammo only when the set names them (BRD instruments keep
+	-- swapping): puts on the set's items for those slots first (else keeps what you wear), then locks them so
+	-- action sets can't swap them. Other slots still swap for actions.
 	-- Slots already /locked or Hoxne-locked are left alone; off releases only what it took. /unlock re-locks.
 	gcinclude.AminonSlots = T{'Main', 'Sub', 'Range', 'Ammo'};
+	gcinclude.AminonAlways = T{1, 2}; -- Main, Sub
 	gcinclude.AminonOwned = T{};
 	function gcinclude.CheckAminonLock()
 		if (gcdisplay.GetToggle('Aminon') ~= true) then
@@ -1764,10 +1766,12 @@ end
 		local wear, take = {}, T{};
 		for _, name in ipairs(gcinclude.AminonSlots) do
 			local slot = gData.GetEquipSlot(name);
-			if (gcinclude.LockedSlots[slot] == nil) then
-				for k, v in pairs(set) do
-					if (gData.GetEquipSlot(k) == slot) then wear[k] = v end -- set keys in any case
-				end
+			local key = nil;
+			for k, _ in pairs(set) do
+				if (gData.GetEquipSlot(k) == slot) then key = k end -- set keys in any case
+			end
+			if (gcinclude.LockedSlots[slot] == nil) and ((key ~= nil) or gcinclude.AminonAlways:contains(slot)) then
+				if (key ~= nil) then wear[key] = set[key] end
 				take:append(slot);
 				if not gcinclude.AminonOwned:contains(slot) then gcinclude.AminonOwned:append(slot) end
 			end

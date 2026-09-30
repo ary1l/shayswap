@@ -41,7 +41,7 @@ gcinclude.WeaponItemMap = {
 | Command | Does |
 |---|---|
 | `/def` | none → DT → MDT → Aminon → SIRD → none, one at a time (Ctrl+grave) |
-| `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub/Range/Ammo (the set's items, else what you wear) until off; other slots still swap for actions |
+| `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub (the set's items, else what you wear) plus Range/Ammo when the set names them, until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
 | `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range |
 | `/hoxne use` | Locked, equip, wait its delay, use |
