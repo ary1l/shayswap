@@ -136,7 +136,9 @@ AutoFoodItems = T{'Grape Daifuku +1', 'Grape Daifuku'}; -- in order; per job gci
 ```
 
 Enchanted item delay comes from the item's `CastDelay`; override with `settings.EnchantDelays`,
-fallback `EnchantWindow`. Slot unlocks 3s after use.
+fallback `EnchantWindow`. The wait starts once the item is really on (not at the command); then `/item`, retried
+every 2s (up to 5 tries) until the use starts. The slot stays locked until the use finishes, then unlocks.
+Gives up (and unlocks) if the item never goes on within 10s or 5 tries never start. One per slot, several at once.
 
 ## HUD
 

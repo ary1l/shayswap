@@ -793,6 +793,16 @@ function gcauto.HandleCommand(args)
     return false;
 end
 
+-- My item use started / was interrupted (cmd_no 9, result value = item id, 0 if interrupted) or finished
+-- (cmd_no 5, cmd_arg = item id), XiPackets 0x0028: tells gcinclude's enchanted-item use.
+local function item_packet(P)
+    if ((P.cat ~= 5) and (P.cat ~= 9)) or (P.me == nil) or (P.actor ~= P.me) then return end
+    if (inc == nil) or (inc.OnItemAction == nil) then return end
+    local id = P.param;
+    if (P.cat == 9) then id = ((P.ntgt > 0) and (P.nres[1] > 0)) and P.rval[P.first[1]] or 0 end
+    inc.OnItemAction(P.cat, id);
+end
+
 -- My action finished (or my cast was interrupted, cmd_no 8 with an 'sp' arg, XiPackets 0x0028):
 -- start the forced delay, and end an auto nuke's fallback hold.
 local function lock_packet(P)
@@ -815,7 +825,7 @@ function gcauto.Start()
     ashita.events.register('packet_in', 'gcauto_packet', function (e)
         if (e.id == 0x0028) then
             local ok, P = pcall(parse_action, e.data);
-            if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P) end
+            if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P); pcall(item_packet, P) end
         end
         if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; jaLockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
     end);

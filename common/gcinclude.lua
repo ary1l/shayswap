@@ -310,6 +310,7 @@ function gcinclude.SetVariables()
     gcinclude.UnlockSlots(nil);
     gcinclude.UnlockWeapons();
     gcinclude.Holds, gcinclude.Strip = {}, nil;
+    gcinclude.Enchants = {};
     gcdisplay.ClearAll();
     gcdisplay.CreateToggle('DTset', false);
     gcdisplay.CreateToggle('MDTset', false);
@@ -956,18 +957,81 @@ end
 		end
 	end
 
-	function gcinclude.CheckEnchantHold()
-		if (gcinclude.EnchantHold == nil) then return end
-		local now = os.clock();
-		if (gcinclude.EnchantUseAt ~= nil) and (now >= gcinclude.EnchantUseAt) then
-			AshitaCore:GetChatManager():QueueCommand(-1, '/item "' .. gcinclude.EnchantItem .. '" <me>');
-			gcinclude.EnchantUseAt = nil;
+	-- Enchanted item use (/gce, /hoxne use). The equip delay runs from when the server has the item on,
+	-- so the countdown starts once the slot really holds it (inventory memory, as LAC's GetCurrentEquip
+	-- reads it), not at the command. Then /item, retried until the use shows up in 0x0028 (XiPackets:
+	-- cmd_no 9 Item (Start) value = item id, 0 if interrupted; cmd_no 5 Item (Finish) cmd_arg = item id).
+	-- The slot stays locked until that finish packet, so normal gear can't come back mid-use.
+	-- Several can run at once (one per slot).
+	gcinclude.Enchants = {}; -- [LAC slot] = { item, id, slot, index, wasLocked, delay, start, equippedAt, nextTry, tries, doneAt }
+	local ENCHANT_MARGIN = 1.0;    -- after the equip delay, before the first try
+	local ENCHANT_RETRY = 2.0;     -- between tries while no Item (Start) is seen
+	local ENCHANT_TRIES = 5;
+	local ENCHANT_EQUIP_WAIT = 10; -- give up if the item never shows up in the slot
+	local ENCHANT_USE_WAIT = 15;   -- after Item (Start), wait this long for Item (Finish), then retry
+
+	local function equippedId(slot)
+		local inv = AshitaCore:GetMemoryManager():GetInventory();
+		local e = inv:GetEquippedItem(slot - 1);
+		local index = (e ~= nil) and bit.band(e.Index, 0x00FF) or 0;
+		if (index == 0) then return nil end
+		local item = inv:GetContainerItem(bit.band(e.Index, 0xFF00) / 256, index);
+		return (item ~= nil) and (item.Count > 0) and item.Id or nil;
+	end
+
+	function gcinclude.ReleaseEnchant(index)
+		local e = gcinclude.Enchants[index];
+		if (e == nil) then return end
+		if (e.wasLocked ~= true) then gcinclude.UnlockSlots(T{index}) end
+		gcinclude.Enchants[index] = nil;
+	end
+
+	local function enchant_step(e, now)
+		if (e.doneAt ~= nil) then
+			if (now >= e.doneAt) then gcinclude.ReleaseEnchant(e.index) end
+			return;
 		end
-		if (now < (gcinclude.EnchantUntil or 0)) then return end
-		if (gcinclude.EnchantWasLocked ~= true) then gcinclude.UnlockSlots(T{gcinclude.EnchantHold}) end
-		gcinclude.EnchantWasLocked = nil;
-		gcinclude.EnchantHold = nil;
-		gcinclude.EnchantItem = nil;
+		if (e.equippedAt == nil) then
+			if (equippedId(e.index) == e.id) then
+				e.equippedAt = now;
+				e.nextTry = now + e.delay + ENCHANT_MARGIN;
+			elseif (now > e.start + ENCHANT_EQUIP_WAIT) then
+				gcinclude.Err(e.item .. ': never showed up in ' .. string.lower(e.slot) .. ', released');
+				gcinclude.ReleaseEnchant(e.index);
+			end
+			return;
+		end
+		if (now < e.nextTry) then return end
+		if (e.tries >= ENCHANT_TRIES) then
+			gcinclude.Err(e.item .. ': not used after ' .. e.tries .. ' tries (charges or reuse timer?), released');
+			gcinclude.ReleaseEnchant(e.index);
+			return;
+		end
+		e.tries = e.tries + 1;
+		e.nextTry = now + ENCHANT_RETRY;
+		AshitaCore:GetChatManager():QueueCommand(-1, '/item "' .. e.item .. '" <me>');
+	end
+
+	function gcinclude.CheckEnchantHold()
+		if (next(gcinclude.Enchants) == nil) then return end
+		local now = os.clock();
+		for _, e in pairs(gcinclude.Enchants) do enchant_step(e, now) end
+	end
+
+	-- From gcauto's 0x0028 reader: my item use started (cmd 9), was interrupted (cmd 9, id 0) or finished (cmd 5).
+	function gcinclude.OnItemAction(cmd, id)
+		local now = os.clock();
+		for _, e in pairs(gcinclude.Enchants) do
+			if (e.doneAt == nil) and (e.equippedAt ~= nil) then
+				if (cmd == 5) and (id == e.id) then
+					e.doneAt = now + 0.5;
+				elseif (cmd == 9) and (id == e.id) then
+					e.nextTry = now + ENCHANT_USE_WAIT;
+				elseif (cmd == 9) and (id == 0) and (e.nextTry > now + ENCHANT_RETRY) then
+					e.nextTry = now + ENCHANT_RETRY; -- an item use was interrupted: try again soon
+				end
+			end
+		end
 	end
 
 	function gcinclude.HoldTick()
@@ -1659,6 +1723,7 @@ end
 		end
 		local delay, source = gcinclude.EnchantDelay(name, res);
 		local index = gData.GetEquipSlot(slot);
+		gcinclude.ReleaseEnchant(index); -- a new /gce on the same slot replaces the old one
 		local wasLocked = (gcinclude.LockedSlots[index] == true);
 		if wasLocked and (allowLocked ~= true) then
 			gcinclude.Err(slot .. ' is locked - /unlock ' .. string.lower(slot) .. ' first');
@@ -1666,12 +1731,9 @@ end
 		end
 		gFunc.ForceEquipSet({ [slot] = name }); -- slot is free or owned by the caller
 		gcinclude.LockSlots(T{index});
-		gcinclude.EnchantWasLocked = wasLocked;
-		gcinclude.EnchantHold = index;
-		gcinclude.EnchantItem = name;
-		gcinclude.EnchantUseAt = os.clock() + delay + 0.5;
-		gcinclude.EnchantUntil = gcinclude.EnchantUseAt + 3;
-		gcinclude.Say(name .. ' on ' .. string.lower(slot) .. ', using it in ' .. tostring(delay) .. 's (' .. source .. ')');
+		gcinclude.Enchants[index] = { item = name, id = res.Id, slot = slot, index = index, wasLocked = wasLocked,
+			delay = delay, start = os.clock(), tries = 0 };
+		gcinclude.Say(name .. ' on ' .. string.lower(slot) .. ', using it ' .. tostring(delay) .. 's after it is on (' .. source .. ')');
 		return true;
 	end
 
