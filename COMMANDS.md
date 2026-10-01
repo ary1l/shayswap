@@ -289,6 +289,8 @@ Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
 | Curing/Divine Waltz | `Waltz_Received` |
 
 Spells: triggered by anyone's "starts casting" packet on you, and by your own boxes (Multisend at precast).
+The Multisend notice goes only to your own boxes: ones running this engine (fresh `hud\<Name>.txt`) or
+listed in `settings.MyBoxes`. Other players' characters are never sent to.
 Waltzes are instant, so only your own boxes' Curing Waltz is announced (Multisend when used) and it can
 land after the heal; Divine Waltz is aimed at the dancer, so never. Doesn't interrupt your own action;
 locked slots skipped.

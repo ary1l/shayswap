@@ -52,7 +52,7 @@ Full reference: `COMMANDS.md`.
 - **Received gear**: when anyone starts casting Cure/Cura/Curaga, Phalanx, Protect, Shell, Regen, Refresh or
   Cursna on you, the matching `*_Received` set goes on until it lands (8s max). Waltzes are instant abilities,
   so there is nothing to see in advance: `Waltz_Received` only works when one of **your own boxes** uses Curing
-  Waltz on you (it tells your box by `/ms`), and may still land after the heal. Divine Waltz (area, aimed at
+  Waltz on you (it tells your box by `/ms`; only your own boxes get told, never other players), and may still land after the heal. Divine Waltz (area, aimed at
   the dancer) and anyone else's Waltz: no swap.
 - **Multibox**: `/mss /lac fwd <cmd>` runs a command on every box. HUD (`/gchud`): one line per box, click
   a cell to change it on that box.

@@ -712,6 +712,26 @@ local function present()
     end
 end
 
+-- True when <name> is one of my boxes: every box running this engine rewrites hud\<Name>.txt every
+-- 0.25s (write_state), so a fresh file means a box that can take '/lac fwd'. Cached 5s per name.
+local boxCache = {};
+function gchud.IsBox(name)
+    if (type(name) ~= 'string') or (name == '') then return false end
+    local key = string.lower(name);
+    local now = os.time();
+    local hit = boxCache[key];
+    if (hit ~= nil) and ((now - hit.at) < 5) then return hit.ok end
+    local ok = false;
+    local f = io.open(dir() .. name .. '.txt', 'r');
+    if (f ~= nil) then
+        local stamp = tonumber(string.match(f:read('*a') or '', '\t(%d+)%s*$'));
+        f:close();
+        ok = (stamp ~= nil) and ((now - stamp) <= STALE);
+    end
+    boxCache[key] = { ok = ok, at = now };
+    return ok;
+end
+
 function gchud.Bind(gcinclude, gcdisplay)
     inc = gcinclude;
     disp = gcdisplay;
@@ -721,6 +741,7 @@ function gchud.Start()
     pcall(load_pos);
     abbrChecked = false;
     abbrCache = {};
+    boxCache = {};
     placed = false;
     ashita.events.register('d3d_present', 'gchud_present', present);
     local player = me();
