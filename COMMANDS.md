@@ -109,7 +109,7 @@ Spells, abilities and WS that would fail are cancelled before any gear moves, wi
 | Mute; Amnesia (abilities, WS) | Cancelled |
 | Silence | Cancelled; uses Echo Drops, else Remedy (Remedy first if paralyzed). `AutoRemedy`, not under Muddle |
 | Paralysis on an ability | Uses a Remedy instead, if carried |
-| Recast | Back within `MiniQueueMax` (5s): queued and sent when ready (`<me>`, a player, or `<t>` if still targeted). Longer: shows `m:ss`. `MiniQueue = false` to only cancel |
+| Recast | Back within `MiniQueueMax` (5s): queued and sent when ready and past the forced delay (BG-Wiki: 3s after a spell, 2s after a WS, 2s after a job ability with job abilities allowed after 1s) (`<me>`, a player, or `<t>` if still targeted). Longer: shows `m:ss`. `MiniQueue = false` to only cancel |
 | MP short | Cost adjusted for Light/Dark Arts (own school -10% rounded down, other +20% rounded up). Skipped under Manafont, Manawell, Parsimony, Penury, Addenda, Tabula Rasa. Gear "MP cost -%" isn't counted: `ValidateMP = false` if it bites |
 | Stratagems at 0 | Cancelled, next charge time shown |
 | Waltz short on TP | Cancelled. Set `WaltzTPCut` to your gear's "Waltz TP cost" reduction |

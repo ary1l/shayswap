@@ -104,6 +104,12 @@ local function use_cure(list)
     return nil;
 end
 
+-- Forced delay left after my last action (gcauto, BG-Wiki Forced Delay); 0 without the tracker.
+local function forced_delay(kind)
+    if (gcauto == nil) or (gcauto.ForcedDelay == nil) then return 0 end
+    return gcauto.ForcedDelay(kind);
+end
+
 -- On recast: queue it when it comes back within MiniQueueMax seconds, else say how long.
 local function on_recast(a, secs, kind)
     local cfg = inc.settings;
@@ -111,10 +117,11 @@ local function on_recast(a, secs, kind)
     if (cfg.MiniQueue ~= false) and (secs <= (cfg.MiniQueueMax or 5)) and (target ~= nil) and (a.Resource ~= nil) then
         local token = target_token(target.Index);
         if (token ~= nil) then
+            local wait = math.max(secs, forced_delay(kind));
             queued = { name = a.Name, kind = kind, res = a.Resource, token = token,
-                index = target.Index, untilT = os.clock() + secs + 2,
+                index = target.Index, untilT = os.clock() + wait + 2,
                 cmd = ((kind == 'Spell') and '/ma "' or '/ja "') .. a.Name .. '" ' };
-            say(a.Name .. ': queued, ' .. string.format('%.1fs', secs));
+            say(a.Name .. ': queued, ' .. string.format('%.1fs', wait));
             return true;
         end
     end
@@ -180,12 +187,13 @@ function gcaction.Check()
     return false;
 end
 
--- Called every 0.1s: send the queued action once its recast is back and nothing else is running.
+-- Called every 0.1s: send the queued action once its recast is back, the forced delay is over and
+-- nothing else is running.
 function gcaction.Tick()
     local q = queued;
     if (q == nil) then return end
     if (os.clock() > q.untilT) then queued = nil; say(q.name .. ': queue dropped'); return end
-    if (gState.PlayerAction ~= nil) or not ready(q) then return end
+    if (gState.PlayerAction ~= nil) or not ready(q) or (forced_delay(q.kind) > 0) then return end
     queued = nil;
     if (q.token == '<t>') and (current_target() ~= q.index) then say(q.name .. ': target changed, not sent'); return end
     AshitaCore:GetChatManager():QueueCommand(-1, q.cmd .. q.token);

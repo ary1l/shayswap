@@ -40,7 +40,8 @@ Full reference: `COMMANDS.md`.
   on Doom; food and soda; `/th`: TH gear at rest and on spells/shots at a mob until it is tagged (your hit, shot,
   WS, ability, or a spell/step that lands; BLU: `BluMagTH` spells only), `TH`-set weapons the whole time; lockstyle on load if `LockstyleSet` is set.
 - **Action checks**: spells, abilities and WS that would fail are cancelled before any gear moves, with the
-  reason in chat. A recast back within 5s is queued and fires when ready.
+  reason in chat. A recast back within 5s is queued and fires when ready, after the forced delay of your last action
+  (BG-Wiki: spell 3s, WS 2s, job ability 2s with other job abilities allowed after 1s).
 - **Holds**: `/naked` `/weaponsonly` `/abysseaproc` strip slots and keep them bare; `/capacity` `/jubilee`
   put on and keep your capacity cape / Jubilee Ring.
 - **Magic burst** (RDM BLM SCH GEO), `/mbmode` cycles:

@@ -6,11 +6,18 @@ local nextTick = 0;
 local busyUntil = 0;
 local nukeSent = false; -- busyUntil is an auto nuke's fallback hold; its finish/interrupt packet ends it
 -- Forced delay after my own actions, counted from the finish packet. BG-Wiki (Forced Delay, Casting
--- Time Gauge): 3s after a spell finishes, 2s after a WS or job ability; FFXIclopedia (Chainspell):
--- "approximate 2.5 - 3 second". Too soon gets "Unable to cast spells at this time." No source gives an
--- interrupted cast's delay, so it gets the spell's 3s. Items: no source, so no delay is added.
+-- Time Gauge): 3s after a spell finishes, 2s after a WS (nothing usable); a job ability is 2s in two
+-- phases: 1s of total inactivity, then 1s where other job abilities work but auto-attack doesn't, and a
+-- job ability in phase 2 restarts phase 1. Steps/Flourishes (14) and Effusions (15) are job abilities.
+-- FFXIclopedia (Chainspell): "approximate 2.5 - 3 second". Too soon gets "Unable to cast spells at this
+-- time." No source gives an interrupted cast's delay, so it gets the spell's 3s. Items: no source, so
+-- no delay is added. lockUntil gates everything; jaLockUntil gates job abilities only. Sources say
+-- nothing about a job ability right after a spell or a spell in JA phase 2, so those wait the full lock.
 local lockUntil = 0;
+local jaLockUntil = 0;
 local LOCK = { [3] = 2.0, [4] = 3.0, [6] = 2.0, [14] = 2.0, [15] = 2.0 };
+local JA_CATS = { [6] = true, [14] = true, [15] = true };
+local JA_PHASE1 = 1.0;
 local SPELL_LOCK = 3.0;
 local warned = {};
 local seen = {};
@@ -621,6 +628,12 @@ function gcauto.NukeTick(player, now)
     return false;
 end
 
+-- Seconds of forced delay left before an action of this kind ('Ability', else anything) can go out.
+function gcauto.ForcedDelay(kind)
+    local untilT = (kind == 'Ability') and jaLockUntil or lockUntil;
+    return math.max(0, untilT - os.clock());
+end
+
 function gcauto.InCombat()
     local window = (inc ~= nil) and inc.settings.CombatWindow or 6;
     return (os.clock() - lastCombat) <= window;
@@ -788,7 +801,9 @@ local function lock_packet(P)
     local lock = LOCK[P.cat];
     if (P.cat == 8) and (bit.band(P.param, 0xFFFF) == 28787) then lock = SPELL_LOCK end
     if (lock == nil) then return end
-    lockUntil = os.clock() + lock;
+    local now = os.clock();
+    lockUntil = math.max(lockUntil, now + lock); -- a JA can't shorten a spell's 3s
+    jaLockUntil = math.max(jaLockUntil, now + (JA_CATS[P.cat] and JA_PHASE1 or lock));
     if nukeSent and ((P.cat == 4) or (P.cat == 8)) then
         busyUntil = 0;
         nukeSent = false;
@@ -802,7 +817,7 @@ function gcauto.Start()
             local ok, P = pcall(parse_action, e.data);
             if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P) end
         end
-        if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
+        if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; jaLockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
     end);
 end
 
