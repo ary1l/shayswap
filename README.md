@@ -40,7 +40,8 @@ Full reference: `COMMANDS.md`.
   on Doom; food and soda; `/th`: TH gear at rest and on spells/shots at a mob until it is tagged (your hit, shot,
   WS, ability, or a spell/step that lands; BLU: `BluMagTH` spells only), `TH`-set weapons the whole time; lockstyle on load if `LockstyleSet` is set.
 - **Action checks**: spells, abilities and WS that would fail are cancelled before any gear moves, with the
-  reason in chat. A recast back within 5s is queued and fires when ready.
+  reason in chat. A recast back within 5s is queued and fires when ready, after the forced delay of your last action
+  (BG-Wiki: spell 3s, WS 2s, job ability 2s with other job abilities allowed after 1s).
 - **Holds**: `/naked` `/weaponsonly` `/abysseaproc` strip slots and keep them bare; `/capacity` `/jubilee`
   put on and keep your capacity cape / Jubilee Ring.
 - **Magic burst** (RDM BLM SCH GEO), `/mbmode` cycles:
@@ -51,7 +52,7 @@ Full reference: `COMMANDS.md`.
 - **Received gear**: when anyone starts casting Cure/Cura/Curaga, Phalanx, Protect, Shell, Regen, Refresh or
   Cursna on you, the matching `*_Received` set goes on until it lands (8s max). Waltzes are instant abilities,
   so there is nothing to see in advance: `Waltz_Received` only works when one of **your own boxes** uses Curing
-  Waltz on you (it tells your box by `/ms`), and may still land after the heal. Divine Waltz (area, aimed at
+  Waltz on you (it tells your box by `/ms`; only your own boxes get told, never other players), and may still land after the heal. Divine Waltz (area, aimed at
   the dancer) and anyone else's Waltz: no swap.
 - **Multibox**: `/mss /lac fwd <cmd>` runs a command on every box. HUD (`/gchud`): one line per box, click
   a cell to change it on that box.

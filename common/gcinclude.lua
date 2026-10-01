@@ -108,6 +108,7 @@
 			['divine waltz'] = 'Waltz_Received',
 		};
 		ReceivedWindow = 8; -- seconds the received gear stays on before it gives up
+		MyBoxes = T{}; -- your own characters that get the Multisend 'received' notice; boxes running this engine are found by themselves (HUD state file), so only needed if that fails, e.g. T{'Shaymin','Muunch'}
 		ElementReport = false;
 		OrpheusPoints = T{ {1.93, 15}, {13, 1} }; -- {yalms, affinity %}: BG's two documented ends; linear between them is assumed. Add tested points in order. -- /gcinfo prints what the element picker chose and why
 		ElementGear = T{ -- waist chosen by the spell's element, day and weather
@@ -1096,7 +1097,18 @@ end
 		local me = gData.GetPlayer();
 		if (me ~= nil) and (me.Name == target.Name) then return end
 		if (target.Type ~= 'PC') and (target.Type ~= 'Party') and (target.Type ~= 'Alliance') then return end
+		if not gcinclude.IsMyBox(target.Name) then return end -- other players' characters: no Multisend
 		AshitaCore:GetChatManager():QueueCommand(-1, '/ms sendto ' .. target.Name .. ' /lac fwd received ' .. action.Name);
+	end
+
+	-- One of my own boxes: listed in settings.MyBoxes, or running this engine now (fresh HUD state file).
+	function gcinclude.IsMyBox(name)
+		if (type(name) ~= 'string') then return false end
+		local lname = string.lower(name);
+		for _, n in ipairs(gcinclude.settings.MyBoxes or {}) do
+			if (string.lower(n) == lname) then return true end
+		end
+		return (gchud ~= nil) and (gchud.IsBox ~= nil) and gchud.IsBox(name);
 	end
 
 	function gcinclude.ReceivedCommand(args)

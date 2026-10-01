@@ -109,7 +109,7 @@ Spells, abilities and WS that would fail are cancelled before any gear moves, wi
 | Mute; Amnesia (abilities, WS) | Cancelled |
 | Silence | Cancelled; uses Echo Drops, else Remedy (Remedy first if paralyzed). `AutoRemedy`, not under Muddle |
 | Paralysis on an ability | Uses a Remedy instead, if carried |
-| Recast | Back within `MiniQueueMax` (5s): queued and sent when ready (`<me>`, a player, or `<t>` if still targeted). Longer: shows `m:ss`. `MiniQueue = false` to only cancel |
+| Recast | Back within `MiniQueueMax` (5s): queued and sent when ready and past the forced delay (BG-Wiki: 3s after a spell, 2s after a WS, 2s after a job ability with job abilities allowed after 1s) (`<me>`, a player, or `<t>` if still targeted). Longer: shows `m:ss`. `MiniQueue = false` to only cancel |
 | MP short | Cost adjusted for Light/Dark Arts (own school -10% rounded down, other +20% rounded up). Skipped under Manafont, Manawell, Parsimony, Penury, Addenda, Tabula Rasa. Gear "MP cost -%" isn't counted: `ValidateMP = false` if it bites |
 | Stratagems at 0 | Cancelled, next charge time shown |
 | Waltz short on TP | Cancelled. Set `WaltzTPCut` to your gear's "Waltz TP cost" reduction |
@@ -289,6 +289,8 @@ Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
 | Curing/Divine Waltz | `Waltz_Received` |
 
 Spells: triggered by anyone's "starts casting" packet on you, and by your own boxes (Multisend at precast).
+The Multisend notice goes only to your own boxes: ones running this engine (fresh `hud\<Name>.txt`) or
+listed in `settings.MyBoxes`. Other players' characters are never sent to.
 Waltzes are instant, so only your own boxes' Curing Waltz is announced (Multisend when used) and it can
 land after the heal; Divine Waltz is aimed at the dancer, so never. Doesn't interrupt your own action;
 locked slots skipped.
