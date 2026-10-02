@@ -937,8 +937,9 @@ end
 		return (type(cp) == 'table') and tonumber(cp.Value) or 0;
 	end
 
-	-- Dynamis - Divergence job necks, best first: +2, +1, base. Item ids 25417 + 6 * (job - 1) + 2/1/0 (from
-	-- Rahvin's table); each one is checked to be a neck this main job can wear before it is used.
+	-- Dynamis - Divergence job necks, best first: +2, +1, base. Item ids 25417 + 6 * (job - 1) + 0/1/2, all 66
+	-- checked on FFXIAH (25417 Warrior's Beads ... 25545 Futhark Torque +2); each is still checked to be a neck
+	-- this main job can wear before it is used.
 	local function dynamisNeck()
 		local job = AshitaCore:GetMemoryManager():GetPlayer():GetMainJob();
 		if (job < 1) or (job > 22) then return nil end
@@ -2213,7 +2214,8 @@ end
 		AshitaCore:GetChatManager():QueueCommand(-1, '/cancel Stoneskin');
 	end
 
-	-- Entering a Dynamis - Divergence zone ("[D]"): a reminder that /dynamisrp holds the job neck.
+	-- Entering a Dynamis - Divergence zone (named "Dynamis - <city> [D]", per SE's Nov 2025 update notes): a reminder
+	-- that /dynamisrp holds the job neck.
 	gcinclude.LastZone = nil;
 	function gcinclude.CheckZoneNotes()
 		local zone = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0);
