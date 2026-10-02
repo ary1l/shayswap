@@ -116,8 +116,10 @@
 			AnyObi = 'Hachirin-no-Obi', -- every element; worn only when day/weather nets positive
 			Distance = 'Orpheus\'s Sash', -- used when it beats the obi's day/weather value
 			DistanceMax = nil, -- optional yalm cap for Orpheus; nil = any distance (it is never below +1)
-			Ring = nil, -- e.g. 'Zodiac Ring', worn when the day matches the element
+			Ring = nil, -- e.g. 'Zodiac Ring', worn when the day matches the element (never Light/Dark, never on cures)
 			RingSlot = 'Ring2',
+			Back = nil, -- e.g. 'Twilight Cape': +5% to a day bonus, or to a weather bonus that applies (BG-Wiki)
+			BackOnCures = false, -- also on Cure/Cura/Curaga (your cure-potency back may be worth more)
 			Keep = T{'Oneiros Rope'}, -- items that are never displaced by the picks above
 		};
 		AutoSoda = false; -- /autosoda: keep Regain up with SodaItem
@@ -175,6 +177,10 @@
 		LockstyleSet = nil; -- /lockstyleset N 4s after load and job change; per job gcinclude.LockstyleSet = N in OnLoad
 		CapacityCapes = T{'Aptitude Mantle +1', 'Aptitude Mantle', 'Mecisto. Mantle'}; -- /capacity wears the first one carried
 		JubileeSlot = 'Ring1'; -- /jubilee ring slot
+		AmmoWarn = 20; -- warn when the ammo in use (inventory + wardrobes) is at or under this, 0 = never
+		NinjaToolWarn = 10; -- warn when Utsusemi tools (Shihei, + Shikanofuda on NIN) are at or under this, 0 = never
+		SleepCancelStoneskin = true; -- asleep with Stoneskin up: /cancel Stoneskin so damage can wake you (FFXIclopedia Sleep)
+		HoxneAutoUse = true; -- Hoxne On/Locked: use the Ampulla again when its 30 min effect has run out or it was re-equipped
 	};
 
 	--[[
@@ -194,7 +200,7 @@
 
 	gcinclude.AliasList = T{'gcmessages','wsdistance','setcycle','dt','mdt','th','kite','meleeset','gcdrain','gcaspir','nukeset','burst','automb','autonuke','weapon','elecycle','helix','weather','nuke','death','sir','tankset','proc',
 	'pupmode','weaponset','wm','mainset','subset','rangeset','ammoset','autofood','autosoda','revit','holywater','aminon','gchud','lock','unlock','hoxne','gchelp','gckey','def','mbmode','received','gcinfo','gce','xiroll','checksets','smartswap','autogear','gcbar','mbinfo','cormsg','forcestring','songlock','siphon','warpring','mea','holla','dem','rrset','craftset','zeniset','fishset','mbtier',
-	'gctrace','naked','weaponsonly','abysseaproc','capacity','jubilee','gcstyle','dw'};
+	'gctrace','naked','weaponsonly','abysseaproc','capacity','jubilee','gcstyle','dw','dynamisrp','temps'};
 	-- Exit/use-on-self items: key = /command, value = exact /item name. Add a line, /lac reload.
 	gcinclude.ExitItems = {
 		ontic = 'ontic extremity',
@@ -487,6 +493,8 @@ end
 			gcinclude.UseTeleRing(gcinclude.TeleRings[args[1]]);
 		elseif (gcinclude.ExitItems[args[1]] ~= nil) then
 			AshitaCore:GetChatManager():QueueCommand(-1, '/item "' .. gcinclude.ExitItems[args[1]] .. '" <me>');
+		elseif (args[1] == 'temps') then
+			gcinclude.UseTemps();
 		elseif (args[1] == 'dw') then
 			gcinclude.DualWieldCommand(args);
 		elseif (args[1] == 'gctrace') then
@@ -887,36 +895,160 @@ end
 		gcinclude.Say(mode .. ': ' .. (gcinclude.Strip and 'on' or 'every slot is locked'));
 	end
 
-	-- Carried-item holds: the best carried capacity cape, the Jubilee Ring.
-	gcinclude.CarriedKeys = T{'capacity', 'jubilee'};
+	-- Carried-item holds: the best carried capacity cape, the Jubilee Ring, the Dynamis Divergence neck.
+	gcinclude.CarriedKeys = T{'capacity', 'jubilee', 'dynamisrp'};
 
+	-- Every copy of an item id in the bags gear is equipped from: the first copy found, and how many in all.
 	local function carriedId(id)
 		local inv = AshitaCore:GetMemoryManager():GetInventory();
 		local bags = gSettings.EquipBags;
 		if (type(bags) ~= 'table') or (#bags == 0) then bags = {8, 10, 11, 12, 13, 14, 15, 16, 0} end
+		local first, count = nil, 0;
 		for _, c in ipairs(bags) do
 			for i = 1, (gData.GetContainerMax(c) or 0) do
 				local it = inv:GetContainerItem(c, i);
-				if (it ~= nil) and (it.Id == id) then return true end
+				if (it ~= nil) and (it.Id == id) and (it.Count > 0) then
+					first = first or it;
+					count = count + it.Count;
+				end
 			end
 		end
-		return false;
+		return first, count;
 	end
+	gcinclude.CarriedId = carriedId;
 
 	local function carriedName(name)
 		local r = AshitaCore:GetResourceManager():GetItemByName(name, 0);
-		return (r ~= nil) and carriedId(r.Id);
+		if (r == nil) then return nil, 0 end
+		return carriedId(r.Id);
+	end
+
+	-- Capacity point bonus (BG-Wiki): Aptitude Mantle +1 30%, Aptitude Mantle 25%; Mecisto. Mantle 10-50% from
+	-- its augment, read with LAC's gData.GetAugment ('Cap. Point'). The highest carried cape wins.
+	gcinclude.CapacityValues = { ['aptitude mantle +1'] = 30, ['aptitude mantle'] = 25 };
+	local function capeValue(name)
+		local it = carriedName(name);
+		if (it == nil) then return nil end
+		local fixed = gcinclude.CapacityValues[string.lower(name)];
+		if (fixed ~= nil) then return fixed end
+		local ok, aug = pcall(gData.GetAugment, it);
+		local cp = ok and (type(aug) == 'table') and (type(aug.Augs) == 'table') and aug.Augs['Cap. Point'] or nil;
+		return (type(cp) == 'table') and tonumber(cp.Value) or 0;
+	end
+
+	-- Dynamis - Divergence job necks, best first: +2, +1, base. Item ids 25417 + 6 * (job - 1) + 2/1/0 (from
+	-- Rahvin's table); each one is checked to be a neck this main job can wear before it is used.
+	local function dynamisNeck()
+		local job = AshitaCore:GetMemoryManager():GetPlayer():GetMainJob();
+		if (job < 1) or (job > 22) then return nil end
+		local base = 25417 + 6 * (job - 1);
+		for _, id in ipairs({ base + 2, base + 1, base }) do
+			local r = AshitaCore:GetResourceManager():GetItemById(id);
+			if (r ~= nil) and (bit.band(r.Slots, gcinclude.SlotBits.Neck) ~= 0)
+				and (bit.band(r.Jobs, bit.lshift(1, job)) ~= 0) and (carriedId(id) ~= nil) then
+				return r.Name[1];
+			end
+		end
+		return nil;
 	end
 
 	function gcinclude.CarriedPick(key)
 		if (key == 'capacity') then
+			local best, bestValue = nil, -1;
 			for _, name in ipairs(gcinclude.settings.CapacityCapes or {}) do
-				if carriedName(name) then return 'Back', name end
+				local v = capeValue(name);
+				if (v ~= nil) and (v > bestValue) then best, bestValue = name, v end
 			end
+			if (best ~= nil) then return 'Back', best end
 		elseif (key == 'jubilee') and carriedName('Jubilee Ring') then
 			return (gcinclude.settings.JubileeSlot or 'Ring1'), 'Jubilee Ring';
+		elseif (key == 'dynamisrp') then
+			local neck = dynamisNeck();
+			if (neck ~= nil) then return 'Neck', neck end
 		end
 		return nil;
+	end
+
+	-- Items an action can't go without (BG-Wiki/FFXIclopedia): Dispelga needs Daybreak in main, Honor March
+	-- Marsyas, Aria of Passion Loughnashade, Impact a Twilight or Crepuscular Cloak for the whole cast (it
+	-- covers the head, so head is emptied), Tomahawk a Thr. Tomahawk and Angon an Angon in ammo.
+	gcinclude.RequiredGear = {
+		['Dispelga'] = { Main = T{'Daybreak'} },
+		['Honor March'] = { Range = T{'Marsyas'} },
+		['Aria of Passion'] = { Range = T{'Loughnashade'} },
+		['Impact'] = { Body = T{'Crepuscular Cloak', 'Twilight Cloak'}, Head = 'remove' },
+		['Tomahawk'] = { Ammo = T{'Thr. Tomahawk'} },
+		['Angon'] = { Ammo = T{'Angon'} },
+	};
+
+	-- The gear to put on for this action, or nil and why it can't be done (item not carried, slot /locked).
+	function gcinclude.RequiredFor(name)
+		local req = gcinclude.RequiredGear[name or ''];
+		if (req == nil) then return nil end
+		local set, equip = {}, nil;
+		for slot, items in pairs(req) do
+			if (type(items) == 'string') then
+				set[slot] = items;
+			else
+				local pick = nil;
+				for _, it in ipairs(items) do
+					if carriedName(it) then pick = it; break end
+				end
+				if (pick == nil) then return nil, 'needs ' .. table.concat(items, ' or ') end
+				if (gcinclude.LockedSlots[gData.GetEquipSlot(slot)] == true) then
+					equip = equip or gData.GetEquipment();
+					local worn = (equip[slot] ~= nil) and equip[slot].Name or nil;
+					if (worn == nil) or (string.lower(worn) ~= string.lower(pick)) then
+						return nil, string.lower(slot) .. ' is locked (' .. pick .. ' needed)';
+					end
+				end
+				set[slot] = pick;
+			end
+		end
+		return set;
+	end
+
+	function gcinclude.CheckRequired()
+		local a = gData.GetAction();
+		local set = (a ~= nil) and gcinclude.RequiredFor(a.Name) or nil;
+		if (set ~= nil) then gFunc.EquipSet(set) end
+	end
+
+	-- Low ammo and Utsusemi tool warnings; nothing is cancelled (BG-Wiki Barrage: it fires only as many shots
+	-- as you have ammo). Says so the first time a count is at or under the limit, then every 10 fewer, and at 0.
+	local lowWarned = {};
+	local function warnLow(label, count, limit)
+		if ((limit or 0) <= 0) then return end
+		if (count > limit) then lowWarned[label] = nil; return end
+		local last = lowWarned[label];
+		if (last ~= nil) and (count > last - 10) and not ((count == 0) and (last ~= 0)) then return end
+		lowWarned[label] = count;
+		gcinclude.Err(label .. ': ' .. count .. ' left');
+	end
+
+	-- kind: 'shot' (preshot), 'ws' (weaponskill) or nil (precast). Utsusemi uses Shihei, or Shikanofuda on a
+	-- NIN main (BG-Wiki/FFXIclopedia), from your inventory.
+	function gcinclude.CheckSupplies(kind)
+		local a = gData.GetAction();
+		if (a == nil) or (a.Name == nil) then return end
+		local cfg = gcinclude.settings;
+		if (kind == nil) then
+			if (a.ActionType ~= 'Spell') or (gcinclude.Family(a.Name) ~= 'Utsusemi') or (gcauto == nil) then return end
+			local n = gcauto.ItemCount('Shihei');
+			local p = gData.GetPlayer();
+			if (p ~= nil) and (p.MainJob == 'NIN') then n = n + gcauto.ItemCount('Shikanofuda') end
+			warnLow('Utsusemi tools', n, cfg.NinjaToolWarn);
+			return;
+		end
+		if (kind == 'ws') and ((not gcinclude.DistanceWS:contains(a.Name)) or gcinclude.NoAmmoWS:contains(a.Name)) then return end
+		if (gcinclude.BuffCount('Unlimited Shot') > 0) then return end
+		local equip = gData.GetEquipment();
+		local ammo = (equip ~= nil) and equip.Ammo or nil;
+		if (ammo == nil) or (type(ammo.Name) ~= 'string') then return end
+		local r = AshitaCore:GetResourceManager():GetItemByName(ammo.Name, 0);
+		if (r == nil) or not T{25, 26, 27}:contains(r.Skill) then return end -- arrows, bullets, throwing
+		local _, count = carriedId(r.Id);
+		warnLow(ammo.Name, count, cfg.AmmoWarn);
 	end
 
 	function gcinclude.CarriedCommand(key, arg)
@@ -965,19 +1097,33 @@ end
 	-- The slot stays locked until that finish packet, so normal gear can't come back mid-use.
 	-- Several can run at once (one per slot).
 	gcinclude.Enchants = {}; -- [LAC slot] = { item, id, slot, index, wasLocked, delay, start, equippedAt, nextTry, tries, doneAt }
-	local ENCHANT_MARGIN = 1.0;    -- after the equip delay, before the first try
+	local ENCHANT_MARGIN = 3.0;    -- after the equip delay, before the first try (the server refuses ~3s past it: Rahvin's notes)
 	local ENCHANT_RETRY = 2.0;     -- between tries while no Item (Start) is seen
 	local ENCHANT_TRIES = 5;
 	local ENCHANT_EQUIP_WAIT = 10; -- give up if the item never shows up in the slot
 	local ENCHANT_USE_WAIT = 15;   -- after Item (Start), wait this long for Item (Finish), then retry
 
-	local function equippedId(slot)
+	local function equippedItem(slot)
 		local inv = AshitaCore:GetMemoryManager():GetInventory();
 		local e = inv:GetEquippedItem(slot - 1);
 		local index = (e ~= nil) and bit.band(e.Index, 0x00FF) or 0;
 		if (index == 0) then return nil end
 		local item = inv:GetContainerItem(bit.band(e.Index, 0xFF00) / 256, index);
-		return (item ~= nil) and (item.Count > 0) and item.Id or nil;
+		return ((item ~= nil) and (item.Count > 0)) and item or nil;
+	end
+	local function equippedId(slot)
+		local item = equippedItem(slot);
+		return (item ~= nil) and item.Id or nil;
+	end
+	gcinclude.EquippedId = equippedId;
+
+	-- Enchanted-equipment extdata (Windower libs/extdata.lua decode.Enchanted): byte 1 = 1, byte 2 charges left,
+	-- bytes 5-8 next use time, bytes 9-12 activation time (equip time + equip delay), both server timestamps.
+	-- Only differences between the two are used, so no epoch is needed.
+	local function enchantInfo(item)
+		local x = (item ~= nil) and item.Extra or nil;
+		if (type(x) ~= 'string') or (#x < 12) or (string.byte(x, 1) ~= 1) then return nil end
+		return { charges = string.byte(x, 2), nextUse = struct.unpack('I', x, 5), activation = struct.unpack('I', x, 9) };
 	end
 
 	function gcinclude.ReleaseEnchant(index)
@@ -993,9 +1139,24 @@ end
 			return;
 		end
 		if (e.equippedAt == nil) then
-			if (equippedId(e.index) == e.id) then
+			local item = equippedItem(e.index);
+			if (item ~= nil) and (item.Id == e.id) then
 				e.equippedAt = now;
-				e.nextTry = now + e.delay + ENCHANT_MARGIN;
+				e.nextTry = now + (e.alreadyOn and 0.5 or (e.delay + ENCHANT_MARGIN));
+				-- Just equipped: activation = now + delay, so the reuse timer left is next use - (activation - delay).
+				local info = enchantInfo(item);
+				if (info ~= nil) and (info.charges == 0) then
+					gcinclude.Err(e.item .. ': no charges left, released');
+					gcinclude.ReleaseEnchant(e.index);
+				elseif (info ~= nil) and (e.alreadyOn ~= true) then
+					local reuse = info.nextUse - (info.activation - e.delay);
+					if (reuse > e.delay + 5) then
+						gcinclude.Err(string.format('%s: reuse timer, about %d:%02d left, released', e.item, math.floor(reuse / 60), reuse % 60));
+						gcinclude.ReleaseEnchant(e.index);
+					elseif (reuse > e.delay) then
+						e.nextTry = now + reuse + ENCHANT_MARGIN;
+					end
+				end
 			elseif (now > e.start + ENCHANT_EQUIP_WAIT) then
 				gcinclude.Err(e.item .. ': never showed up in ' .. string.lower(e.slot) .. ', released');
 				gcinclude.ReleaseEnchant(e.index);
@@ -1026,6 +1187,7 @@ end
 			if (e.doneAt == nil) and (e.equippedAt ~= nil) then
 				if (cmd == 5) and (id == e.id) then
 					e.doneAt = now + 0.5;
+					if (e.index == 4) then gcinclude.HoxneNextAuto = now + gcinclude.HoxneDuration end
 				elseif (cmd == 9) and (id == e.id) then
 					e.nextTry = now + ENCHANT_USE_WAIT;
 				elseif (cmd == 9) and (id == 0) and (e.nextTry > now + ENCHANT_RETRY) then
@@ -1041,6 +1203,9 @@ end
 		gcinclude.NextHoldCheck = now + 0.1;
 		gcinclude.CheckEnchantHold();
 		if gcinclude.CheckDualWieldChange(now) then return end -- forced 1h swap: let it land before the hold re-checks
+		gcinclude.CheckHoxneAuto(now);
+		gcinclude.CheckSleepStoneskin(now);
+		gcinclude.CheckZoneNotes();
 		gcaction.Tick();
 		if (gcinclude.HoldSuspended == true) then
 			if (gState.PlayerAction ~= nil) then return end
@@ -1095,14 +1260,15 @@ end
 		return gcinclude.ElementGear or gcinclude.settings.ElementGear;
 	end
 
-	function gcinclude.ElementWaist(element)
+	function gcinclude.ElementWaist(element, noObi, noSash)
 		local cfg = gcinclude.ElementCfg();
 		if (type(cfg) ~= 'table') or (element == nil) then return nil end
 		local obi = (type(cfg.Obis) == 'table') and cfg.Obis[element] or nil;
 		obi = obi or cfg.AnyObi;
+		if (noObi == true) then obi = nil end
 		local obiValue = (obi ~= nil) and gcinclude.DayWeatherNet(element) or 0;
 		local sashValue = nil;
-		if (cfg.Distance ~= nil) then
+		if (cfg.Distance ~= nil) and (noSash ~= true) then
 			local target = gData.GetActionTarget() or gData.GetTarget(); -- the action's target, not whatever is selected
 			local d = (target ~= nil) and tonumber(target.Distance) or nil;
 			if (d ~= nil) and ((cfg.DistanceMax == nil) or (d <= cfg.DistanceMax)) then
@@ -1130,16 +1296,33 @@ end
 		if (n > 0) then gFunc.ForceEquipSet(out) end
 	end
 
-	-- Received set: remembered for ReceivedWindow and layered by CheckReceived in HandleDefault.
+	-- Received set: layered by CheckReceived in HandleDefault until the spell lands or is interrupted
+	-- (EndReceived, from gcauto's 0x0028 reader), with ReceivedWindow as the fallback.
 	-- Put on at once only when you are not mid-action, so your own precast/midcast gear is never replaced.
-	function gcinclude.StartReceived(spellName)
+	-- from = the caster's server id when known (packet); nil from a Multisend notice.
+	function gcinclude.StartReceived(spellName, from)
 		local setName = gcinclude.ReceivedSetFor(spellName);
 		if (setName == nil) then return end
 		local set = gcinclude.FindSet(setName);
 		if (set == nil) or (next(set) == nil) then return end
+		local now = os.clock();
+		local same = (gcinclude.ReceivedSet == set) and (now <= (gcinclude.ReceivedUntil or 0));
+		if (from ~= nil) then gcinclude.ReceivedFrom = from elseif not same then gcinclude.ReceivedFrom = nil end
 		gcinclude.ReceivedSet = set;
-		gcinclude.ReceivedUntil = os.clock() + (gcinclude.settings.ReceivedWindow or 8);
+		gcinclude.ReceivedUntil = now + (gcinclude.settings.ReceivedWindow or 8);
 		if (gState.PlayerAction == nil) then gcinclude.ForceUnlocked(set) end
+	end
+
+	-- The caster's spell finished or was interrupted. With no known caster (Multisend notice), only a
+	-- spell landing on me ends it. LAC runs HandleDefault on its next packet, which puts normal gear back.
+	function gcinclude.EndReceived(from, hitMe)
+		if (gcinclude.ReceivedSet == nil) then return end
+		if (gcinclude.ReceivedFrom ~= nil) then
+			if (from ~= gcinclude.ReceivedFrom) then return end
+		elseif (hitMe ~= true) then
+			return;
+		end
+		gcinclude.ReceivedSet, gcinclude.ReceivedFrom = nil, nil;
 	end
 
 	function gcinclude.ReceivedSetFor(name)
@@ -1154,17 +1337,61 @@ end
 		return best;
 	end
 
+	-- Area of a received spell: entity index of its center, or nil for a single-target cast.
+	-- BG-Wiki/FFXIclopedia: Curaga 10' around its target; Cura, Protectra, Shellra 10' around the caster;
+	-- Majesty spreads Cure and Protect, Accession the next Healing or Enhancing white magic, 10' around the target.
+	gcinclude.AoeOnTarget = T{ 'curaga' };
+	gcinclude.AoeOnCaster = T{ 'cura', 'protectra', 'shellra' };
+	gcinclude.AoeRange = 10;
+	function gcinclude.AoeCenter(action, target)
+		local fam = string.gsub(string.lower(action.Name), ' [ivx]+$', '');
+		local party = AshitaCore:GetMemoryManager():GetParty();
+		if gcinclude.AoeOnCaster:contains(fam) then return party:GetMemberTargetIndex(0) end
+		local tindex = (target ~= nil) and target.Index or nil;
+		if gcinclude.AoeOnTarget:contains(fam) then return tindex end
+		if (gcinclude.BuffCount('Majesty') > 0) and ((fam == 'cure') or (fam == 'protect')) then return tindex end
+		if (gcinclude.BuffCount('Accession') > 0) and (action.Type == 'White Magic')
+			and ((action.Skill == 'Healing Magic') or (action.Skill == 'Enhancing Magic')) then return tindex end
+		return nil;
+	end
+
+	local function entity_distance(a, b)
+		local e = AshitaCore:GetMemoryManager():GetEntity();
+		local dx = e:GetLocalPositionX(a) - e:GetLocalPositionX(b);
+		local dy = e:GetLocalPositionY(a) - e:GetLocalPositionY(b);
+		local dz = e:GetLocalPositionZ(a) - e:GetLocalPositionZ(b);
+		return math.sqrt(dx * dx + dy * dy + dz * dz);
+	end
+
+	-- Tells my own boxes a received spell is coming: the target, and for an area spell every box in my
+	-- party within AoeRange of its center.
 	function gcinclude.AnnounceCast()
 		local action = gData.GetAction();
 		if (action == nil) or (action.Name == nil) then return end
 		if (gcinclude.ReceivedSetFor(action.Name) == nil) then return end
 		local target = gData.GetActionTarget();
-		if (target == nil) or (target.Name == nil) then return end
 		local me = gData.GetPlayer();
-		if (me ~= nil) and (me.Name == target.Name) then return end
-		if (target.Type ~= 'PC') and (target.Type ~= 'Party') and (target.Type ~= 'Alliance') then return end
-		if not gcinclude.IsMyBox(target.Name) then return end -- other players' characters: no Multisend
-		AshitaCore:GetChatManager():QueueCommand(-1, '/ms sendto ' .. target.Name .. ' /lac fwd received ' .. action.Name);
+		local myName = (me ~= nil) and me.Name or nil;
+		local told = {};
+		local function tell(name)
+			if (name == nil) or (name == '') or (name == myName) or told[name] then return end
+			if not gcinclude.IsMyBox(name) then return end -- other players' characters: no Multisend
+			told[name] = true;
+			AshitaCore:GetChatManager():QueueCommand(-1, '/ms sendto ' .. name .. ' /lac fwd received ' .. action.Name);
+		end
+		if (target ~= nil) and ((target.Type == 'PC') or (target.Type == 'Party') or (target.Type == 'Alliance')) then
+			tell(target.Name);
+		end
+		local center = gcinclude.AoeCenter(action, target);
+		if (center == nil) or (center == 0) then return end
+		local party = AshitaCore:GetMemoryManager():GetParty();
+		for i = 1, 5 do
+			local idx = party:GetMemberTargetIndex(i);
+			if (party:GetMemberIsActive(i) == 1) and (idx ~= nil) and (idx > 0)
+				and (entity_distance(center, idx) <= gcinclude.AoeRange) then
+				tell(party:GetMemberName(i));
+			end
+		end
 	end
 
 	-- One of my own boxes: listed in settings.MyBoxes, or running this engine now (fresh HUD state file).
@@ -1206,35 +1433,57 @@ end
 		return false;
 	end
 
+	-- Zodiac Ring: the six elements only, never Lightsday/Darksday, never cures (BG-Wiki Zodiac Ring).
 	function gcinclude.ElementRing(element)
 		local cfg = gcinclude.ElementCfg();
 		if (type(cfg) ~= 'table') or (cfg.Ring == nil) or (element == nil) then return nil end
+		if (element == 'Light') or (element == 'Dark') then return nil end
 		local env = gData.GetEnvironment();
 		if (env == nil) or (env.DayElement ~= element) then return nil end
 		return cfg.Ring, (cfg.RingSlot or 'Ring2');
 	end
 
-	-- Obi / Orpheus / element ring: only spells in ElementSkills and WS in ElementalWS.
+	gcinclude.NinjutsuNukes = T{'Katon', 'Hyoton', 'Huton', 'Doton', 'Raiton', 'Suiton'};
+	gcinclude.QuickDrawElement = { ['Fire Shot'] = 'Fire', ['Ice Shot'] = 'Ice', ['Wind Shot'] = 'Wind', ['Earth Shot'] = 'Earth',
+		['Thunder Shot'] = 'Thunder', ['Water Shot'] = 'Water', ['Light Shot'] = 'Light', ['Dark Shot'] = 'Dark' };
+
+	-- Element gear per action (BG-Wiki): nukes and blue magic in ElementSkills, elemental ninjutsu, Quick Draw
+	-- (day/weather count) and elemental WS get obi/Orpheus and the back piece; helixes always get day and
+	-- weather, so never an obi; Cure/Cura/Curaga get Light day/weather (+10/+10/+25, the obi forces it) but no
+	-- sash; Zodiac Ring only on ElementSkills spells (see ElementRing).
 	function gcinclude.CheckElementGear()
 		local action = gData.GetAction();
-		if (action == nil) then return end
-		local element = nil;
+		if (action == nil) or (type(action.Name) ~= 'string') then return end
+		local element, opts = nil, {};
 		if (action.ActionType == 'Spell') then
+			local fam = gcinclude.Family(action.Name);
 			local skills = gcinclude.settings.ElementSkills;
-			if (type(skills) == 'table') and skills:contains(action.Skill) then element = action.Element end
+			if gcinclude.HelixSpells:contains(fam) then
+				element, opts.noObi = action.Element, true;
+			elseif (type(skills) == 'table') and skills:contains(action.Skill) then
+				element = action.Element;
+			elseif (action.Skill == 'Ninjutsu') and gcinclude.NinjutsuNukes:contains(fam) then
+				element, opts.noRing = action.Element, true;
+			elseif (action.Skill == 'Healing Magic') and T{'Cure', 'Cura', 'Curaga'}:contains(fam) then
+				element, opts.noSash, opts.noRing = 'Light', true, true;
+				opts.noBack = (gcinclude.ElementCfg() or {}).BackOnCures ~= true;
+			end
 		elseif (action.ActionType == 'Weaponskill') then
 			local list = gcinclude.settings.ElementalWS;
 			if (type(list) == 'table') then element = list[action.Name] end
+			opts.noRing = true; -- Zodiac-type ring only on spells
+		elseif (action.ActionType == 'Ability') then
+			element, opts.noRing = gcinclude.QuickDrawElement[action.Name], true;
 		end
 		if (element == nil) or (element == 'Non-Elemental') then return end
-		-- Zodiac-type ring only on spells: its effect on WS is unverified.
-		gcinclude.ApplyElementGear(element, action.Name, action.ActionType ~= 'Spell');
+		gcinclude.ApplyElementGear(element, action.Name, opts);
 	end
 
-	function gcinclude.ApplyElementGear(element, label, noRing)
+	function gcinclude.ApplyElementGear(element, label, opts)
+		if (type(opts) ~= 'table') then opts = { noRing = (opts == true) } end -- old (element, label, noRing) form
 		local set = {};
 		local report = T{};
-		local waist, value = gcinclude.ElementWaist(element);
+		local waist, value = gcinclude.ElementWaist(element, opts.noObi, opts.noSash);
 		if (waist ~= nil) then
 			if gcinclude.ElementKept('Waist') then
 				report:append('waist kept');
@@ -1243,8 +1492,23 @@ end
 				report:append('waist ' .. waist .. string.format(' (+%.1f%%)', value));
 			end
 		end
+		local cfg = gcinclude.ElementCfg();
+		if (opts.noBack ~= true) and (type(cfg) == 'table') and (cfg.Back ~= nil) then
+			local env = gData.GetEnvironment();
+			local obiOn = (set.Waist ~= nil) and (set.Waist ~= cfg.Distance);
+			local dayHit = (env ~= nil) and (env.DayElement == element);
+			local weatherHit = (env ~= nil) and (env.WeatherElement == element) and (obiOn or (opts.noObi == true));
+			if dayHit or weatherHit then
+				if gcinclude.ElementKept('Back') then
+					report:append('back kept');
+				else
+					set.Back = cfg.Back;
+					report:append('back ' .. cfg.Back .. (dayHit and ' (day)' or ' (weather)'));
+				end
+			end
+		end
 		local ring, slot = nil, nil;
-		if (noRing ~= true) then ring, slot = gcinclude.ElementRing(element) end
+		if (opts.noRing ~= true) then ring, slot = gcinclude.ElementRing(element) end
 		if (ring ~= nil) then
 			if gcinclude.ElementKept(slot) then
 				report:append(string.lower(slot) .. ' kept');
@@ -1371,11 +1635,17 @@ end
 					end
 					local result = original(...);
 					if (name == 'HandleMidcast') then
+						gcinclude.CheckBuffSets('Buffs_Midcast');
 						gcinclude.CheckAbsorb();
 						gcinclude.CheckLightBonus();
 						gcinclude.CheckElementGear();
 						gcinclude.CheckSIR();
+					elseif (name == 'HandleAbility') then
+						gcinclude.CheckElementGear(); -- Quick Draw
+					else
+						gcinclude.CheckSupplies(); -- Utsusemi tools
 					end
+					gcinclude.CheckRequired(); -- Dispelga, Honor March, Aria, Impact, Tomahawk, Angon
 					if (gcinclude.SmartKeep == true) and ((name == 'HandlePrecast') or (name == 'HandleMidcast')) then
 						gcinclude.StripWeaponSwaps();
 					end
@@ -1389,10 +1659,15 @@ end
 			gProfile.HandleWeaponskill = function(...)
 				if gcaction.Check() then gFunc.CancelAction(); return end
 				gcaction.TraceStart();
-				local result, trail = gcinclude.TrackEars(ws, ...);
+				local result, trail = gcinclude.TrackEars(function(...)
+					local r = ws(...);
+					gcinclude.CheckBuffSets('Buffs_Ws');
+					return r;
+				end, ...);
 				if (gState.PlayerAction ~= nil) and (gState.PlayerAction.Block == true) then gcaction.TraceEnd(); return result end -- WS cancelled
 				gcinclude.CheckMoonshade(trail);
 				gcinclude.CheckElementGear();
+				gcinclude.CheckSupplies('ws');
 				gcaction.TraceEnd();
 				return result;
 			end
@@ -1403,6 +1678,7 @@ end
 				gProfile[name] = function(...)
 					gcaction.TraceStart();
 					local result = original(...);
+					if (name == 'HandlePreshot') then gcinclude.CheckSupplies('shot') end
 					gcaction.TraceEnd(gcinclude.TracePhase[name]);
 					return result;
 				end
@@ -1679,6 +1955,82 @@ end
 		end
 	end
 
+	-- Sub vs Main (FFXIclopedia Category:Grips): a two-handed main (Great Sword, Great Axe, Scythe, Polearm, Great
+	-- Katana, Staff: skills 4 6 7 8 10 12) takes only a grip in Sub, and a grip needs a two-handed main. LAC's equip
+	-- buffer is shadowed so the check sees the final Main of the handler; a Sub that can't go with it is dropped.
+	gcinclude.TwoHandSkills = T{4, 6, 7, 8, 10, 12};
+	local resByName, resById = {}, {};
+	local function itemRes(v)
+		local name = (type(v) == 'table') and v.Name or v;
+		if (type(name) ~= 'string') then return nil end
+		local key = string.lower(name);
+		local r = resByName[key];
+		if (r == nil) then
+			r = AshitaCore:GetResourceManager():GetItemByName(name, 0) or false;
+			resByName[key] = r;
+		end
+		return r or nil;
+	end
+	local function wornMainRes()
+		local e = gEquip.GetCurrentEquip(1);
+		local id = (e ~= nil) and (e.Item ~= nil) and e.Item.Id or nil;
+		if (id == nil) then return nil end
+		local r = resById[id];
+		if (r == nil) then
+			r = AshitaCore:GetResourceManager():GetItemById(id) or false;
+			resById[id] = r;
+		end
+		return r or nil;
+	end
+	local function isGrip(r)
+		return (r.Slots == 2) and (r.ShieldSize == 0) and (r.Skill == 0);
+	end
+
+	-- main/sub: LAC item tables ({ Name = ... }) or nil. True when they can be worn together, or unknown.
+	function gcinclude.SubFits(main, sub)
+		local subName = (type(sub) == 'table') and sub.Name or sub;
+		if (type(subName) ~= 'string') or gcinclude.WeaponKeywords:contains(string.lower(subName)) then return true end
+		local mainName = (type(main) == 'table') and main.Name or main;
+		if (type(mainName) == 'string') and (string.lower(mainName) == 'remove') then return true end
+		local mainRes;
+		if (type(mainName) == 'string') and not gcinclude.WeaponKeywords:contains(string.lower(mainName))
+			and (gState.Disabled[1] ~= true) then
+			mainRes = itemRes(main);
+		else
+			mainRes = wornMainRes();
+		end
+		local subRes = itemRes(sub);
+		if (mainRes == nil) or (subRes == nil) then return true end
+		return gcinclude.TwoHandSkills:contains(mainRes.Skill) == isGrip(subRes);
+	end
+
+	function gcinclude.WrapBuffer()
+		if (gEquip == nil) or (gEquip.GcRawToBuffer ~= nil) then return end
+		gEquip.GcRawToBuffer, gEquip.GcRawClear, gEquip.GcRawProcess = gEquip.EquipItemToBuffer, gEquip.ClearBuffer, gEquip.ProcessBuffer;
+		local shadow = {};
+		gEquip.ClearBuffer = function(...)
+			shadow = {};
+			return gEquip.GcRawClear(...);
+		end
+		gEquip.EquipItemToBuffer = function(slot, itemTable, immediate)
+			if (immediate ~= true) and (type(itemTable) == 'table') then
+				local cur = shadow[slot];
+				if not ((cur ~= nil) and (cur.Locked == true) and (itemTable.Locked ~= true)) then
+					shadow[slot] = (itemTable.Name ~= 'ignore') and itemTable or nil;
+				end
+			end
+			return gEquip.GcRawToBuffer(slot, itemTable, immediate);
+		end
+		gEquip.ProcessBuffer = function(...)
+			local sub = shadow[2];
+			if (sub ~= nil) and (gcinclude ~= nil) and (gcinclude.SubFits ~= nil) then
+				local ok, fits = pcall(gcinclude.SubFits, shadow[1], sub);
+				if ok and (fits == false) then gEquip.GcRawToBuffer(2, { Name = 'ignore' }) end
+			end
+			return gEquip.GcRawProcess(...);
+		end
+	end
+
 	function gcinclude.CheckHoxne()
 		local state = gcdisplay.GetCycle('Hoxne');
 		if (state == 'Locked') then
@@ -1778,7 +2130,8 @@ end
 		end
 		gFunc.ForceEquipSet({ [slot] = name }); -- slot is free or owned by the caller
 		gcinclude.LockSlots(T{index});
-		gcinclude.Enchants[index] = { item = name, id = res.Id, slot = slot, index = index, wasLocked = wasLocked,
+		local alreadyOn = (equippedId(index) == res.Id); -- worn already: its delay may be long past
+		gcinclude.Enchants[index] = { item = name, id = res.Id, slot = slot, index = index, wasLocked = wasLocked, alreadyOn = alreadyOn,
 			delay = delay, start = os.clock(), tries = 0 };
 		gcinclude.Say(name .. ' on ' .. string.lower(slot) .. ', using it ' .. tostring(delay) .. 's after it is on (' .. source .. ')');
 		return true;
@@ -1791,8 +2144,78 @@ end
 			gcinclude.Say('usage: /gce Warp Ring');
 			return;
 		end
+		if (#words == 1) and (string.lower(words[1]) == 'cancel') then
+			local n = 0;
+			for index, _ in pairs(gcinclude.Enchants) do gcinclude.ReleaseEnchant(index); n = n + 1 end
+			gcinclude.Say('gce: ' .. ((n > 0) and 'cancelled' or 'nothing running'));
+			return;
+		end
 		local name = table.concat(words, ' ');
 		gcinclude.UseEnchanted(name, nil);
+	end
+
+	-- Zoning: item uses stop (zoning drops an enchantment anyway: BG-Wiki Hoxne Ampulla), slots are given back.
+	function gcinclude.OnZone()
+		for index, _ in pairs(gcinclude.Enchants) do gcinclude.ReleaseEnchant(index) end
+		gcinclude.HoxneNextAuto = 0;
+	end
+
+	-- Hoxne Ampulla (BG-Wiki): Double Attack +100% for 30 min, 60s recast, 5s equip delay, lost when unequipped
+	-- or on zoning. While /hoxne is On or Locked and the Ampulla is in ammo: use it, then again 30 min after
+	-- each use, or as soon as it is back after being swapped out. One try a minute until a use lands.
+	gcinclude.HoxneNextAuto = 0;
+	gcinclude.HoxneCheckAt = 0;
+	gcinclude.HoxneDuration = 1800;
+	function gcinclude.CheckHoxneAuto(now)
+		if (gcinclude.settings.HoxneAutoUse ~= true) or (now < gcinclude.HoxneCheckAt) then return end
+		gcinclude.HoxneCheckAt = now + 1;
+		if not gcinclude.HoxneOn() then return end
+		local r = AshitaCore:GetResourceManager():GetItemByName(gcinclude.settings.HoxneItem, 0);
+		if (r == nil) then return end
+		if (equippedId(4) ~= r.Id) then gcinclude.HoxneNextAuto = 0; return end
+		if (gcinclude.Enchants[4] ~= nil) or (now < gcinclude.HoxneNextAuto) or (gState.PlayerAction ~= nil) then return end
+		local p = gData.GetPlayer();
+		if (p == nil) or ((p.Status ~= 'Idle') and (p.Status ~= 'Engaged')) or (p.IsMoving == true) then return end
+		for _, b in ipairs(gcinclude.HardCC) do
+			if (gcinclude.BuffCount(b) > 0) then return end
+		end
+		gcinclude.HoxneNextAuto = now + 60;
+		gcinclude.UseEnchanted(gcinclude.settings.HoxneItem, 'Ammo', true);
+	end
+
+	-- Asleep under Stoneskin: damage it absorbs can't wake you (FFXIclopedia Sleep), so cancel it.
+	gcinclude.SleepCancelAt = 0;
+	function gcinclude.CheckSleepStoneskin(now)
+		if (gcinclude.settings.SleepCancelStoneskin ~= true) or (now < gcinclude.SleepCancelAt) then return end
+		if (gcinclude.BuffCount('Sleep') == 0) or (gcinclude.BuffCount('Stoneskin') == 0) then return end
+		gcinclude.SleepCancelAt = now + 3;
+		AshitaCore:GetChatManager():QueueCommand(-1, '/cancel Stoneskin');
+	end
+
+	-- Entering a Dynamis - Divergence zone ("[D]"): a reminder that /dynamisrp holds the job neck.
+	gcinclude.LastZone = nil;
+	function gcinclude.CheckZoneNotes()
+		local zone = AshitaCore:GetMemoryManager():GetParty():GetMemberZone(0);
+		if (zone == gcinclude.LastZone) then return end
+		gcinclude.LastZone = zone;
+		local name = AshitaCore:GetResourceManager():GetString('zones.names', zone) or '';
+		if (string.find(name, 'Dynamis', 1, true) ~= nil) and (string.find(name, '[D]', 1, true) ~= nil) then
+			gcinclude.Say('Dynamis - Divergence: /dynamisrp holds your best job neck (RP)');
+		end
+	end
+
+	-- /temps: the six Escha drinks (BG-Wiki Escha Temporary Items), each carried one 3s apart.
+	gcinclude.EschaTemps = T{"Monarch's Drink", "Braver's Drink", "Fighter's Drink", "Champion's Drink", "Soldier's Drink", "Barbarian's Drink"};
+	function gcinclude.UseTemps()
+		local queued = 0;
+		for _, item in ipairs(gcinclude.EschaTemps) do
+			if (gcauto ~= nil) and (gcauto.ItemCount(item) > 0) then
+				local function use() AshitaCore:GetChatManager():QueueCommand(-1, '/item "' .. item .. '" <me>') end
+				if (queued == 0) then use() else use:once(queued * 3) end
+				queued = queued + 1;
+			end
+		end
+		gcinclude.Say('temps: ' .. ((queued > 0) and (queued .. ' drinks') or 'none carried'));
 	end
 
 	function gcinclude.Help()
@@ -1805,7 +2228,8 @@ end
 			'hud    : /gchud [on|off|pos x y|debug]',
 			'checks : /checksets, /xiroll, /mbinfo',
 			'swap   : /smartswap [on|off], /dw [on|off|auto] (dual wield: shows why; off = 1h weapon sets)',
-			'holds  : /naked /weaponsonly /abysseaproc [on|off] (one at a time), /capacity /jubilee [on|off]',
+			'holds  : /naked /weaponsonly /abysseaproc [on|off] (one at a time), /capacity /jubilee /dynamisrp [on|off]',
+			'items  : /gce <item> | cancel, /temps (Escha drinks), /warpring /mea /holla /dem',
 			'checks : /gctrace (sets per action), /gcstyle N (lockstyle); failing actions cancel, recasts under 5s queue',
 			'gear   : /autogear [on|off|regen N|refresh N|dt N|petdt N]',
 			'bar    : /gcbar [on|off|pos x y]',
@@ -1903,8 +2327,10 @@ end
 		gcinclude.LockSlots(take);
 	end
 
-	function gcinclude.CheckBuffSets()
-		local buffs = gcinclude.FindSet('Buffs');
+	-- Buffs (idle/engaged, HandleDefault), Buffs_Ws (weaponskills) and Buffs_Midcast (spells): { [buff name] = set },
+	-- each worn while that buff is up, e.g. Buffs_Ws = { ['Aftermath: Lv.3'] = {...} }. Name it as the buff list shows it.
+	function gcinclude.CheckBuffSets(setName)
+		local buffs = gcinclude.FindSet(setName or 'Buffs');
 		if (buffs == nil) then return end
 		local order = gcinclude.BuffSetOrder;
 		if (type(order) ~= 'table') then
@@ -2422,6 +2848,10 @@ end
 				gFunc.EquipSet, gFunc.Equip = gFunc.GcRawEquipSet, gFunc.GcRawEquip;
 				gFunc.GcRawEquipSet, gFunc.GcRawEquip = nil, nil;
 			end
+			if (gEquip ~= nil) and (gEquip.GcRawToBuffer ~= nil) then
+				gEquip.EquipItemToBuffer, gEquip.ClearBuffer, gEquip.ProcessBuffer = gEquip.GcRawToBuffer, gEquip.GcRawClear, gEquip.GcRawProcess;
+				gEquip.GcRawToBuffer, gEquip.GcRawClear, gEquip.GcRawProcess = nil, nil, nil;
+			end
 			gcdisplay.Unload();
 			gcinclude.ClearAlias();
 	end
@@ -2471,7 +2901,7 @@ end
 		gcinclude.SetVariables();
 		gcinclude.SetAlias();
 		gcinclude.ApplyKeybinds();
-		if (gcauto ~= nil) then gcauto.OnIncomingCast = gcinclude.StartReceived end
+		if (gcauto ~= nil) then gcauto.OnIncomingCast, gcauto.OnReceivedEnd = gcinclude.StartReceived, gcinclude.EndReceived end
 		gcinclude.ApplyLockstyle();
 		gcauto.Start();
 		ashita.events.register('d3d_present', 'gcinclude_tphold', gcinclude.HoldTick);
@@ -2481,6 +2911,7 @@ end
 	function gcinclude.Initialize()
 		gcinclude.WrapHoldHandlers();
 		gcinclude.WrapEquip();
+		gcinclude.WrapBuffer();
 		gcinclude.InitStep(0);
 	end
 

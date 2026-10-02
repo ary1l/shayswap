@@ -46,7 +46,7 @@ gcinclude.WeaponItemMap = {
 | `/def` | none → DT → MDT → Aminon → SIRD → none, one at a time (Ctrl+grave) |
 | `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub (the set's items, else what you wear) plus Range/Ammo when the set names them, until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
-| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range |
+| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range. While On/Locked it is used by itself: when it goes on, 30 min after each use (BG-Wiki: Double Attack +100% for 30 min, 60s recast, lost when unequipped or zoning), and again after being swapped out; one try a minute. `HoxneAutoUse = false` stops that |
 | `/hoxne use` | Locked, equip, wait its delay, use |
 | `/lock` | Lock Main, Sub, Ammo |
 | `/lock ear1 back` | Lock any slots by name |
@@ -54,7 +54,7 @@ gcinclude.WeaponItemMap = {
 | `/dw [on\|off\|auto]` | Dual Wield: no arg shows yes/no and why (e.g. `sub NIN Lv0`). `off` = always `_1h` sets, `on` = always DW sets, `auto` = detect (default) |
 | `/smartswap [on\|off]` | On: at `SmartSwapTP`+, `NoWeaponSpells` (Dia, Blink, spikes…) don't swap weapons; `KeepWeaponsFor` (Cure/Cura) keep Daybreak or Bunzi's Rod |
 | `/naked` `/weaponsonly` `/abysseaproc` `[on\|off]` | Strip all 16 / the 12 armor slots / head, hands, legs, feet and keep them bare. One at a time |
-| `/capacity` `/jubilee` `[on\|off]` | Wear and hold the first carried of `CapacityCapes` (Back) / Jubilee Ring (`JubileeSlot`, Ring1) |
+| `/capacity` `/jubilee` `/dynamisrp` `[on\|off]` | Wear and hold: the best carried capacity cape (BG-Wiki: Aptitude Mantle +1 30%, Aptitude Mantle 25%, Mecisto. Mantle by its augment) / Jubilee Ring (`JubileeSlot`, Ring1) / your main job's best Dynamis - Divergence neck (+2, +1, base). Entering a `[D]` zone reminds you |
 
 Defense toggles only wear gear, except `/aminon`, which also locks the weapon slots. `/lock` is absolute until `/unlock`, even against force-equips.
 Unknown slot names are refused. Holds skip slots already locked or TP-held; off releases only what they took.
@@ -117,6 +117,7 @@ Spells, abilities and WS that would fail are cancelled before any gear moves, wi
 | MP short | Cost adjusted for Light/Dark Arts (own school -10% rounded down, other +20% rounded up). Skipped under Manafont, Manawell, Parsimony, Penury, Addenda, Tabula Rasa. Gear "MP cost -%" isn't counted: `ValidateMP = false` if it bites |
 | Stratagems at 0 | Cancelled, next charge time shown |
 | Waltz short on TP | Cancelled. Set `WaltzTPCut` to your gear's "Waltz TP cost" reduction |
+| Required item missing | Cancelled when not carried, or its slot is `/lock`ed: Dispelga (Daybreak), Honor March (Marsyas), Aria of Passion (Loughnashade), Impact (Crepuscular or Twilight Cloak), Tomahawk (Thr. Tomahawk), Angon (Angon). When carried it is put on for you (Impact also empties Head: the cloak covers it) |
 
 Charge-pool abilities (Ready, Sic, Quick Draw) skip the recast check. LAC only sees what the client sends,
 so anything the client refuses itself never gets here.
@@ -130,6 +131,8 @@ so anything the client refuses itself never gets here.
 | `/revit [on\|off]` | Zone item list (below) |
 | `/holywater [on\|off]` | Holy Water on Doom (on by default) |
 | `/gce <item>` | Equip enchanted item, lock slot, wait its delay, use |
+| `/gce cancel` | Stop every item use under way and give the slots back (zoning does too) |
+| `/temps` | Drink the carried Escha temps, 3s apart: Monarch's, Braver's, Fighter's, Champion's, Soldier's, Barbarian's Drink |
 
 ```lua
 AutoUseItems = T{
@@ -143,6 +146,17 @@ Enchanted item delay comes from the item's `CastDelay`; override with `settings.
 fallback `EnchantWindow`. The wait starts once the item is really on (not at the command); then `/item`, retried
 every 2s (up to 5 tries) until the use starts. The slot stays locked until the use finishes, then unlocks.
 Gives up (and unlocks) if the item never goes on within 10s or 5 tries never start. One per slot, several at once.
+The first try waits the delay + 3s (the server refuses for about 3s past it). Once the item is on, its extdata
+(Windower extdata.lua layout) is read: no charges left, or a reuse timer longer than the delay, releases it at
+once with the time left, instead of 5 failed tries. Already worn: it is tried right away.
+
+**Supply warnings** (never cancel anything; BG-Wiki: Barrage fires only as many shots as you have ammo):
+the ammo in use, counted over inventory and wardrobes, at or under `AmmoWarn` (20), and Utsusemi tools
+(Shihei, plus Shikanofuda on a NIN main) at or under `NinjaToolWarn` (10). Said once, then every 10 fewer,
+and at 0. Unlimited Shot: quiet.
+
+**Asleep under Stoneskin:** damage it absorbs can't wake you (FFXIclopedia Sleep), so the engine sends
+`/cancel Stoneskin` (needs a cancel addon, as `CheckCancels` already does). `SleepCancelStoneskin = false` to stop.
 
 ## HUD
 
@@ -273,16 +287,22 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 | `XIRoll` | Idle only, with a roll on you at 11 (default Roller's Ring) |
 | `Absorb` | Absorb-TP and every other Absorb- spell, over midcast |
 | `Absorb_TP` | Optional, Absorb-TP only, on top of `Absorb` |
-| `Buffs = { Name = {...} }` | While that buff is up |
+| `Buffs = { Name = {...} }` | While that buff is up (idle/engaged) |
+| `Buffs_Ws`, `Buffs_Midcast` | Same, over every weaponskill / every spell's midcast, e.g. `Buffs_Ws = { ['Aftermath: Lv.3'] = {...} }`. Name the buff as the buff list shows it |
 | `*_Received` | See below |
 
 Moonshade goes in Ear2 on WS below `MoonshadeTP` (1750), except `MoonshadeSkip`.
 
 Layer order: your sets → weapons (+ `TH` weapons while `/th` is on) → mdt/Aminon → Hoxne → TH → received → buff sets → XIRoll →
 debuff (Sleep/Doom/Weakness) and craft/zeni/fish/rr sets.
-Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
+Midcast: job sets → TH → `Buffs_Midcast` → Absorb → LightBonus → obi/Orpheus/back/ring → SIR → required items.
+WS: job sets → `Buffs_Ws` → Moonshade → obi/Orpheus/back.
 
-**Received sets** (worn `ReceivedWindow` 8s; mapping in `settings.ReceivedSets`):
+Sub vs Main (FFXIclopedia Grips): a two-handed main (Great Sword, Great Axe, Scythe, Polearm, Great Katana,
+Staff) takes only a grip in Sub, and a grip needs a two-handed main. After each handler a Sub that can't go
+with the final Main (or the worn one, if Main is held) is dropped, so the swap can't fail.
+
+**Received sets** (worn until the spell lands or is interrupted, `ReceivedWindow` 8s at most; mapping in `settings.ReceivedSets`):
 
 | Cast on you | Set |
 |---|---|
@@ -295,13 +315,16 @@ Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
 | Curing/Divine Waltz | `Waltz_Received` |
 
 Spells: triggered by anyone's "starts casting" packet on you, and by your own boxes (Multisend at precast).
+Area spells reach you too (BG-Wiki/FFXIclopedia, 10'): a party member's Curaga landing near you, or Cura,
+Protectra, Shellra cast near you; your own boxes are also told for Majesty Cure/Protect and Accession white
+magic. The set comes off as soon as that caster's spell finishes or is interrupted.
 The Multisend notice goes only to your own boxes: ones running this engine (fresh `hud\<Name>.txt`) or
 listed in `settings.MyBoxes`. Other players' characters are never sent to.
 Waltzes are instant, so only your own boxes' Curing Waltz is announced (Multisend when used) and it can
 land after the heal; Divine Waltz is aimed at the dancer, so never. Doesn't interrupt your own action;
 locked slots skipped.
 
-**Element gear** (spells in `ElementSkills`, WS in `ElementalWS`):
+**Element gear** (spells in `ElementSkills`, elemental ninjutsu, Quick Draw, Cure/Cura/Curaga, WS in `ElementalWS`):
 
 ```lua
 ElementGear = T{
@@ -309,12 +332,19 @@ ElementGear = T{
     AnyObi = 'Hachirin-no-Obi',
     Distance = "Orpheus's Sash",
     DistanceMax = nil,
+    Back = 'Twilight Cape',   -- optional
+    Ring = 'Zodiac Ring',     -- optional
 };
 ```
 
+Per BG-Wiki: helixes always get day/weather, so never an obi (Orpheus still); cures get Light day/weather
+(+10/+10/+25, the obi forces it) but no sash and no ring (`BackOnCures = true` to add the back); Quick Draw
+and elemental ninjutsu (Katon…Suiton) take obi/Orpheus/back; the Twilight Cape adds +5% to a day bonus, or to a
+weather bonus that applies (obi on, or a helix); Zodiac Ring never on Lightsday/Darksday nor on cures.
+
 Obi score: day +10, weather +10 (double +25), opposing element subtracts. Orpheus: `OrpheusPoints`
 (+15 at ≤1.93', +1 at ≥13', linear between; the middle is assumed). Higher wins; obi never at ≤0.
-`Ring` goes on when the day matches (spells only). `Keep` items are never displaced.
+`Ring` goes on when the day matches (`ElementSkills` spells only). `Keep` items are never displaced.
 
 ## Hotkeys
 

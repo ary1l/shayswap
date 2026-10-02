@@ -301,24 +301,37 @@ local function monster_flags(sf)
     return (bit.band(sf, 0x10) ~= 0) and (bit.band(sf, 0x01) == 0);
 end
 
+-- Zone entities sit at index = id & 0x7FF (LAC packethandlers does the same); others (players,
+-- pets, trusts) are found by scanning the whole array (0..0x8FF, as LAC does). nil if not loaded.
+local function entity_index(id)
+    if (id == nil) or (id == 0) then return nil end
+    local entity = AshitaCore:GetMemoryManager():GetEntity();
+    local idx = bit.band(id, 0x7FF);
+    if (entity:GetServerId(idx) == id) then return idx end
+    for i = 0, 0x8FF do
+        if (entity:GetServerId(i) == id) then return i end
+    end
+    return nil;
+end
+
 local function is_monster(id)
     if (id == nil) or (id == 0) then return false end
     local hit = monsterCache[id];
     if (hit ~= nil) then return hit end
-    local entity = AshitaCore:GetMemoryManager():GetEntity();
-    -- Zone entities sit at index = id & 0x7FF (LAC packethandlers does the same); others (players,
-    -- pets, trusts) are found by scanning the whole array (0..0x8FF, as LAC does), then cached.
-    local idx = bit.band(id, 0x7FF);
-    if (entity:GetServerId(idx) ~= id) then
-        idx = nil;
-        for i = 0, 0x8FF do
-            if (entity:GetServerId(i) == id) then idx = i; break end
-        end
-    end
+    local idx = entity_index(id);
     if (idx == nil) then return false end -- not loaded yet: don't cache
-    local found = monster_flags(entity:GetSpawnFlags(idx));
+    local found = monster_flags(AshitaCore:GetMemoryManager():GetEntity():GetSpawnFlags(idx));
     monsterCache[id] = found;
     return found;
+end
+
+local function in_party(id)
+    local party = AshitaCore:GetMemoryManager():GetParty();
+    if (party == nil) then return false end
+    for i = 0, 5 do
+        if (party:GetMemberIsActive(i) == 1) and (party:GetMemberServerId(i) == id) then return true end
+    end
+    return false;
 end
 
 local function is_ally(id)
@@ -653,25 +666,54 @@ local function roll_recompute()
     rollEleven = eleven;
 end
 
-local function roll_packet(P)
-    local actor, category, param, me = P.actor, P.cat, P.param, P.me;
-    -- Magic (Start) from anyone else, aimed at me: gear up while it is still in the air.
-    if (category == 8) then
-        if (me ~= nil) and (actor ~= me) and (gcauto.OnIncomingCast ~= nil) then
-            for t = 1, P.ntgt do
-                if (P.tgt[t] == me) then
-                    local k = P.first[t];
-                    for r = k, k + P.nres[t] - 1 do
-                        local spell = AshitaCore:GetResourceManager():GetSpellById(P.rval[r]);
-                        if (spell ~= nil) and (spell.Name ~= nil) then
-                            gcauto.OnIncomingCast(spell.Name[1]);
-                        end
-                    end
+-- Area spells that reach party members near a center (BG-Wiki/FFXIclopedia: Curaga 10' around its target;
+-- Cura, Protectra and Shellra 10' around the caster). Their start packet may name only one target, so a
+-- party member's cast is also checked by distance.
+local AOE_ON_TARGET = { curaga = true };
+local AOE_ON_CASTER = { cura = true, protectra = true, shellra = true };
+local AOE_RANGE = 10;
+
+local function incoming_cast(P)
+    local actor, me = P.actor, P.me;
+    if (me == nil) or (actor == me) or (gcauto.OnIncomingCast == nil) then return end
+    if (bit.band(P.param, 0xFFFF) ~= 24931) then return end -- 'ca' = start; 'sp' (interrupt) ends it below
+    for t = 1, P.ntgt do
+        local k = P.first[t];
+        for r = k, k + P.nres[t] - 1 do
+            local spell = AshitaCore:GetResourceManager():GetSpellById(P.rval[r]);
+            if (spell ~= nil) and (spell.Name ~= nil) then
+                local name = spell.Name[1];
+                local hit = (P.tgt[t] == me);
+                if (not hit) and in_party(actor) then
+                    local fam = string.gsub(string.lower(name), ' [ivx]+$', '');
+                    local center = (AOE_ON_CASTER[fam] and actor) or (AOE_ON_TARGET[fam] and P.tgt[t]) or nil;
+                    local idx = (center ~= nil) and entity_index(center) or nil;
+                    hit = (idx ~= nil) and (math.sqrt(AshitaCore:GetMemoryManager():GetEntity():GetDistance(idx) or 0) <= AOE_RANGE);
                 end
+                if hit then gcauto.OnIncomingCast(name, actor); return end
             end
         end
-        return;
     end
+end
+
+-- Someone else's spell finished (cmd_no 4) or was interrupted (cmd_no 8, 'sp'): received gear can come off.
+local function incoming_end(P)
+    if (gcauto.OnReceivedEnd == nil) or (P.me == nil) or (P.actor == P.me) then return end
+    if (P.cat == 4) then
+        local hitMe = false;
+        for t = 1, P.ntgt do
+            if (P.tgt[t] == P.me) then hitMe = true end
+        end
+        gcauto.OnReceivedEnd(P.actor, hitMe);
+    elseif (P.cat == 8) and (bit.band(P.param, 0xFFFF) == 28787) then
+        gcauto.OnReceivedEnd(P.actor, false);
+    end
+end
+
+local function roll_packet(P)
+    local actor, category, param, me = P.actor, P.cat, P.param, P.me;
+    -- Magic (Start): handled by incoming_cast.
+    if (category == 8) then return end
     local tagcat = TAGCAT[category];
     if (tagcat ~= nil) then
         if (me ~= nil) and (actor == me) then
@@ -825,8 +867,9 @@ function gcauto.Start()
     ashita.events.register('packet_in', 'gcauto_packet', function (e)
         if (e.id == 0x0028) then
             local ok, P = pcall(parse_action, e.data);
-            if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P); pcall(item_packet, P) end
+            if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P); pcall(item_packet, P); pcall(incoming_cast, P); pcall(incoming_end, P) end
         end
+        if (e.id == 0x000A) and (inc ~= nil) and (inc.OnZone ~= nil) then pcall(inc.OnZone) end
         if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; jaLockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
     end);
 end
