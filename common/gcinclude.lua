@@ -119,7 +119,8 @@
 			Ring = nil, -- e.g. 'Zodiac Ring', worn when the day matches the element (never Light/Dark, never on cures)
 			RingSlot = 'Ring2',
 			Back = nil, -- e.g. 'Twilight Cape': +5% to a day bonus, or to a weather bonus that applies (BG-Wiki)
-			BackOnCures = false, -- also on Cure/Cura/Curaga (your cure-potency back may be worth more)
+			Cures = true, -- Cure/Cura/Curaga: obi on Light day/weather (BG-Wiki: +10/+10/+25, the obi forces it); false = never
+			BackOnCures = false, -- also the back on Cure/Cura/Curaga (your cure-potency back may be worth more)
 			Keep = T{'Oneiros Rope'}, -- items that are never displaced by the picks above
 		};
 		AutoSoda = false; -- /autosoda: keep Regain up with SodaItem
@@ -175,7 +176,7 @@
 		MiniQueueMax = 5;
 		Trace = false; -- /gctrace: one chat line per action naming each set put on
 		LockstyleSet = nil; -- /lockstyleset N 4s after load and job change; per job gcinclude.LockstyleSet = N in OnLoad
-		CapacityCapes = T{'Aptitude Mantle +1', 'Aptitude Mantle', 'Mecisto. Mantle'}; -- /capacity wears the first one carried
+		CapacityCapes = T{'Aptitude Mantle +1', 'Aptitude Mantle', 'Mecisto. Mantle'}; -- /capacity wears the carried one worth most (Mecisto by its augment)
 		JubileeSlot = 'Ring1'; -- /jubilee ring slot
 		AmmoWarn = 20; -- warn when the ammo in use (inventory + wardrobes) is at or under this, 0 = never
 		NinjaToolWarn = 10; -- warn when Utsusemi tools (Shihei, + Shikanofuda on NIN) are at or under this, 0 = never
@@ -1143,25 +1144,40 @@ end
 			if (item ~= nil) and (item.Id == e.id) then
 				e.equippedAt = now;
 				e.nextTry = now + (e.alreadyOn and 0.5 or (e.delay + ENCHANT_MARGIN));
-				-- Just equipped: activation = now + delay, so the reuse timer left is next use - (activation - delay).
 				local info = enchantInfo(item);
 				if (info ~= nil) and (info.charges == 0) then
 					gcinclude.Err(e.item .. ': no charges left, released');
 					gcinclude.ReleaseEnchant(e.index);
-				elseif (info ~= nil) and (e.alreadyOn ~= true) then
-					local reuse = info.nextUse - (info.activation - e.delay);
-					if (reuse > e.delay + 5) then
-						gcinclude.Err(string.format('%s: reuse timer, about %d:%02d left, released', e.item, math.floor(reuse / 60), reuse % 60));
-						gcinclude.ReleaseEnchant(e.index);
-					elseif (reuse > e.delay) then
-						e.nextTry = now + reuse + ENCHANT_MARGIN;
-					end
+					return;
 				end
+				e.extPending = (info ~= nil) and (e.alreadyOn ~= true);
 			elseif (now > e.start + ENCHANT_EQUIP_WAIT) then
 				gcinclude.Err(e.item .. ': never showed up in ' .. string.lower(e.slot) .. ', released');
 				gcinclude.ReleaseEnchant(e.index);
 			end
 			return;
+		end
+		-- Reuse timer, once the extdata shows this equip (activation changed): the equip happened at
+		-- activation - delay, so the item is usable reuse = next use - (activation - delay) seconds after it.
+		-- Not refreshed within 2s: left to the tries.
+		if (e.extPending == true) then
+			local info = enchantInfo(equippedItem(e.index));
+			if (info == nil) then
+				e.extPending = false;
+			elseif (e.preAct == nil) or (info.activation ~= e.preAct) then
+				e.extPending = false;
+				local reuse = info.nextUse - (info.activation - e.delay);
+				local left = math.floor(reuse - (now - e.equippedAt));
+				if (reuse > e.delay + 5) and (left > 0) then
+					gcinclude.Err(string.format('%s: reuse timer, about %d:%02d left, released', e.item, math.floor(left / 60), left % 60));
+					gcinclude.ReleaseEnchant(e.index);
+					return;
+				elseif (reuse > e.delay) then
+					e.nextTry = math.max(e.nextTry, e.equippedAt + reuse + ENCHANT_MARGIN);
+				end
+			elseif (now > e.equippedAt + 2) then
+				e.extPending = false;
+			end
 		end
 		if (now < e.nextTry) then return end
 		if (e.tries >= ENCHANT_TRIES) then
@@ -1306,6 +1322,8 @@ end
 		local set = gcinclude.FindSet(setName);
 		if (set == nil) or (next(set) == nil) then return end
 		local now = os.clock();
+		local ended = gcinclude.ReceivedEnded;
+		if (from == nil) and (ended ~= nil) and (ended.set == set) and ((now - ended.at) < 2) then return end -- notice after it landed
 		local same = (gcinclude.ReceivedSet == set) and (now <= (gcinclude.ReceivedUntil or 0));
 		if (from ~= nil) then gcinclude.ReceivedFrom = from elseif not same then gcinclude.ReceivedFrom = nil end
 		gcinclude.ReceivedSet = set;
@@ -1322,6 +1340,7 @@ end
 		elseif (hitMe ~= true) then
 			return;
 		end
+		gcinclude.ReceivedEnded = { set = gcinclude.ReceivedSet, at = os.clock() };
 		gcinclude.ReceivedSet, gcinclude.ReceivedFrom = nil, nil;
 	end
 
@@ -1464,7 +1483,8 @@ end
 				element = action.Element;
 			elseif (action.Skill == 'Ninjutsu') and gcinclude.NinjutsuNukes:contains(fam) then
 				element, opts.noRing = action.Element, true;
-			elseif (action.Skill == 'Healing Magic') and T{'Cure', 'Cura', 'Curaga'}:contains(fam) then
+			elseif (action.Skill == 'Healing Magic') and ((gcinclude.ElementCfg() or {}).Cures ~= false)
+				and T{'Cure', 'Cura', 'Curaga'}:contains(fam) then
 				element, opts.noSash, opts.noRing = 'Light', true, true;
 				opts.noBack = (gcinclude.ElementCfg() or {}).BackOnCures ~= true;
 			end
@@ -2131,7 +2151,8 @@ end
 		gFunc.ForceEquipSet({ [slot] = name }); -- slot is free or owned by the caller
 		gcinclude.LockSlots(T{index});
 		local alreadyOn = (equippedId(index) == res.Id); -- worn already: its delay may be long past
-		gcinclude.Enchants[index] = { item = name, id = res.Id, slot = slot, index = index, wasLocked = wasLocked, alreadyOn = alreadyOn,
+		local before = enchantInfo(carriedId(res.Id)); -- extdata before this equip, to see when it refreshes
+		gcinclude.Enchants[index] = { item = name, id = res.Id, slot = slot, index = index, wasLocked = wasLocked, alreadyOn = alreadyOn, preAct = (before ~= nil) and before.activation or nil,
 			delay = delay, start = os.clock(), tries = 0 };
 		gcinclude.Say(name .. ' on ' .. string.lower(slot) .. ', using it ' .. tostring(delay) .. 's after it is on (' .. source .. ')');
 		return true;

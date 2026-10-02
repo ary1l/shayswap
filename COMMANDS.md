@@ -148,7 +148,8 @@ every 2s (up to 5 tries) until the use starts. The slot stays locked until the u
 Gives up (and unlocks) if the item never goes on within 10s or 5 tries never start. One per slot, several at once.
 The first try waits the delay + 3s (the server refuses for about 3s past it). Once the item is on, its extdata
 (Windower extdata.lua layout) is read: no charges left, or a reuse timer longer than the delay, releases it at
-once with the time left, instead of 5 failed tries. Already worn: it is tried right away.
+once with the time left, instead of 5 failed tries (only after the extdata shows this equip; if it doesn't
+refresh within 2s the tries decide). Already worn: it is tried right away.
 
 **Supply warnings** (never cancel anything; BG-Wiki: Barrage fires only as many shots as you have ammo):
 the ammo in use, counted over inventory and wardrobes, at or under `AmmoWarn` (20), and Utsusemi tools
@@ -338,7 +339,7 @@ ElementGear = T{
 ```
 
 Per BG-Wiki: helixes always get day/weather, so never an obi (Orpheus still); cures get Light day/weather
-(+10/+10/+25, the obi forces it) but no sash and no ring (`BackOnCures = true` to add the back); Quick Draw
+(+10/+10/+25, the obi forces it) but no sash and no ring (`BackOnCures = true` adds the back, `Cures = false` skips cures); Quick Draw
 and elemental ninjutsu (Katon…Suiton) take obi/Orpheus/back; the Twilight Cape adds +5% to a day bonus, or to a
 weather bonus that applies (obi on, or a helix); Zodiac Ring never on Lightsday/Darksday nor on cures.
 
