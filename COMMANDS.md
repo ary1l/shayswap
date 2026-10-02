@@ -23,8 +23,11 @@ One box: `/ms sendto <name> /lac fwd <cmd>`.
   you can dual wield). `/th` off gives them back.
 - **TP hold:** at 1000+ TP, engaged or not, Main/Sub/Range don't change (songs, rolls, cures, enfeebling,
   enhancing, geomancy excepted). `force` overrides; `settings.WeaponTPGuard = 0` disables.
-- `Weapon_<Mode>_1h` is used when the subjob can't dual wield. `gcinclude.AlwaysDualWield = true`
-  forces the DW pair (BLU, THF). The same check decides whether the `TH` set's Sub is used.
+- `Weapon_<Mode>_1h` is used when you can't dual wield: main or sub job NIN Lv10+, DNC Lv20+ or THF Lv83+
+  (FFXIclopedia Dual Wield), at the effective level, so a restricted support job (Sheol Gaol, SJ Restriction:
+  sub Lv0) doesn't count. Losing Dual Wield puts the `_1h` set on at once, past the TP hold (the offhand weapon
+  is no use); getting it back waits for the TP hold. `gcinclude.AlwaysDualWield = true` forces the DW pair (BLU,
+  THF). The same check decides whether the `TH` set's Sub is used.
 
 Augmented items in a per-slot cycle:
 
@@ -48,6 +51,7 @@ gcinclude.WeaponItemMap = {
 | `/lock` | Lock Main, Sub, Ammo |
 | `/lock ear1 back` | Lock any slots by name |
 | `/unlock` / `/unlock ammo` | Release all / one |
+| `/dw [on\|off\|auto]` | Dual Wield: no arg shows yes/no and why (e.g. `sub NIN Lv0`). `off` = always `_1h` sets, `on` = always DW sets, `auto` = detect (default) |
 | `/smartswap [on\|off]` | On: at `SmartSwapTP`+, `NoWeaponSpells` (Dia, Blink, spikes…) don't swap weapons; `KeepWeaponsFor` (Cure/Cura) keep Daybreak or Bunzi's Rod |
 | `/naked` `/weaponsonly` `/abysseaproc` `[on\|off]` | Strip all 16 / the 12 armor slots / head, hands, legs, feet and keep them bare. One at a time |
 | `/capacity` `/jubilee` `[on\|off]` | Wear and hold the first carried of `CapacityCapes` (Back) / Jubilee Ring (`JubileeSlot`, Ring1) |

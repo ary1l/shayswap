@@ -194,7 +194,7 @@
 
 	gcinclude.AliasList = T{'gcmessages','wsdistance','setcycle','dt','mdt','th','kite','meleeset','gcdrain','gcaspir','nukeset','burst','automb','autonuke','weapon','elecycle','helix','weather','nuke','death','sir','tankset','proc',
 	'pupmode','weaponset','wm','mainset','subset','rangeset','ammoset','autofood','autosoda','revit','holywater','aminon','gchud','lock','unlock','hoxne','gchelp','gckey','def','mbmode','received','gcinfo','gce','xiroll','checksets','smartswap','autogear','gcbar','mbinfo','cormsg','forcestring','songlock','siphon','warpring','mea','holla','dem','rrset','craftset','zeniset','fishset','mbtier',
-	'gctrace','naked','weaponsonly','abysseaproc','capacity','jubilee','gcstyle'};
+	'gctrace','naked','weaponsonly','abysseaproc','capacity','jubilee','gcstyle','dw'};
 	-- Exit/use-on-self items: key = /command, value = exact /item name. Add a line, /lac reload.
 	gcinclude.ExitItems = {
 		ontic = 'ontic extremity',
@@ -487,6 +487,8 @@ end
 			gcinclude.UseTeleRing(gcinclude.TeleRings[args[1]]);
 		elseif (gcinclude.ExitItems[args[1]] ~= nil) then
 			AshitaCore:GetChatManager():QueueCommand(-1, '/item "' .. gcinclude.ExitItems[args[1]] .. '" <me>');
+		elseif (args[1] == 'dw') then
+			gcinclude.DualWieldCommand(args);
 		elseif (args[1] == 'gctrace') then
 			gcinclude.settings.Trace = not (gcinclude.settings.Trace == true);
 			gcinclude.Say('Trace: ' .. (gcinclude.settings.Trace and 'on' or 'off'));
@@ -619,7 +621,6 @@ end
 	end
 
 	gcinclude.WeaponSlots = T{1, 2, 3, 4};
-	gcinclude.DualWieldSubs = T{'NIN', 'DNC'};
 	gcinclude.WeaponSlotNames = T{'Main', 'Sub', 'Range', 'Ammo'};
 	gcinclude.WeaponCommands = T{weaponset = 'Weapons', wm = 'Weapons', mainset = 'Main', subset = 'Sub', rangeset = 'Range', ammoset = 'Ammo'};
 	gcinclude.WeaponRoleNames = T{'melee', 'ranged', 'caster', 'tank'};
@@ -1039,6 +1040,7 @@ end
 		if (now < gcinclude.NextHoldCheck) then return end
 		gcinclude.NextHoldCheck = now + 0.1;
 		gcinclude.CheckEnchantHold();
+		if gcinclude.CheckDualWieldChange(now) then return end -- forced 1h swap: let it land before the hold re-checks
 		gcaction.Tick();
 		if (gcinclude.HoldSuspended == true) then
 			if (gState.PlayerAction ~= nil) then return end
@@ -1482,14 +1484,59 @@ end
 		return (string.gsub(base, ' [IVX]+$', ''));
 	end
 
+	-- Dual Wield I: NIN Lv10, DNC Lv20, THF Lv83 (FFXIclopedia Dual Wield). BLU gets it from set spells, so
+	-- BLU.lua sets AlwaysDualWield. Levels are the effective ones (IPlayer GetMainJobLevel/GetSubJobLevel;
+	-- LAC data.lua calls the sub one SubJobSync): SJ Restriction drops the sub to Lv0 (FFXIclopedia), and
+	-- Sheol Gaol restricts support jobs (BG-Wiki), so a /NIN there can't dual wield. /dw on|off overrides.
+	gcinclude.DualWieldLevels = T{ NIN = 10, DNC = 20, THF = 83 };
+	gcinclude.DualWieldMode = 'auto';
+
+	function gcinclude.DualWieldState()
+		if (gcinclude.DualWieldMode == 'on') then return true, 'set by /dw on' end
+		if (gcinclude.DualWieldMode == 'off') then return false, 'set by /dw off' end
+		if (gcinclude.AlwaysDualWield == true) then return true, 'AlwaysDualWield' end
+		local p = AshitaCore:GetMemoryManager():GetPlayer();
+		local jobs = AshitaCore:GetResourceManager();
+		local main, ml = jobs:GetString('jobs.names_abbr', p:GetMainJob()), p:GetMainJobLevel();
+		local need = gcinclude.DualWieldLevels[main or ''];
+		if (need ~= nil) and (ml >= need) then return true, string.format('main %s Lv%d', main, ml) end
+		if (p:GetIsZoning() ~= 0) or (ml == 0) then return (gcinclude.LastDualWield == true), 'zoning, kept last' end
+		local sub, sl = jobs:GetString('jobs.names_abbr', p:GetSubJob()), p:GetSubJobLevel();
+		need = gcinclude.DualWieldLevels[sub or ''];
+		local why = string.format('sub %s Lv%d', tostring(sub or 'none'), sl);
+		local can = (need ~= nil) and (sl >= need);
+		if can and (gcinclude.BuffCount('SJ Restriction') > 0) then can, why = false, why .. ', SJ Restriction' end
+		gcinclude.LastDualWield = can;
+		return can, why;
+	end
+
 	function gcinclude.CanDualWield()
-		if (gcinclude.AlwaysDualWield == true) then return true end
-		local sub = AshitaCore:GetResourceManager():GetString('jobs.names_abbr', AshitaCore:GetMemoryManager():GetPlayer():GetSubJob());
-		if (sub == nil) or (sub == '') or (sub == 'NON') then
-			return (gcinclude.LastDualWield == true);
+		return (gcinclude.DualWieldState());
+	end
+
+	-- Dual Wield just lost (e.g. zoning into Sheol Gaol): put the 1h weapons on now, past the TP hold, since an
+	-- offhand weapon is no use without it. Gaining it back waits for the TP hold like any weapon change.
+	gcinclude.NextDualCheck = 0;
+	function gcinclude.CheckDualWieldChange(now)
+		if (now < gcinclude.NextDualCheck) then return false end
+		gcinclude.NextDualCheck = now + 0.5;
+		local can, why = gcinclude.DualWieldState();
+		local was = gcinclude.DualWieldSeen;
+		gcinclude.DualWieldSeen = can;
+		if (was == true) and (can == false) then
+			gcinclude.Say('Dual Wield off (' .. why .. '): 1h weapons');
+			gcinclude.ApplyWeapons(true);
+			return true;
 		end
-		gcinclude.LastDualWield = gcinclude.DualWieldSubs:contains(sub);
-		return gcinclude.LastDualWield;
+		return false;
+	end
+
+	function gcinclude.DualWieldCommand(args)
+		local arg = (args[2] ~= nil) and string.lower(args[2]) or nil;
+		if (arg == 'on') or (arg == 'off') or (arg == 'auto') then gcinclude.DualWieldMode = arg end
+		local can, why = gcinclude.DualWieldState();
+		gcinclude.Say('Dual Wield: ' .. (can and 'yes' or 'no') .. ' (' .. why .. ')');
+		if (arg ~= nil) then gcinclude.NextDualCheck = 0; gcinclude.ApplyWeapons() end -- a switch to no DW forces the 1h set next tick
 	end
 
 	function gcinclude.BuildWeaponLayer()
@@ -1757,7 +1804,7 @@ end
 			'auto   : /autofood [on|off], /autosoda [on|off], /revit [on|off], /holywater [on|off]',
 			'hud    : /gchud [on|off|pos x y|debug]',
 			'checks : /checksets, /xiroll, /mbinfo',
-			'swap   : /smartswap [on|off]',
+			'swap   : /smartswap [on|off], /dw [on|off|auto] (dual wield: shows why; off = 1h weapon sets)',
 			'holds  : /naked /weaponsonly /abysseaproc [on|off] (one at a time), /capacity /jubilee [on|off]',
 			'checks : /gctrace (sets per action), /gcstyle N (lockstyle); failing actions cancel, recasts under 5s queue',
 			'gear   : /autogear [on|off|regen N|refresh N|dt N|petdt N]',
