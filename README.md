@@ -37,22 +37,27 @@ Full reference: `COMMANDS.md`.
   the *effective* level, so a restricted support job (Sheol Gaol, SJ Restriction) counts as none; losing it swaps to
   `_1h` at once, even at 1000+ TP. `/dw` shows why; `/dw on|off|auto` overrides.
 - **Layers**, lowest to highest: your sets → weapons (+ `TH`-set weapons while `/th` is on) → MDT/Aminon → Hoxne →
-  TH → received gear → buff sets → XIRoll → debuff and craft/zeni/fish/rr sets. Midcast: job sets → TH → Absorb → LightBonus → obi/Orpheus → SIR.
-- **Automatic**: obi/Orpheus by day, weather and distance; Moonshade under 1750 TP on every WS; Holy Water
+  TH → received gear → buff sets → XIRoll → debuff and craft/zeni/fish/rr sets. Midcast: job sets → TH → `Buffs_Midcast` → Absorb → LightBonus → obi/Orpheus/back/ring → SIR → required items.
+- **Automatic**: obi/Orpheus/Twilight Cape/Zodiac Ring by day, weather and distance (nukes, helixes, elemental ninjutsu,
+  Quick Draw, cures, elemental WS); items an action can't go without (Dispelga Daybreak, Honor March Marsyas, Aria
+  Loughnashade, Impact cloak, Tomahawk/Angon ammo); a Sub that can't go with the Main (2-handed/grip) is dropped;
+  Hoxne Ampulla re-used every 30 min; low ammo / Utsusemi tool warnings; `/cancel Stoneskin` when asleep under it;
+  Moonshade under 1750 TP on every WS; Holy Water
   on Doom; food and soda; `/th`: TH gear at rest and on spells/shots at a mob until it is tagged (your hit, shot,
   WS, ability, or a spell/step that lands; BLU: `BluMagTH` spells only), `TH`-set weapons the whole time; lockstyle on load if `LockstyleSet` is set.
 - **Action checks**: spells, abilities and WS that would fail are cancelled before any gear moves, with the
   reason in chat. A recast back within 5s is queued and fires when ready, after the forced delay of your last action
   (BG-Wiki: spell 3s, WS 2s, job ability 2s with other job abilities allowed after 1s).
 - **Holds**: `/naked` `/weaponsonly` `/abysseaproc` strip slots and keep them bare; `/capacity` `/jubilee`
-  put on and keep your capacity cape / Jubilee Ring.
+  `/dynamisrp` put on and keep your best capacity cape / Jubilee Ring / Dynamis - Divergence neck.
 - **Magic burst** (RDM BLM SCH GEO), `/mbmode` cycles:
   - `Off`: normal nuke set, nothing automatic.
   - `Chain`: Burst set only when the nuke will land inside a live skillchain of its element on that target.
   - `Auto`: Chain, plus it casts the chain's nuke itself (tier I/III/V by `/mbtier`; Transfixion/Compression: SCH helix).
   - `Force`: Burst set on every nuke, no skillchain check.
 - **Received gear**: when anyone starts casting Cure/Cura/Curaga, Phalanx, Protect, Shell, Regen, Refresh or
-  Cursna on you, the matching `*_Received` set goes on until it lands (8s max). Waltzes are instant abilities,
+  Cursna on you (or Curaga/Cura/Protectra/Shellra near you from a party member), the matching `*_Received` set goes
+  on until that spell lands or is interrupted (8s max). Waltzes are instant abilities,
   so there is nothing to see in advance: `Waltz_Received` only works when one of **your own boxes** uses Curing
   Waltz on you (it tells your box by `/ms`; only your own boxes get told, never other players), and may still land after the heal. Divine Waltz (area, aimed at
   the dancer) and anyone else's Waltz: no swap.
