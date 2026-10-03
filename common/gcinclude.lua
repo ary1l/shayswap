@@ -181,7 +181,7 @@
 		AmmoWarn = 20; -- warn when the ammo in use (inventory + wardrobes) is at or under this, 0 = never
 		NinjaToolWarn = 10; -- warn when Utsusemi tools (Shihei, + Shikanofuda on NIN) are at or under this, 0 = never
 		SleepCancelStoneskin = true; -- asleep with Stoneskin up: /cancel Stoneskin so damage can wake you (FFXIclopedia Sleep)
-		HoxneAutoUse = true; -- Hoxne On/Locked: use the Ampulla again when its 30 min effect has run out or it was re-equipped
+		HoxneAutoUse = true; -- Hoxne On/Locked: use the Ampulla again 30 min after each use that landed
 	};
 
 	--[[
@@ -1225,11 +1225,14 @@ end
 	-- From gcauto's 0x0028 reader: my item use started (cmd 9), was interrupted (cmd 9, id 0) or finished (cmd 5).
 	function gcinclude.OnItemAction(cmd, id)
 		local now = os.clock();
+		if (cmd == 5) then
+			local hx = AshitaCore:GetResourceManager():GetItemByName(gcinclude.settings.HoxneItem, 0);
+			if (hx ~= nil) and (id == hx.Id) then gcinclude.HoxneNextAuto = now + gcinclude.HoxneDuration end -- any use of it, typed ones too
+		end
 		for _, e in pairs(gcinclude.Enchants) do
 			if (e.doneAt == nil) and (e.equippedAt ~= nil) then
 				if (cmd == 5) and (id == e.id) then
 					e.doneAt = now + 0.5;
-					if (e.index == 4) then gcinclude.HoxneNextAuto = now + gcinclude.HoxneDuration end
 				elseif (cmd == 9) and (id == e.id) then
 					e.nextTry = now + ENCHANT_USE_WAIT;
 				elseif (cmd == 9) and (id == 0) and (e.nextTry > now + ENCHANT_RETRY) then
@@ -2202,26 +2205,31 @@ end
 		gcinclude.UseEnchanted(name, nil);
 	end
 
-	-- Zoning: item uses stop (zoning drops an enchantment anyway: BG-Wiki Hoxne Ampulla), slots are given back.
+	-- Zoning: item uses stop (zoning drops an enchantment anyway: BG-Wiki Hoxne Ampulla), slots are given back,
+	-- and /hoxne goes back to Off, so nothing is used on arrival.
 	function gcinclude.OnZone()
 		for index, _ in pairs(gcinclude.Enchants) do gcinclude.ReleaseEnchant(index) end
-		gcinclude.HoxneNextAuto = 0;
+		gcinclude.HoxneNextAuto = nil;
+		if gcinclude.HoxneOn() then
+			gcinclude.SetWeaponCycle('Hoxne', 'Off', true);
+			gcinclude.CheckHoxne();
+			gcinclude.Say('Hoxne: Off (zoned)');
+		end
 	end
 
-	-- Hoxne Ampulla (BG-Wiki): Double Attack +100% for 30 min, 60s recast, 5s equip delay, lost when unequipped
-	-- or on zoning. While /hoxne is On or Locked and the Ampulla is in ammo: use it (once its use delay has passed
-	-- since it went on), then again 30 min after each use, or after being swapped out and back. One go a minute.
-	gcinclude.HoxneNextAuto = 0;
+	-- Hoxne Ampulla (BG-Wiki): Double Attack +100% for 30 min, 60s recast, 5s use delay, lost when unequipped
+	-- or on zoning. Used by /hoxne use (or by hand); while /hoxne is On or Locked it is used again 30 min after
+	-- each use that landed, if the Ampulla is in ammo then. Nothing else uses it. One go a minute until it lands.
+	gcinclude.HoxneNextAuto = nil;
 	gcinclude.HoxneCheckAt = 0;
 	gcinclude.HoxneDuration = 1800;
 	function gcinclude.CheckHoxneAuto(now)
 		if (gcinclude.settings.HoxneAutoUse ~= true) or (now < gcinclude.HoxneCheckAt) then return end
 		gcinclude.HoxneCheckAt = now + 1;
-		if not gcinclude.HoxneOn() then return end
+		if (gcinclude.HoxneNextAuto == nil) or (now < gcinclude.HoxneNextAuto) or not gcinclude.HoxneOn() then return end
 		local r = AshitaCore:GetResourceManager():GetItemByName(gcinclude.settings.HoxneItem, 0);
-		if (r == nil) then return end
-		if (equippedId(4) ~= r.Id) then gcinclude.HoxneNextAuto = 0; return end
-		if (gcinclude.Enchants[4] ~= nil) or (now < gcinclude.HoxneNextAuto) or (gState.PlayerAction ~= nil) then return end
+		if (r == nil) or (equippedId(4) ~= r.Id) then return end
+		if (gcinclude.Enchants[4] ~= nil) or (gState.PlayerAction ~= nil) then return end
 		local p = gData.GetPlayer();
 		if (p == nil) or ((p.Status ~= 'Idle') and (p.Status ~= 'Engaged')) or (p.IsMoving == true) then return end
 		for _, b in ipairs(gcinclude.HardCC) do
