@@ -1143,6 +1143,21 @@ end
 	end
 	gcinclude.EquippedId = equippedId;
 
+	-- When each slot's current item went on (first seen there): a use has to wait out its equip delay from then,
+	-- also when the item was put on by a set just before (e.g. Hoxne's 5s use delay, BG-Wiki).
+	local slotSeen = {};
+	local function trackSlots(now)
+		for slot = 1, 16 do
+			local id = equippedId(slot);
+			local s = slotSeen[slot];
+			if (id == nil) then
+				slotSeen[slot] = nil;
+			elseif (s == nil) or (s.id ~= id) then
+				slotSeen[slot] = { id = id, at = now };
+			end
+		end
+	end
+
 	-- Enchanted-equipment extdata (Windower libs/extdata.lua decode.Enchanted): byte 1 = 1, byte 2 charges left,
 	-- bytes 5-8 next use time, bytes 9-12 activation time (equip time + equip delay), both server timestamps.
 	-- Only differences between the two are used, so no epoch is needed.
@@ -1168,7 +1183,10 @@ end
 			local item = equippedItem(e.index);
 			if (item ~= nil) and (item.Id == e.id) then
 				e.equippedAt = now;
-				e.nextTry = now + (e.alreadyOn and 0.5 or (e.delay + ENCHANT_MARGIN));
+				local seen = slotSeen[e.index];
+				local onSince = now;
+				if e.alreadyOn then onSince = ((seen ~= nil) and (seen.id == e.id)) and seen.at or -math.huge end
+				e.nextTry = math.max(now + 0.5, onSince + e.delay + ENCHANT_MARGIN);
 				local info = enchantInfo(item);
 				if (info ~= nil) and (info.charges == 0) then
 					gcinclude.Err(e.item .. ': no charges left, released');
@@ -1205,6 +1223,7 @@ end
 			end
 		end
 		if (now < e.nextTry) then return end
+		if (gState.PlayerAction ~= nil) then e.nextTry = now + 0.5; return end -- an action is running: wait, don't spend a try
 		if (e.tries >= ENCHANT_TRIES) then
 			gcinclude.Err(e.item .. ': not used after ' .. e.tries .. ' tries (charges or reuse timer?), released');
 			gcinclude.ReleaseEnchant(e.index);
@@ -1242,6 +1261,7 @@ end
 		local now = os.clock();
 		if (now < gcinclude.NextHoldCheck) then return end
 		gcinclude.NextHoldCheck = now + 0.1;
+		trackSlots(now);
 		gcinclude.CheckEnchantHold();
 		if gcinclude.CheckDualWieldChange(now) then return end -- forced 1h swap: let it land before the hold re-checks
 		gcinclude.CheckHoxneAuto(now);
@@ -2207,8 +2227,8 @@ end
 	end
 
 	-- Hoxne Ampulla (BG-Wiki): Double Attack +100% for 30 min, 60s recast, 5s equip delay, lost when unequipped
-	-- or on zoning. While /hoxne is On or Locked and the Ampulla is in ammo: use it, then again 30 min after
-	-- each use, or as soon as it is back after being swapped out. One try a minute until a use lands.
+	-- or on zoning. While /hoxne is On or Locked and the Ampulla is in ammo: use it (once its use delay has passed
+	-- since it went on), then again 30 min after each use, or after being swapped out and back. One go a minute.
 	gcinclude.HoxneNextAuto = 0;
 	gcinclude.HoxneCheckAt = 0;
 	gcinclude.HoxneDuration = 1800;
