@@ -157,7 +157,7 @@
 		CombatWindow = 6; -- seconds; Selindrile uses 6
 		SIRSkip = T{}; -- spell names /sir leaves alone, e.g. T{'Phalanx','Reprisal'}
 		HoxneItem = 'Hoxne Ampulla'; -- what the Hoxne states keep in your ammo slot
-		HoxneLockSlots = T{'Ammo', 'Range'}; -- locked by the Locked state
+		HoxneLockSlots = T{'Ammo'}; -- locked by the Locked state (Range stays free for instruments; bows are dropped anyway)
 		Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','mbmode'} }; -- bound on load, unbound on unload; T{} for none. Per job: set gcinclude.settings.Keybinds in OnLoad before gcinclude.Initialize()
 		XIRollSet = T{ Ring2 = 'Roller\'s Ring' }; -- used when a job file has no XIRoll set of its own
 		HUDOwners = T{'Shaymin'}; -- character names that open the alt HUD on load
@@ -918,10 +918,34 @@ end
 	end
 	gcinclude.CarriedId = carriedId;
 
+	-- Matched by name, not by GetItemByName's single id: one name can cover several ids (FFXIAH: Prime Horn
+	-- 22303, then Loughnashade 22304-22307 for stages 2-5), and any of them counts.
+	local idName = {};
 	local function carriedName(name)
-		local r = AshitaCore:GetResourceManager():GetItemByName(name, 0);
-		if (r == nil) then return nil, 0 end
-		return carriedId(r.Id);
+		local want = string.lower(name);
+		local inv = AshitaCore:GetMemoryManager():GetInventory();
+		local res = AshitaCore:GetResourceManager();
+		local bags = gSettings.EquipBags;
+		if (type(bags) ~= 'table') or (#bags == 0) then bags = {8, 10, 11, 12, 13, 14, 15, 16, 0} end
+		local first, count = nil, 0;
+		for _, c in ipairs(bags) do
+			for i = 1, (gData.GetContainerMax(c) or 0) do
+				local it = inv:GetContainerItem(c, i);
+				if (it ~= nil) and (it.Count > 0) and (it.Id ~= 0) and (it.Id ~= 65535) then
+					local n = idName[it.Id];
+					if (n == nil) then
+						local r = res:GetItemById(it.Id);
+						n = (r ~= nil) and string.lower(r.Name[1]) or false;
+						idName[it.Id] = n;
+					end
+					if (n == want) then
+						first = first or it;
+						count = count + it.Count;
+					end
+				end
+			end
+		end
+		return first, count;
 	end
 
 	-- Capacity point bonus (BG-Wiki): Aptitude Mantle +1 30%, Aptitude Mantle 25%; Mecisto. Mantle 10-50% from
@@ -2061,7 +2085,7 @@ end
 				for _, slot in ipairs(gcinclude.SlotNumbers(gcinclude.settings.HoxneLockSlots, 1)) do
 					if (gcinclude.LockedSlots[slot] == nil) then gcinclude.HoxneOwned:append(slot) end
 				end
-				-- Settle Ammo/Range before locking them, else a bow already on stays locked in.
+				-- Settle Ammo (and take off a bow, it needs matching ammo) before locking.
 				local range = gData.GetEquipment().Range;
 				local settle = { Ammo = gcinclude.settings.HoxneItem };
 				if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then settle.Range = 'remove' end
