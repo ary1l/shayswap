@@ -3,6 +3,9 @@
 Every command works as `/name` or `/lac fwd name`. All boxes: `/mss /lac fwd <cmd>`.
 One box: `/ms sendto <name> /lac fwd <cmd>`.
 
+On/off commands (`/automb`, `/burst`, `/kite`, `/th`, `/dt`, `/mdt`, `/aminon`, `/sir`, `/death`, `/proc`, `/forcestring`,
+`/songlock`, `/gcmessages`, `/autofood`, `/autosoda`, ...) take `on` or `off`; with no argument they flip.
+
 ## Weapons
 
 | Command | Does |
@@ -43,7 +46,7 @@ gcinclude.WeaponItemMap = {
 
 | Command | Does |
 |---|---|
-| `/def` | none → DT → MDT → Aminon → SIRD → none, one at a time (Ctrl+grave) |
+| `/def [off\|dt\|mdt\|aminon\|sird]` | Sets one (or none); no arg cycles none → DT → MDT → Aminon → SIRD → none (Ctrl+grave) |
 | `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub (the set's items, else what you wear) plus Range/Ammo when the set names them, until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
 | `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range (an instrument in Range would knock the ampulla off). `/hoxne use` goes Locked and uses it. While On/Locked it is used when it is in Ammo and the Enchantment status isn't up (BG-Wiki: Double Attack +100% for 30 min as Enchantment, 60s recast, 5s use delay, lost when unequipped or zoning); Enchantment up, it is never used. Zoning sets it back to Off. `HoxneAutoUse = false` stops the automatic use |
@@ -63,21 +66,15 @@ Unknown slot names are refused. Holds skip slots already locked or TP-held; off 
 
 | Command | Does |
 |---|---|
-| `/mbmode` | Off → Chain → Auto → Force (Win+grave) |
-| `/automb` | Burst set only on a live matching skillchain (on by default) |
-| `/autonuke` | Cast into live skillchains (off by default) |
-| `/burst` | Burst set on every nuke |
-| `/mbtier [low\|mid\|high]` | Autonuke tier I / III / V. No arg cycles; `1\|3\|5` work too |
+| `/automb [on\|off]` | Casts into live skillchains by itself (off by default). No arg flips it. Same: `/autonuke`, `/mbmode` (Win+grave) |
+| `/mbtier [low\|mid\|high]` | Its nuke tier I / III / V. No arg cycles; `1\|3\|5` work too |
+| `/burst` | Burst set on every nuke, not only on live skillchains (off by default) |
 | `/mbinfo` | Last skillchain seen |
 
-| Mode | Sets | Nukes wear | Casts itself |
-|---|---|---|---|
-| `Off` | nothing | normal set | no |
-| `Chain` (default) | `/automb` | Burst set if it lands in a live chain of its element | no |
-| `Auto` | `/automb` + `/autonuke` | same as Chain | yes |
-| `Force` | `/burst` | Burst set always | no |
+Burst set: always on, no command. A nuke (yours or `/automb`'s) that lands inside a live skillchain of its
+element on its target wears it; any other nuke wears your normal set (`/burst` puts it on every nuke).
 
-Autonuke:
+`/automb` casting:
 - Targets a chain on a mob you or your party are engaged on, or your target; your target's chain first.
   It casts on the chained mob by its id, so it works while you're engaged on another mob (skipped if
   that mob is past 21.8', the usual spell range per FFXIclopedia). Not engaged: it also targets the chained mob.
@@ -99,8 +96,6 @@ Autonuke:
 count. Cast time per skill is learned from your own start/finish packets (slowest of the last 5);
 until one cast is seen it falls back to `gSettings.FastCast`.
 
-If you turn `/autonuke` or `/automb` on or off by hand, the HUD may show a combo `/mbmode` doesn't have,
-marked `*`: e.g. `Off*` = casting bursts itself, but not wearing the Burst set.
 
 ## Action checks
 
@@ -177,11 +172,11 @@ Default state:
 ```
      wpn  ml   nk   def  mb     kt fd sd
 COR  Ana  Def       -           .  .  .
-RDM  Max  Def  Pow  -    Chain  .  .  .
-SCH       Def  Pow  -    Chain  .  .  .
+RDM  Max  Def  Pow  -    Off    .  .  .
+SCH       Def  Pow  -    Off    .  .  .
 BRD  Nae  Def       -           .  .  .
 BLU  Tiz  Def       -           .  .  .
-GEO  Idr  Def  Pow  -    Chain  .  .  .
+GEO  Idr  Def  Pow  -    Off    .  .  .
 ```
 
 After some changes, BLU's name clicked:
@@ -194,15 +189,15 @@ SCH       Def  Pow   -    Off    .  .  .  .
 BRD  Nae  Acc        -           .  kt .  .
 BLU  Tiz  Def        DT          th .  .  .
      BLU/DRG a- hx- cj
-GEO  Idr  Def  Macc  -    Chain  .  .  .  sd
+GEO  Idr  Def  Macc  -    Off    .  .  .  sd
 ```
 
-- Columns: cycles, then `def` (`/def` state), `mb` (`/mbmode`, Auto shows tier), then toggles.
+- Columns: cycles, then `def` (`/def` state), `mb` (`/automb`: `Off`, or `Auto` + tier; `+F` = `/burst` on), then toggles.
 - `.` off, glyph on, blank = job doesn't have it, `-` none.
 - Bright = changed since load, dim = default, orange = turned off but loads on (SCH `Off`).
 - Columns at default on every box are hidden unless in `HUDPinned`; they reappear when changed.
 - Click a cell: runs it on that box. Click a name: shows its hidden columns. Hover: full names.
-- `mb` cell in Auto: Ctrl+click cycles that box's autonuke tier (`/mbtier`: I → III → V).
+- `mb` cell: click = `/automb`, Ctrl+click cycles that box's tier (`/mbtier`: I → III → V).
 - Values shorten automatically (`Death Penalty` → `DeaP`, `Anarchy +2` → `Ana+2`). A warning prints
   if two weapons shorten the same.
 
@@ -356,10 +351,10 @@ Obi score: day +10, weather +10 (double +25), opposing element subtracts. Orpheu
 | Shift+grave | `wm default` |
 | Ctrl+grave | `def` |
 | Alt+grave | `hoxne` |
-| Win+grave | `mbmode` |
+| Win+grave | `automb` |
 
 ```lua
-Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','mbmode'} };
+Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','automb'} };
 ```
 
 Prefixes: `!` Alt, `^` Ctrl, `+` Shift, `@` Win, `#` Apps. `T{}` = none. Binds replace existing ones
