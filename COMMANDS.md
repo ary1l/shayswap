@@ -46,7 +46,7 @@ gcinclude.WeaponItemMap = {
 | `/def` | none → DT → MDT → Aminon → SIRD → none, one at a time (Ctrl+grave) |
 | `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub (the set's items, else what you wear) plus Range/Ammo when the set names them, until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
-| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range. While On/Locked it is used by itself: when it goes on, 30 min after each use (BG-Wiki: Double Attack +100% for 30 min, 60s recast, lost when unequipped or zoning), and again after being swapped out; one try a minute. `HoxneAutoUse = false` stops that |
+| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range (an instrument in Range would knock the ampulla off). `/hoxne use` goes Locked and uses it. While On/Locked it is used when it is in Ammo and the Enchantment status isn't up (BG-Wiki: Double Attack +100% for 30 min as Enchantment, 60s recast, 5s use delay, lost when unequipped or zoning); Enchantment up, it is never used. Zoning sets it back to Off. `HoxneAutoUse = false` stops the automatic use |
 | `/hoxne use` | Locked, equip, wait its delay, use |
 | `/lock` | Lock Main, Sub, Ammo |
 | `/lock ear1 back` | Lock any slots by name |
@@ -117,7 +117,8 @@ Spells, abilities and WS that would fail are cancelled before any gear moves, wi
 | MP short | Cost adjusted for Light/Dark Arts (own school -10% rounded down, other +20% rounded up). Skipped under Manafont, Manawell, Parsimony, Penury, Addenda, Tabula Rasa. Gear "MP cost -%" isn't counted: `ValidateMP = false` if it bites |
 | Stratagems at 0 | Cancelled, next charge time shown |
 | Waltz short on TP | Cancelled. Set `WaltzTPCut` to your gear's "Waltz TP cost" reduction |
-| Required item missing | Cancelled when not carried, or its slot is `/lock`ed: Dispelga (Daybreak), Honor March (Marsyas), Aria of Passion (Loughnashade), Impact (Crepuscular or Twilight Cloak), Tomahawk (Thr. Tomahawk), Angon (Angon). When carried it is put on for you (Impact also empties Head: the cloak covers it) |
+
+Items an action needs (Dispelga Daybreak, Honor March Marsyas, Aria of Passion Loughnashade, Impact Crepuscular or Twilight Cloak with Head emptied, Tomahawk/Angon ammo) are put on when carried; they never cancel anything.
 
 Charge-pool abilities (Ready, Sic, Quick Draw) skip the recast check. LAC only sees what the client sends,
 so anything the client refuses itself never gets here.
@@ -146,10 +147,10 @@ Enchanted item delay comes from the item's `CastDelay`; override with `settings.
 fallback `EnchantWindow`. The wait starts once the item is really on (not at the command); then `/item`, retried
 every 2s (up to 5 tries) until the use starts. The slot stays locked until the use finishes, then unlocks.
 Gives up (and unlocks) if the item never goes on within 10s or 5 tries never start. One per slot, several at once.
-The first try waits the delay + 3s (the server refuses for about 3s past it). Once the item is on, its extdata
-(Windower extdata.lua layout) is read: no charges left, or a reuse timer longer than the delay, releases it at
-once with the time left, instead of 5 failed tries (only after the extdata shows this equip; if it doesn't
-refresh within 2s the tries decide). Already worn: it is tried right away.
+The first try waits the delay + 3s (the server refuses for about 3s past it), counted from when the item went
+on, also when a set put it on just before. A reuse timer a few seconds past the delay (extdata, Windower
+extdata.lua layout) delays the first try to match. Nothing is refused up front: the game decides. Tries wait
+while an action is running.
 
 **Supply warnings** (never cancel anything; BG-Wiki: Barrage fires only as many shots as you have ammo):
 the ammo in use, counted over inventory and wardrobes, at or under `AmmoWarn` (20), and Utsusemi tools

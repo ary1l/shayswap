@@ -157,7 +157,7 @@
 		CombatWindow = 6; -- seconds; Selindrile uses 6
 		SIRSkip = T{}; -- spell names /sir leaves alone, e.g. T{'Phalanx','Reprisal'}
 		HoxneItem = 'Hoxne Ampulla'; -- what the Hoxne states keep in your ammo slot
-		HoxneLockSlots = T{'Ammo', 'Range'}; -- locked by the Locked state
+		HoxneLockSlots = T{'Ammo', 'Range'}; -- locked by the Locked state (nothing worn in Range can stay on with the Ampulla: SE forum ranged/ammo groups)
 		Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','mbmode'} }; -- bound on load, unbound on unload; T{} for none. Per job: set gcinclude.settings.Keybinds in OnLoad before gcinclude.Initialize()
 		XIRollSet = T{ Ring2 = 'Roller\'s Ring' }; -- used when a job file has no XIRoll set of its own
 		HUDOwners = T{'Shaymin'}; -- character names that open the alt HUD on load
@@ -181,7 +181,7 @@
 		AmmoWarn = 20; -- warn when the ammo in use (inventory + wardrobes) is at or under this, 0 = never
 		NinjaToolWarn = 10; -- warn when Utsusemi tools (Shihei, + Shikanofuda on NIN) are at or under this, 0 = never
 		SleepCancelStoneskin = true; -- asleep with Stoneskin up: /cancel Stoneskin so damage can wake you (FFXIclopedia Sleep)
-		HoxneAutoUse = true; -- Hoxne On/Locked: use the Ampulla again when its 30 min effect has run out or it was re-equipped
+		HoxneAutoUse = true; -- Hoxne On/Locked: use the Ampulla when it is in ammo and Enchantment isn't up
 	};
 
 	--[[
@@ -918,10 +918,34 @@ end
 	end
 	gcinclude.CarriedId = carriedId;
 
+	-- Matched by name, not by GetItemByName's single id: one name can cover several ids (FFXIAH: Prime Horn
+	-- 22303, then Loughnashade 22304-22307 for stages 2-5), and any of them counts.
+	local idName = {};
 	local function carriedName(name)
-		local r = AshitaCore:GetResourceManager():GetItemByName(name, 0);
-		if (r == nil) then return nil, 0 end
-		return carriedId(r.Id);
+		local want = string.lower(name);
+		local inv = AshitaCore:GetMemoryManager():GetInventory();
+		local res = AshitaCore:GetResourceManager();
+		local bags = gSettings.EquipBags;
+		if (type(bags) ~= 'table') or (#bags == 0) then bags = {8, 10, 11, 12, 13, 14, 15, 16, 0} end
+		local first, count = nil, 0;
+		for _, c in ipairs(bags) do
+			for i = 1, (gData.GetContainerMax(c) or 0) do
+				local it = inv:GetContainerItem(c, i);
+				if (it ~= nil) and (it.Count > 0) and (it.Id ~= 0) and (it.Id ~= 65535) then
+					local n = idName[it.Id];
+					if (n == nil) then
+						local r = res:GetItemById(it.Id);
+						n = (r ~= nil) and string.lower(r.Name[1]) or false;
+						idName[it.Id] = n;
+					end
+					if (n == want) then
+						first = first or it;
+						count = count + it.Count;
+					end
+				end
+			end
+		end
+		return first, count;
 	end
 
 	-- Capacity point bonus (BG-Wiki): Aptitude Mantle +1 30%, Aptitude Mantle 25%; Mecisto. Mantle 10-50% from
@@ -974,6 +998,7 @@ end
 	-- Items an action can't go without (BG-Wiki/FFXIclopedia): Dispelga needs Daybreak in main, Honor March
 	-- Marsyas, Aria of Passion Loughnashade, Impact a Twilight or Crepuscular Cloak for the whole cast (it
 	-- covers the head, so head is emptied), Tomahawk a Thr. Tomahawk and Angon an Angon in ammo.
+	-- Put on when carried; nothing is ever cancelled (the game itself refuses the action without the item).
 	gcinclude.RequiredGear = {
 		['Dispelga'] = { Main = T{'Daybreak'} },
 		['Honor March'] = { Range = T{'Marsyas'} },
@@ -983,28 +1008,19 @@ end
 		['Angon'] = { Ammo = T{'Angon'} },
 	};
 
-	-- The gear to put on for this action, or nil and why it can't be done (item not carried, slot /locked).
+	-- The gear to put on for this action, or nil when an item for it isn't carried (then nothing is changed).
 	function gcinclude.RequiredFor(name)
 		local req = gcinclude.RequiredGear[name or ''];
 		if (req == nil) then return nil end
-		local set, equip = {}, nil;
+		local set = {};
 		for slot, items in pairs(req) do
 			if (type(items) == 'string') then
 				set[slot] = items;
 			else
-				local pick = nil;
 				for _, it in ipairs(items) do
-					if carriedName(it) then pick = it; break end
+					if carriedName(it) then set[slot] = it; break end
 				end
-				if (pick == nil) then return nil, 'needs ' .. table.concat(items, ' or ') end
-				if (gcinclude.LockedSlots[gData.GetEquipSlot(slot)] == true) then
-					equip = equip or gData.GetEquipment();
-					local worn = (equip[slot] ~= nil) and equip[slot].Name or nil;
-					if (worn == nil) or (string.lower(worn) ~= string.lower(pick)) then
-						return nil, string.lower(slot) .. ' is locked (' .. pick .. ' needed)';
-					end
-				end
-				set[slot] = pick;
+				if (set[slot] == nil) then return nil end
 			end
 		end
 		return set;
@@ -1119,6 +1135,21 @@ end
 	end
 	gcinclude.EquippedId = equippedId;
 
+	-- When each slot's current item went on (first seen there): a use has to wait out its equip delay from then,
+	-- also when the item was put on by a set just before (e.g. Hoxne's 5s use delay, BG-Wiki).
+	local slotSeen = {};
+	local function trackSlots(now)
+		for slot = 1, 16 do
+			local id = equippedId(slot);
+			local s = slotSeen[slot];
+			if (id == nil) then
+				slotSeen[slot] = nil;
+			elseif (s == nil) or (s.id ~= id) then
+				slotSeen[slot] = { id = id, at = now };
+			end
+		end
+	end
+
 	-- Enchanted-equipment extdata (Windower libs/extdata.lua decode.Enchanted): byte 1 = 1, byte 2 charges left,
 	-- bytes 5-8 next use time, bytes 9-12 activation time (equip time + equip delay), both server timestamps.
 	-- Only differences between the two are used, so no epoch is needed.
@@ -1144,13 +1175,11 @@ end
 			local item = equippedItem(e.index);
 			if (item ~= nil) and (item.Id == e.id) then
 				e.equippedAt = now;
-				e.nextTry = now + (e.alreadyOn and 0.5 or (e.delay + ENCHANT_MARGIN));
+				local seen = slotSeen[e.index];
+				local onSince = now;
+				if e.alreadyOn then onSince = ((seen ~= nil) and (seen.id == e.id)) and seen.at or -math.huge end
+				e.nextTry = math.max(now + 0.5, onSince + e.delay + ENCHANT_MARGIN);
 				local info = enchantInfo(item);
-				if (info ~= nil) and (info.charges == 0) then
-					gcinclude.Err(e.item .. ': no charges left, released');
-					gcinclude.ReleaseEnchant(e.index);
-					return;
-				end
 				e.extPending = (info ~= nil) and (e.alreadyOn ~= true);
 			elseif (now > e.start + ENCHANT_EQUIP_WAIT) then
 				gcinclude.Err(e.item .. ': never showed up in ' .. string.lower(e.slot) .. ', released');
@@ -1160,7 +1189,7 @@ end
 		end
 		-- Reuse timer, once the extdata shows this equip (activation changed): the equip happened at
 		-- activation - delay, so the item is usable reuse = next use - (activation - delay) seconds after it.
-		-- Not refreshed within 2s: left to the tries.
+		-- A few seconds past the delay: the first try waits for it. Never refuses: the game says no itself.
 		if (e.extPending == true) then
 			local info = enchantInfo(equippedItem(e.index));
 			if (info == nil) then
@@ -1168,12 +1197,7 @@ end
 			elseif (e.preAct == nil) or (info.activation ~= e.preAct) then
 				e.extPending = false;
 				local reuse = info.nextUse - (info.activation - e.delay);
-				local left = math.floor(reuse - (now - e.equippedAt));
-				if (reuse > e.delay + 5) and (left > 0) then
-					gcinclude.Err(string.format('%s: reuse timer, about %d:%02d left, released', e.item, math.floor(left / 60), left % 60));
-					gcinclude.ReleaseEnchant(e.index);
-					return;
-				elseif (reuse > e.delay) then
+				if (reuse > e.delay) and (reuse <= e.delay + 5) then
 					e.nextTry = math.max(e.nextTry, e.equippedAt + reuse + ENCHANT_MARGIN);
 				end
 			elseif (now > e.equippedAt + 2) then
@@ -1181,8 +1205,9 @@ end
 			end
 		end
 		if (now < e.nextTry) then return end
+		if (gState.PlayerAction ~= nil) then e.nextTry = now + 0.5; return end -- an action is running: wait, don't spend a try
 		if (e.tries >= ENCHANT_TRIES) then
-			gcinclude.Err(e.item .. ': not used after ' .. e.tries .. ' tries (charges or reuse timer?), released');
+			gcinclude.Err(e.item .. ': not used after ' .. e.tries .. ' tries, released');
 			gcinclude.ReleaseEnchant(e.index);
 			return;
 		end
@@ -1204,7 +1229,6 @@ end
 			if (e.doneAt == nil) and (e.equippedAt ~= nil) then
 				if (cmd == 5) and (id == e.id) then
 					e.doneAt = now + 0.5;
-					if (e.index == 4) then gcinclude.HoxneNextAuto = now + gcinclude.HoxneDuration end
 				elseif (cmd == 9) and (id == e.id) then
 					e.nextTry = now + ENCHANT_USE_WAIT;
 				elseif (cmd == 9) and (id == 0) and (e.nextTry > now + ENCHANT_RETRY) then
@@ -1218,6 +1242,7 @@ end
 		local now = os.clock();
 		if (now < gcinclude.NextHoldCheck) then return end
 		gcinclude.NextHoldCheck = now + 0.1;
+		trackSlots(now);
 		gcinclude.CheckEnchantHold();
 		if gcinclude.CheckDualWieldChange(now) then return end -- forced 1h swap: let it land before the hold re-checks
 		gcinclude.CheckHoxneAuto(now);
@@ -2176,32 +2201,38 @@ end
 		gcinclude.UseEnchanted(name, nil);
 	end
 
-	-- Zoning: item uses stop (zoning drops an enchantment anyway: BG-Wiki Hoxne Ampulla), slots are given back.
+	-- Zoning: item uses stop (zoning drops an enchantment anyway: BG-Wiki Hoxne Ampulla), slots are given back,
+	-- and /hoxne goes back to Off, so nothing is used on arrival.
 	function gcinclude.OnZone()
 		for index, _ in pairs(gcinclude.Enchants) do gcinclude.ReleaseEnchant(index) end
-		gcinclude.HoxneNextAuto = 0;
+		gcinclude.HoxneRetryAt = 0;
+		if gcinclude.HoxneOn() then
+			gcinclude.SetWeaponCycle('Hoxne', 'Off', true);
+			gcinclude.CheckHoxne();
+			gcinclude.Say('Hoxne: Off (zoned)');
+		end
 	end
 
-	-- Hoxne Ampulla (BG-Wiki): Double Attack +100% for 30 min, 60s recast, 5s equip delay, lost when unequipped
-	-- or on zoning. While /hoxne is On or Locked and the Ampulla is in ammo: use it, then again 30 min after
-	-- each use, or as soon as it is back after being swapped out. One try a minute until a use lands.
-	gcinclude.HoxneNextAuto = 0;
+	-- Hoxne Ampulla (BG-Wiki): Double Attack +100% for 30 min as the Enchantment status (BG-Wiki Category:Enchantment;
+	-- id 162 in Windower's buff resources), 60s recast, 5s use delay, lost when unequipped or on zoning.
+	-- While /hoxne is On or Locked and the Ampulla is in ammo with no Enchantment up, it is used (the use delay
+	-- counted from when it went on). Enchantment up: never used. /hoxne use uses it now. One go a minute.
+	gcinclude.HoxneRetryAt = 0;
 	gcinclude.HoxneCheckAt = 0;
-	gcinclude.HoxneDuration = 1800;
 	function gcinclude.CheckHoxneAuto(now)
 		if (gcinclude.settings.HoxneAutoUse ~= true) or (now < gcinclude.HoxneCheckAt) then return end
 		gcinclude.HoxneCheckAt = now + 1;
-		if not gcinclude.HoxneOn() then return end
+		if (now < gcinclude.HoxneRetryAt) or not gcinclude.HoxneOn() then return end
+		if (gcinclude.BuffCount('Enchantment') > 0) then return end
 		local r = AshitaCore:GetResourceManager():GetItemByName(gcinclude.settings.HoxneItem, 0);
-		if (r == nil) then return end
-		if (equippedId(4) ~= r.Id) then gcinclude.HoxneNextAuto = 0; return end
-		if (gcinclude.Enchants[4] ~= nil) or (now < gcinclude.HoxneNextAuto) or (gState.PlayerAction ~= nil) then return end
+		if (r == nil) or (equippedId(4) ~= r.Id) then return end
+		if (gcinclude.Enchants[4] ~= nil) or (gState.PlayerAction ~= nil) then return end
 		local p = gData.GetPlayer();
 		if (p == nil) or ((p.Status ~= 'Idle') and (p.Status ~= 'Engaged')) or (p.IsMoving == true) then return end
 		for _, b in ipairs(gcinclude.HardCC) do
 			if (gcinclude.BuffCount(b) > 0) then return end
 		end
-		gcinclude.HoxneNextAuto = now + 60;
+		gcinclude.HoxneRetryAt = now + 60;
 		gcinclude.UseEnchanted(gcinclude.settings.HoxneItem, 'Ammo', true);
 	end
 
