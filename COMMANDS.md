@@ -213,7 +213,7 @@ Glyphs: `wpn` Weapons, `ml` MeleeSet, `m` `s` `r` `a` Main/Sub/Range/Ammo, `nk` 
 | `HUDLabels` | `{}` | Glyphs: `{ Main = 'mn' }` |
 | `HUDScale` | `0.9` | Text size (compact) |
 | `HUDStyle` | `'compact'` | `'large'` for the roomy look (or `/gchud large`) |
-| `HUDScaleLarge` | `1.2` | Text size (large) |
+| `HUDScaleLarge` | `1.1` | Text size (large) |
 | `HUDAlpha` | `0.45` | Background, 0 = none |
 
 ## Other commands

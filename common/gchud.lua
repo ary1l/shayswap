@@ -286,7 +286,7 @@ local savedX, savedY = nil, nil;
 -- saved per character with the position. settings.HUDStyle is the default; HUDScale / HUDScaleLarge the text size.
 local STYLES = {
     compact = { window = { 4, 2 }, frame = { 1, 0 }, spacing = { 4, 1 }, padx = 1, gap = 1, name = 4 },
-    large = { window = { 10, 8 }, frame = { 4, 2 }, spacing = { 8, 5 }, padx = 4, gap = 3, name = nil },
+    large = { window = { 8, 5 }, frame = { 3, 1 }, spacing = { 6, 3 }, padx = 2, gap = 2, name = nil },
 };
 local function style_name()
     local s = string.lower(tostring(inc.settings.HUDStyle or 'compact'));
@@ -656,7 +656,7 @@ end
 local fontPushed = false;
 local function inner()
     -- Ashita < 4.3: SetWindowFontScale. Ashita 4.3 (ImGui 1.92) removed it: PushFont(nil, size).
-    local scale = (style_name() == 'large') and (tonumber(inc.settings.HUDScaleLarge) or 1.2) or (tonumber(inc.settings.HUDScale) or 1.0);
+    local scale = (style_name() == 'large') and (tonumber(inc.settings.HUDScaleLarge) or 1.1) or (tonumber(inc.settings.HUDScale) or 1.0);
     if (imgui.SetWindowFontScale ~= nil) then
         imgui.SetWindowFontScale(scale);
     elseif (scale ~= 1.0) and (imgui.PushFont ~= nil) and (imgui.GetFontSize ~= nil) then
