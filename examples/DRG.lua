@@ -6,14 +6,6 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 -- are worn by name (gcinclude.ByName); a spell with no set uses its family's (['Cure'] for Cure IV).
 -- Add '<Name>_Hybrid' / '<Name>_Acc' for /meleeset. Empty sets do nothing.
 local sets = {
-    Cure_Received = {},
-    Cursna_Received = {},
-    Phalanx_Received = {},
-    Protect_Shell_Received = {},
-    Regen_Received = {},
-    Refresh_Received = {},
-    Waltz_Received = {},
-
     -- Weapon modes: add a Weapon_<Mode> set and the mode to WeaponModes in OnLoad.
     -- Weapon_Example = { Main = 'Item Name', Sub = 'Item Name' },
 
@@ -62,6 +54,13 @@ local sets = {
     ['Smiting Breath'] = {},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {},
+    Cursna_Received = {},
+    Phalanx_Received = {},
+    Protect_Shell_Received = {},
+    Regen_Received = {},
+    Refresh_Received = {},
+    Waltz_Received = {},
 };
 profile.Sets = sets;
 

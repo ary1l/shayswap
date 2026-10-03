@@ -3,43 +3,6 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Tizona = {
-        Main = 'Tizona',
-        Sub = 'Thibron',
-    },
-    Weapon_Tizona_1h = {
-        Main = 'Tizona',
-        Sub = 'Genmei Shield',
-    },
-    SIR = {
-        Ammo = 'Staunch Tathlum +1',
-        Head = 'Hashishin Kavuk +3',
-        Neck = 'warder\'s charm +1',
-        Ear1 = 'alabaster earring',
-        Ear2 = 'Etiolation Earring',
-        Body = 'adamantite armor',
-        Hands = 'hashi. bazu. +3',
-        Ring1 = 'murky ring',
-        Ring2 = 'shadow ring',
-		Back = 'shadow mantle',
-        Waist = 'carrier\'s sash',
-        Legs = 'hashishin tayt +3',
-        Feet = 'nyame sollerets',
-    },
     Idle = {
         Ammo = 'Staunch Tathlum +1',
         Head = 'Hashishin Kavuk +3',
@@ -119,7 +82,30 @@ local sets = {
 		Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
 	},
+    SIR = {
+        Ammo = 'Staunch Tathlum +1',
+        Head = 'Hashishin Kavuk +3',
+        Neck = 'warder\'s charm +1',
+        Ear1 = 'alabaster earring',
+        Ear2 = 'Etiolation Earring',
+        Body = 'adamantite armor',
+        Hands = 'hashi. bazu. +3',
+        Ring1 = 'murky ring',
+        Ring2 = 'shadow ring',
+		Back = 'shadow mantle',
+        Waist = 'carrier\'s sash',
+        Legs = 'hashishin tayt +3',
+        Feet = 'nyame sollerets',
+    },
 
+    Weapon_Tizona = {
+        Main = 'Tizona',
+        Sub = 'Thibron',
+    },
+    Weapon_Tizona_1h = {
+        Main = 'Tizona',
+        Sub = 'Genmei Shield',
+    },
 	Tp_Default = {
 		--sub = 'thibron',
         Ammo = 'coiste bodhar',
@@ -469,6 +455,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

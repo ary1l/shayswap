@@ -2,37 +2,6 @@ local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 local sets = {
-    Mp_Body = {
-    },
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    SIR = {
-        Ammo = 'Staunch Tathlum +1',
-        Head = 'Arbatel Bonnet +3',
-        Neck = 'warder\'s charm +1',
-        Ear1 = 'Eabani Earring',
-        Ear2 = 'alabaster earring',
-        Body = 'shamash robe',
-        Hands = 'Nyame Gauntlets',
-        Ring1 = 'fortified ring',
-        Ring2 = 'shadow ring',
-        Back = 'null shawl',
-        Waist = 'carrier\'s sash',
-        Legs = 'arbatel pants +3',
-        Feet = 'nyame sollerets',
-    },
     Idle = {
         Main = 'Bolelabunga',
         Sub = 'Genmei Shield',
@@ -103,6 +72,21 @@ local sets = {
         Waist = 'plat. mog. belt',
         Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
+    },
+    SIR = {
+        Ammo = 'Staunch Tathlum +1',
+        Head = 'Arbatel Bonnet +3',
+        Neck = 'warder\'s charm +1',
+        Ear1 = 'Eabani Earring',
+        Ear2 = 'alabaster earring',
+        Body = 'shamash robe',
+        Hands = 'Nyame Gauntlets',
+        Ring1 = 'fortified ring',
+        Ring2 = 'shadow ring',
+        Back = 'null shawl',
+        Waist = 'carrier\'s sash',
+        Legs = 'arbatel pants +3',
+        Feet = 'nyame sollerets',
     },
 
     Tp_Default = {
@@ -334,6 +318,8 @@ local sets = {
     },
     --Mp_Body = {Body = 'Seidr Cotehardie',},
 
+    Mp_Body = {
+    },
     Preshot = {
     },
     Midshot = {
@@ -415,6 +401,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

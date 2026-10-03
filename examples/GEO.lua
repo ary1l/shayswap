@@ -1,64 +1,6 @@
 local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Idris = {
-        Main = 'Idris',
-        Sub = 'Bunzi\'s Rod',
-        Range = 'Dunna',
-    },
-    Weapon_Idris_1h = {
-        Main = 'Idris',
-        Sub = 'Genmei Shield',
-        Range = 'Dunna',
-    },
-    Weapon_Maxentius = {
-        Main = 'Maxentius',
-        Sub = 'Bunzi\'s Rod',
-        Range = 'Dunna',
-    },
-    Weapon_Maxentius_1h = {
-        Main = 'Maxentius',
-        Sub = 'Genmei Shield',
-        Range = 'Dunna',
-    },
-    Weapon_Tishtrya = {
-        Main = 'Tishtrya',
-        Sub = 'Bunzi\'s Rod',
-        Range = 'Dunna',
-    },
-    Weapon_Tishtrya_1h = {
-        Main = 'Tishtrya',
-        Sub = 'Genmei Shield',
-        Range = 'Dunna',
-    },
-    SIR = {
-        Head = 'azimuth hood +3',
-        Neck = 'loricate torque +1',
-        Ear1 = 'alabaster Earring',
-        Ear2 = 'lugalbanda Earring',
-        Body = 'shamash robe',
-        Hands = 'nyame gauntlets',
-        Ring1 = 'gurebu\'s ring',
-        Ring2 = 'murky ring',
-        Back = { Name = 'Nantosuelta\'s Cape', Augment = { [1] = 'Mag. Evasion+30', [2] = 'HP+60', [3] = 'Pet: "Regen"+15', [4] = 'Evasion+20' } },
-        Waist = 'carrier\'s sash',
-        Legs = 'nyame flanchard',
-        Feet = 'nyame sollerets',
-    },
     Idle = {
         Main = 'idris',
         Sub = 'Genmei Shield',
@@ -155,7 +97,50 @@ local sets = {
         Legs = 'Nyame Flanchard',
         Feet = 'nyame sollerets',
     },
-
+    SIR = {
+        Head = 'azimuth hood +3',
+        Neck = 'loricate torque +1',
+        Ear1 = 'alabaster Earring',
+        Ear2 = 'lugalbanda Earring',
+        Body = 'shamash robe',
+        Hands = 'nyame gauntlets',
+        Ring1 = 'gurebu\'s ring',
+        Ring2 = 'murky ring',
+        Back = { Name = 'Nantosuelta\'s Cape', Augment = { [1] = 'Mag. Evasion+30', [2] = 'HP+60', [3] = 'Pet: "Regen"+15', [4] = 'Evasion+20' } },
+        Waist = 'carrier\'s sash',
+        Legs = 'nyame flanchard',
+        Feet = 'nyame sollerets',
+    },
+    Weapon_Idris = {
+        Main = 'Idris',
+        Sub = 'Bunzi\'s Rod',
+        Range = 'Dunna',
+    },
+    Weapon_Idris_1h = {
+        Main = 'Idris',
+        Sub = 'Genmei Shield',
+        Range = 'Dunna',
+    },
+    Weapon_Maxentius = {
+        Main = 'Maxentius',
+        Sub = 'Bunzi\'s Rod',
+        Range = 'Dunna',
+    },
+    Weapon_Maxentius_1h = {
+        Main = 'Maxentius',
+        Sub = 'Genmei Shield',
+        Range = 'Dunna',
+    },
+    Weapon_Tishtrya = {
+        Main = 'Tishtrya',
+        Sub = 'Bunzi\'s Rod',
+        Range = 'Dunna',
+    },
+    Weapon_Tishtrya_1h = {
+        Main = 'Tishtrya',
+        Sub = 'Genmei Shield',
+        Range = 'Dunna',
+    },
     Tp_Default = {
         Main = 'idris',
         Sub = 'Ammurapi Shield',
@@ -540,6 +525,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

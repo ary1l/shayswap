@@ -2,23 +2,6 @@ local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Armageddon = {
-        Range = 'Armageddon',
-    },
     Idle = {
 		--Main = { Name = 'Rostam', AugPath='B'},
 		--Sub = { Name = 'Rostam', AugPath='C'},
@@ -36,6 +19,9 @@ local sets = {
         Waist = 'Null Belt',
         Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
+    },
+    Weapon_Armageddon = {
+        Range = 'Armageddon',
     },
     Weapon_Anarchy = {
         Main = 'Naegling',
@@ -507,6 +493,20 @@ local sets = {
 		},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
     };
 
 profile.Sets = sets;

@@ -2,23 +2,6 @@ local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Godhands = {
-        Main = 'Godhands',
-    },
     Idle = {
         Ammo = 'Staunch Tathlum +1',
         Head = 'bhikku crown +3',
@@ -66,6 +49,9 @@ local sets = {
         Feet = 'Nyame Sollerets',
     },
 
+    Weapon_Godhands = {
+        Main = 'Godhands',
+    },
     Tp_Default = {
         Ammo = 'Coiste Bodhar',
         Head = 'bhikku crown +3',
@@ -226,6 +212,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 
