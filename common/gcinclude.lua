@@ -157,7 +157,7 @@
 		CombatWindow = 6; -- seconds; Selindrile uses 6
 		SIRSkip = T{}; -- spell names /sir leaves alone, e.g. T{'Phalanx','Reprisal'}
 		HoxneItem = 'Hoxne Ampulla'; -- what the Hoxne states keep in your ammo slot
-		HoxneLockSlots = T{'Ammo'}; -- locked by the Locked state (Range stays free for instruments; bows are dropped anyway)
+		HoxneLockSlots = T{'Ammo', 'Range'}; -- locked by the Locked state (nothing worn in Range can stay on with the Ampulla: SE forum ranged/ammo groups)
 		Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','mbmode'} }; -- bound on load, unbound on unload; T{} for none. Per job: set gcinclude.settings.Keybinds in OnLoad before gcinclude.Initialize()
 		XIRollSet = T{ Ring2 = 'Roller\'s Ring' }; -- used when a job file has no XIRoll set of its own
 		HUDOwners = T{'Shaymin'}; -- character names that open the alt HUD on load
@@ -2105,7 +2105,7 @@ end
 				for _, slot in ipairs(gcinclude.SlotNumbers(gcinclude.settings.HoxneLockSlots, 1)) do
 					if (gcinclude.LockedSlots[slot] == nil) then gcinclude.HoxneOwned:append(slot) end
 				end
-				-- Settle Ammo (and take off a bow, it needs matching ammo) before locking.
+				-- Settle Ammo/Range before locking them, else a bow already on stays locked in.
 				local range = gData.GetEquipment().Range;
 				local settle = { Ammo = gcinclude.settings.HoxneItem };
 				if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then settle.Range = 'remove' end
