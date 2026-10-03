@@ -2,44 +2,6 @@ local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Armageddon = {
-        Range = 'Armageddon',
-    },
-    Weapon_Annihilator = {
-        Main = 'Naegling',
-        Sub = 'Nusku Shield',
-        Range = 'Annihilator',
-    },
-    Weapon_Sparrowhawk = {
-        Main = 'Naegling',
-        Sub = 'Kraken Club',
-        Range = 'Sparrowhawk +2',
-    },
-    Weapon_Sparrowhawk_1h = {
-        Main = 'Naegling',
-        Sub = 'Nusku Shield',
-        Range = 'Sparrowhawk +2',
-    },
-    Weapon_Gastraphetes = {
-        Range = 'Gastraphetes',
-    },
-    Weapon_Fomalhaut = {
-        Range = 'Fomalhaut',
-    },
     Idle = {
         Head = 'Malignance Chapeau',
         Neck = 'Sanctity Necklace',
@@ -99,6 +61,30 @@ local sets = {
         Feet = 'Nyame Sollerets',
     },
 
+    Weapon_Armageddon = {
+        Range = 'Armageddon',
+    },
+    Weapon_Annihilator = {
+        Main = 'Naegling',
+        Sub = 'Nusku Shield',
+        Range = 'Annihilator',
+    },
+    Weapon_Sparrowhawk = {
+        Main = 'Naegling',
+        Sub = 'Kraken Club',
+        Range = 'Sparrowhawk +2',
+    },
+    Weapon_Sparrowhawk_1h = {
+        Main = 'Naegling',
+        Sub = 'Nusku Shield',
+        Range = 'Sparrowhawk +2',
+    },
+    Weapon_Gastraphetes = {
+        Range = 'Gastraphetes',
+    },
+    Weapon_Fomalhaut = {
+        Range = 'Fomalhaut',
+    },
     Tp_Default = {
         Head = 'Adhemar Bonnet +1',
         Neck = 'Anu Torque',
@@ -354,6 +340,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

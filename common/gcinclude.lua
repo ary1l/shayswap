@@ -126,7 +126,7 @@
 		AutoSoda = false; -- /autosoda: keep Regain up with SodaItem
 		SodaItem = 'Frontier Soda';
 		ConsumableMaxTries = 2; -- AutoSoda disarms after this many tries without Regain showing up
-		AutoNuke = false; -- /autonuke (or /mbmode Auto): cast into live skillchains on your target or a mob your party is engaged on (RDM/BLM/SCH/GEO). Sync's logic.
+		AutoNuke = false; -- /automb on load: cast into live skillchains on your target or a mob your party is engaged on (RDM/BLM/SCH/GEO). Sync's logic.
 		MBCasts = 1; -- bursts per chain (sync: count)
 		MBRotate = false; -- spread bursts across the chain's elements (sync: rotate)
 		MBMinMP = 0; -- hold fire below this MP (sync: mp)
@@ -158,7 +158,7 @@
 		SIRSkip = T{}; -- spell names /sir leaves alone, e.g. T{'Phalanx','Reprisal'}
 		HoxneItem = 'Hoxne Ampulla'; -- what the Hoxne states keep in your ammo slot
 		HoxneLockSlots = T{'Ammo', 'Range'}; -- locked by the Locked state (nothing worn in Range can stay on with the Ampulla: SE forum ranged/ammo groups)
-		Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','mbmode'} }; -- bound on load, unbound on unload; T{} for none. Per job: set gcinclude.settings.Keybinds in OnLoad before gcinclude.Initialize()
+		Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','automb'} }; -- bound on load, unbound on unload; T{} for none. Per job: set gcinclude.settings.Keybinds in OnLoad before gcinclude.Initialize()
 		XIRollSet = T{ Ring2 = 'Roller\'s Ring' }; -- used when a job file has no XIRoll set of its own
 		HUDOwners = T{'Shaymin'}; -- character names that open the alt HUD on load
 		HUDX = 300; -- alt HUD position; drag it in game, saved per character
@@ -236,7 +236,17 @@
 
 	-- /def: none > DT > MDT > Aminon > SIRD > none. Only one of the four is on at a time.
 	gcinclude.DefenseCycle = T{ {'DTset','DT'}, {'MDTset','MDT'}, {'Aminon','Aminon'}, {'SIR','SIRD'} };
-	function gcinclude.CycleDefense()
+	function gcinclude.CycleDefense(arg)
+		local want = string.lower(tostring(arg or ''));
+		if (want ~= '') then -- /def off|none, or a set by name (dt, mdt, aminon, sir)
+			local pick = nil;
+			for _, d in ipairs(gcinclude.DefenseCycle) do
+				if (string.lower(d[2]) == want) or (string.lower(d[1]) == want) then pick = d end
+			end
+			if (pick == nil) and (want ~= 'off') and (want ~= 'none') then return 'unknown: ' .. want end
+			for _, d in ipairs(gcinclude.DefenseCycle) do gcdisplay.SetToggle(d[1], d == pick) end
+			return (pick ~= nil) and pick[2] or 'None';
+		end
 		local current = 0;
 		for i, d in ipairs(gcinclude.DefenseCycle) do
 			if (gcdisplay.GetToggle(d[1]) == true) and (current == 0) then current = i end
@@ -266,24 +276,25 @@
 		return tostring(t) .. ' (tier ' .. (roman[t] or '?') .. ')';
 	end
 
-	-- /mbmode sets three toggles as one mode: Off > Chain > Auto > Force > Off.
-	--   Off   : AutoMB off, AutoNuke off, Burst off. Nukes use the normal set; nothing casts by itself.
-	--   Chain : AutoMB on.  Burst set only when the nuke lands in a live skillchain of a matching element.
-	--   Auto  : AutoMB on + AutoNuke on. Chain, plus the box casts into live skillchains by itself.
-	--   Force : Burst on.   Burst set on every nuke, no skillchain check. Nothing casts by itself.
-	function gcinclude.CycleMB()
+	-- Toggle commands: 'on' or 'off' sets it, no argument flips it.
+	function gcinclude.FlipToggle(name, arg)
+		local a = string.lower(tostring(arg or ''));
+		if (a == 'on') then gcdisplay.SetToggle(name, true)
+		elseif (a == 'off') then gcdisplay.SetToggle(name, false)
+		else gcdisplay.AdvanceToggle(name) end
+		return gcdisplay.GetToggle(name);
+	end
+
+	-- /automb (same: /autonuke, /mbmode): this box casts into live skillchains by itself, on/off; /mbtier picks the
+	-- tier. The Burst set needs no switch: a nuke landing in a live skillchain of its element always wears it.
+	function gcinclude.AutoMBCommand(arg)
 		local job = gData.GetPlayer().MainJob;
 		if not T{'RDM','BLM','SCH','GEO'}:contains(job) then return 'not used on ' .. tostring(job) end
-		local auto, forced, nuke = gcdisplay.GetToggle('AutoMB'), gcdisplay.GetToggle('Burst'), gcdisplay.GetToggle('AutoNuke');
-		local nextMode = 'Chain';
-		if forced then nextMode = 'Off'
-		elseif nuke then nextMode = 'Force'
-		elseif auto then nextMode = 'Auto' end
-		gcdisplay.SetToggle('AutoMB', (nextMode == 'Chain') or (nextMode == 'Auto'));
-		gcdisplay.SetToggle('AutoNuke', nextMode == 'Auto');
-		gcdisplay.SetToggle('Burst', nextMode == 'Force');
+		local a = string.lower(tostring(arg or ''));
+		local on = (a == 'on') or ((a ~= 'off') and (gcdisplay.GetToggle('AutoNuke') ~= true));
+		gcdisplay.SetToggle('AutoNuke', on);
 		if (gcauto ~= nil) and (gcauto.ResetNuke ~= nil) then gcauto.ResetNuke() end
-		return nextMode;
+		return on and ('on, ' .. gcinclude.MBTierText()) or 'off';
 	end
 
 	function gcinclude.Message(toggle, status)
@@ -340,11 +351,10 @@ function gcinclude.SetVariables()
     if (gchud ~= nil) then gchud.Bind(gcinclude, gcdisplay) end
     gcauto.CreateToggles();
     if (mJob == 'RDM') or (mJob == 'BLM') or (mJob == 'SCH') or (mJob == 'GEO') then
-        gcdisplay.CreateToggle('Burst', false); -- force the Burst set on every nuke
-        gcdisplay.CreateToggle('AutoMB', true); -- Burst set only when a matching skillchain is live
-        gcdisplay.CreateToggle('AutoNuke', gcinclude.settings.AutoNuke == true); -- cast into live skillchains
+        gcdisplay.CreateToggle('Burst', false); -- /burst: Burst set on every nuke, not only on live skillchains
+        gcdisplay.CreateToggle('AutoNuke', gcinclude.settings.AutoNuke == true); -- /automb: cast into live skillchains
         gcdisplay.CreateCycle('NukeSet', {[1] = 'Power', [2] = 'Macc',});
-        gcdisplay.CreateCycle('MBTier', {[1] = 'Low', [2] = 'Mid', [3] = 'High'}); -- /autonuke tier: I / III / V
+        gcdisplay.CreateCycle('MBTier', {[1] = 'Low', [2] = 'Mid', [3] = 'High'}); -- /mbtier: I / III / V
         gcinclude.SetMBTier(gcinclude.MBTier or gcinclude.settings.MBTier or 'Mid', true);
         if (mJob == 'BLM') or (mJob == 'SCH') then
             gcdisplay.CreateCycle('Weapon', {[1] = 'Club', [2] = 'Staff'});
@@ -381,7 +391,8 @@ end
 		local status = nil;
 
 		if args[1] == 'gcmessages' then
-			gcinclude.settings.Messages = not gcinclude.settings.Messages;
+			local m = string.lower(tostring(args[2] or ''));
+			if (m == 'on') or (m == 'off') then gcinclude.settings.Messages = (m == 'on') else gcinclude.settings.Messages = not gcinclude.settings.Messages end
 			gcinclude.Say('Chat messages ' .. (gcinclude.settings.Messages and 'on' or 'off'));
 		elseif (args[1] == 'wsdistance') then
 			if (tonumber(args[2])) then
@@ -394,20 +405,20 @@ end
 				gcinclude.Say('Can change WS distance allowed by using /wsdistance ##');
 			end
 		elseif (args[1] == 'dt') then
-			gcdisplay.AdvanceToggle('DTset');
+			gcinclude.FlipToggle('DTset', args[2]);
 			toggle = 'DT Set';
 			status = gcdisplay.GetToggle('DTset');
 		elseif (args[1] == 'sir') then
-			gcdisplay.AdvanceToggle('SIR');
+			gcinclude.FlipToggle('SIR', args[2]);
 			toggle = 'Spell Interrupt Set';
 			status = gcdisplay.GetToggle('SIR');
-		elseif (args[1] == 'mbmode') then
-			toggle, status = 'Magic Burst', gcinclude.CycleMB();
+		elseif (args[1] == 'mbmode') or (args[1] == 'automb') or (args[1] == 'autonuke') then
+			toggle, status = 'Auto MB', gcinclude.AutoMBCommand(args[2]);
 		elseif (args[1] == 'def') then
-			toggle, status = 'Defense', gcinclude.CycleDefense();
+			toggle, status = 'Defense', gcinclude.CycleDefense(args[2]);
 			gcinclude.CheckAminonLock();
 		elseif (args[1] == 'mdt') then
-			gcdisplay.AdvanceToggle('MDTset');
+			gcinclude.FlipToggle('MDTset', args[2]);
 			toggle = 'MDT Set';
 			status = gcdisplay.GetToggle('MDTset');
 		elseif (args[1] == 'meleeset') then
@@ -446,7 +457,7 @@ end
 		elseif (args[1] == 'gckey') then
 			gcinclude.KeyCommand(args);
 		elseif (args[1] == 'aminon') then
-			gcdisplay.AdvanceToggle('Aminon');
+			gcinclude.FlipToggle('Aminon', args[2]);
 			gcinclude.CheckAminonLock();
 			toggle = 'Aminon Set';
 			status = gcdisplay.GetToggle('Aminon');
@@ -479,11 +490,11 @@ end
 				if (gcinclude.WeaponCycleList(args[2]) ~= nil) then gcinclude.ApplyWeapons() end
 			end
 		elseif (args[1] == 'kite') then
-			gcdisplay.AdvanceToggle('Kite');
+			gcinclude.FlipToggle('Kite', args[2]);
 			toggle = 'Kite Set';
 			status = gcdisplay.GetToggle('Kite');
 		elseif (args[1] == 'th') then
-			gcdisplay.AdvanceToggle('TH');
+			gcinclude.FlipToggle('TH', args[2]);
 			toggle = 'TH Set';
 			status = gcdisplay.GetToggle('TH');
 		elseif (args[1] == 'gcaspir') then
@@ -517,25 +528,16 @@ end
 				toggle = 'Nuking Gear Set';
 				status = gcdisplay.GetCycle('NukeSet');
 			elseif (args[1] == 'burst') then
-				gcdisplay.AdvanceToggle('Burst');
-				toggle = 'Magic Burst Set (forced)';
+				gcinclude.FlipToggle('Burst', args[2]);
+				toggle = 'Burst set on every nuke';
 				status = gcdisplay.GetToggle('Burst');
-			elseif (args[1] == 'autonuke') then
-				gcdisplay.AdvanceToggle('AutoNuke');
-				if (gcauto ~= nil) and (gcauto.ResetNuke ~= nil) then gcauto.ResetNuke() end
-				toggle = 'Auto Nuke';
-				status = gcdisplay.GetToggle('AutoNuke');
-			elseif (args[1] == 'automb') then
-				gcdisplay.AdvanceToggle('AutoMB');
-				toggle = 'Auto Magic Burst';
-				status = gcdisplay.GetToggle('AutoMB');
 			elseif (args[1] == 'mbtier') then
 				if (args[2] ~= nil) then
 					gcinclude.SetMBTier(args[2]);
 				else
 					gcdisplay.AdvanceCycle('MBTier');
 				end
-				toggle = 'Auto Nuke tier';
+				toggle = 'Auto MB tier';
 				status = gcinclude.MBTierText();
 			end
 			if (player.MainJob == 'BLM') or (player.MainJob == 'SCH') then
@@ -556,7 +558,7 @@ end
 				end
 				if (player.MainJob == 'BLM') then
 					if (args[1] == 'death') then
-						gcdisplay.AdvanceToggle('Death');
+						gcinclude.FlipToggle('Death', args[2]);
 						toggle = 'BLM Death Set';
 						status = gcdisplay.GetToggle('Death');
 					end
@@ -577,7 +579,7 @@ end
 		end
 		if (player.MainJob == 'SAM') or (player.MainJob == 'NIN') then
 			if (args[1] == 'proc') then
-				gcdisplay.AdvanceToggle('PROC');
+				gcinclude.FlipToggle('PROC', args[2]);
 				toggle = 'Low Damage PROC Set';
 				status = gcdisplay.GetToggle('PROC');
 				if (player.MainJob == 'NIN') then
@@ -598,11 +600,11 @@ end
 		end
 		if (player.MainJob == 'BRD') then
 			if (args[1] == 'forcestring') then
-				gcdisplay.AdvanceToggle('String');
+				gcinclude.FlipToggle('String', args[2]);
 				toggle = 'BRD Forced Harp';
 				status = gcdisplay.GetToggle('String');
 			elseif (args[1] == 'songlock') then
-				gcdisplay.AdvanceToggle('SongLock');
+				gcinclude.FlipToggle('SongLock', args[2]);
 				toggle = 'BRD Song Lock';
 				status = gcdisplay.GetToggle('SongLock');
 			end
@@ -2287,8 +2289,9 @@ end
 			'checks : /gctrace (sets per action), /gcstyle N (lockstyle); failing actions cancel, recasts under 5s queue',
 			'gear   : /autogear [on|off|regen N|refresh N|dt N|petdt N]',
 			'bar    : /gcbar [on|off|pos x y]',
-			'nuke   : /mbmode Off > Chain (burst gear on live SC) > Auto (Chain + auto-cast) > Force (burst gear every nuke); parts: /automb, /autonuke, /burst; /mbtier low|mid|high = autonuke tier I|III|V',
-			'keys   : grave wm, Shift wm default, Ctrl def, Alt hoxne, Win mbmode (Off > Chain > Auto > Force); /gckey <key> <command>',
+			'on/off : every toggle takes on|off (no arg flips it); /def off|dt|mdt|aminon|sird',
+			'nuke   : Burst set is automatic on live skillchains; /automb [on|off] = cast bursts by itself; /mbtier low|mid|high = its tier I|III|V; /burst = Burst set on every nuke',
+			'keys   : grave wm, Shift wm default, Ctrl def, Alt hoxne, Win automb; /gckey <key> <command>',
 			'all of these work as /mss /lac fwd <command> for every box',
 		};
 		for _, line in ipairs(lines) do
@@ -2308,8 +2311,8 @@ end
 		if (set ~= nil) then gFunc.EquipSet(set) end
 	end
 
-	-- True when the Burst set belongs on this cast: /burst forces it; /automb wants a skillchain
-	-- whose elements include the spell's, live on the spell's target, landing inside the window.
+	-- True when the Burst set belongs on this cast: always when a skillchain whose elements include the spell's
+	-- is live on the spell's target and the cast lands inside the window; /burst puts it on every nuke.
 	-- Job files call it where they used to check the Burst toggle, so their own layer order holds.
 	function gcinclude.BurstWanted()
 		local spell = gData.GetAction();
@@ -2317,7 +2320,6 @@ end
 		local skills = gcinclude.settings.MBSkills;
 		if (type(skills) ~= 'table') or (not skills:contains(spell.Skill)) then return false end
 		if (gcdisplay.GetToggle('Burst') == true) then return true end
-		if (gcdisplay.GetToggle('AutoMB') ~= true) then return false end
 		local target = gData.GetActionTarget();
 		if (target == nil) or (gcauto == nil) or (gcauto.BurstLive == nil) then return false end
 		-- Midcast runs as the cast starts, so it lands after the learned cast time (gcauto.CastTime).

@@ -3,32 +3,6 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Mpu = {
-        Main = 'Mpu Gandring',
-        Sub = 'Fusetto +2',
-    },
-    Weapon_MpuAcc = {
-        Main = 'Mpu Gandring',
-        Sub = 'Gleti\'s Knife',
-    },
-    Weapon_Naegling = {
-        Main = 'Naegling',
-        Sub = 'Fusetto +2',
-    },
     Idle = {
         Head = 'nyame helm',
         Neck = 'Loricate Torque +1',
@@ -83,6 +57,18 @@ local sets = {
         Feet = 'Nyame Sollerets',
     },
 
+    Weapon_Mpu = {
+        Main = 'Mpu Gandring',
+        Sub = 'Fusetto +2',
+    },
+    Weapon_MpuAcc = {
+        Main = 'Mpu Gandring',
+        Sub = 'Gleti\'s Knife',
+    },
+    Weapon_Naegling = {
+        Main = 'Naegling',
+        Sub = 'Fusetto +2',
+    },
     Tp_Default = {
 		Ammo = 'coiste bodhar',
         Head = 'gleti\'s mask',
@@ -329,6 +315,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

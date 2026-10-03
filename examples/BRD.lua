@@ -2,70 +2,6 @@ local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 local sets = {
-    Midshot = {
-    },
-    Preshot = {
-    },
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Carnwenhan = {
-        Main = 'Carnwenhan',
-        Sub = 'Fusetto +2',
-    },
-    Weapon_Carnwenhan_1h = {
-        Main = 'Carnwenhan',
-        Sub = 'Genmei Shield',
-    },
-    Weapon_CarnwenhanAcc = {
-        Main = 'Carnwenhan',
-        Sub = 'Gleti\'s Knife',
-    },
-    Weapon_CarnwenhanAcc_1h = {
-        Main = 'Carnwenhan',
-        Sub = 'Genmei Shield',
-    },
-    Weapon_Naegling = {
-        Main = 'Naegling',
-        Sub = 'Fusetto +2',
-    },
-    Weapon_Naegling_1h = {
-        Main = 'Naegling',
-        Sub = 'Genmei Shield',
-    },
-    Aminon = { -- /aminon locks these; no Range/Ammo here, so instruments still swap for songs
-        Main = 'Carnwenhan',
-        Sub = 'Ammurapi Shield',
-    },
-    Weapon_Hoxne = {
-        Range = 'remove',
-        Ammo = 'Hoxne Ampulla',
-    },
-    SIR = {
-        Head = 'fili calot +3',
-        Neck = 'warder\'s charm +1',
-		Ear1 = 'hearty earring',
-        Ear2 = 'alabaster earring',
-        Body = 'adamantite armor',
-        Hands = 'Nyame Gauntlets',
-        Ring1 = 'murky Ring',
-        Ring2 = 'shadow ring',
-        Back = 'shadow mantle',
-		Waist = 'carrier\'s sash',
-		Legs = 'fili rhingrave +3',
-        Feet = 'nyame sollerets',
-    },
     ['Idle'] = {
         Main = 'Carnwenhan',
         Sub = 'ammurapi Shield',
@@ -120,7 +56,53 @@ local sets = {
         Legs = 'Nyame Flanchard',
         Feet = 'Nyame Sollerets',
     },
+    Aminon = { -- /aminon locks these; no Range/Ammo here, so instruments still swap for songs
+        Main = 'Carnwenhan',
+        Sub = 'Ammurapi Shield',
+    },
+    SIR = {
+        Head = 'fili calot +3',
+        Neck = 'warder\'s charm +1',
+		Ear1 = 'hearty earring',
+        Ear2 = 'alabaster earring',
+        Body = 'adamantite armor',
+        Hands = 'Nyame Gauntlets',
+        Ring1 = 'murky Ring',
+        Ring2 = 'shadow ring',
+        Back = 'shadow mantle',
+		Waist = 'carrier\'s sash',
+		Legs = 'fili rhingrave +3',
+        Feet = 'nyame sollerets',
+    },
 
+    Weapon_Carnwenhan = {
+        Main = 'Carnwenhan',
+        Sub = 'Fusetto +2',
+    },
+    Weapon_Carnwenhan_1h = {
+        Main = 'Carnwenhan',
+        Sub = 'Genmei Shield',
+    },
+    Weapon_CarnwenhanAcc = {
+        Main = 'Carnwenhan',
+        Sub = 'Gleti\'s Knife',
+    },
+    Weapon_CarnwenhanAcc_1h = {
+        Main = 'Carnwenhan',
+        Sub = 'Genmei Shield',
+    },
+    Weapon_Naegling = {
+        Main = 'Naegling',
+        Sub = 'Fusetto +2',
+    },
+    Weapon_Naegling_1h = {
+        Main = 'Naegling',
+        Sub = 'Genmei Shield',
+    },
+    Weapon_Hoxne = {
+        Range = 'remove',
+        Ammo = 'Hoxne Ampulla',
+    },
     Tp_Default = {
 		Main = 'naegling',
         Sub = 'fusetto +2',
@@ -550,6 +532,10 @@ local sets = {
 	--main = '',
 	},
 
+    Preshot = {
+    },
+    Midshot = {
+    },
     Ws_Default = {
         Range = { Name = 'Linos', Augment = { [1] = 'Weapon skill damage +2%', [2] = 'Attack+13', [3] = 'STR+8' } },
         Head = 'Nyame Helm',
@@ -637,6 +623,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

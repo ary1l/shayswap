@@ -2,35 +2,6 @@ local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    SIR = {
-        Ammo = 'Staunch Tathlum +1',
-        Head = 'theo. cap +4',
-        Neck = 'loricate torque +1',
-        Ear1 = 'alabaster Earring',
-        Ear2 = 'eabani earring',
-        Body = 'theo. bliaut +4',
-        Hands = 'theo. mitts +4',
-        Ring1 = 'murky ring',
-        Ring2 = 'gurebu\'s ring',
-		Back = { Name = 'Alaunus\'s Cape', Augment = { [1] = '"Fast Cast"+10', [2] = 'Phys. dmg. taken -10%', [3] = 'Mag. Evasion+20', [4] = 'MND+30', [5] = 'Evasion+20' } },
-		Waist = 'carrier\'s sash',
-		Legs = 'ebers pant. +2',
-        Feet = 'theo. duckbills +4',
-    },
     Idle = {
         Main = 'Bolelabunga',
         Sub = 'genmei shield',
@@ -98,6 +69,21 @@ local sets = {
 		Waist = 'carrier\'s sash',
         Legs = 'ebers pant. +2',
         Feet = 'bunzi\'s sabots',
+    },
+    SIR = {
+        Ammo = 'Staunch Tathlum +1',
+        Head = 'theo. cap +4',
+        Neck = 'loricate torque +1',
+        Ear1 = 'alabaster Earring',
+        Ear2 = 'eabani earring',
+        Body = 'theo. bliaut +4',
+        Hands = 'theo. mitts +4',
+        Ring1 = 'murky ring',
+        Ring2 = 'gurebu\'s ring',
+		Back = { Name = 'Alaunus\'s Cape', Augment = { [1] = '"Fast Cast"+10', [2] = 'Phys. dmg. taken -10%', [3] = 'Mag. Evasion+20', [4] = 'MND+30', [5] = 'Evasion+20' } },
+		Waist = 'carrier\'s sash',
+		Legs = 'ebers pant. +2',
+        Feet = 'theo. duckbills +4',
     },
 
     Tp_Default = {
@@ -363,6 +349,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

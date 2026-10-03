@@ -2,59 +2,6 @@ local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 local sets = {
-    Cure_Received = {
-    },
-    Cursna_Received = {
-    },
-    Phalanx_Received = {
-    },
-    Protect_Shell_Received = {
-    },
-    Regen_Received = {
-    },
-    Refresh_Received = {
-    },
-    Waltz_Received = {
-    },
-    Weapon_Naegling = {
-        Main = 'Naegling',
-        Sub = 'Thibron',
-    },
-    Weapon_Naegling_1h = {
-        Main = 'Naegling',
-        Sub = 'Genmei Shield',
-    },
-    Weapon_Maxentius = {
-        Main = 'Maxentius',
-        Sub = 'Thibron',
-    },
-    Weapon_Maxentius_1h = {
-        Main = 'Maxentius',
-        Sub = 'Genmei Shield',
-    },
-    Weapon_Crocea = {
-        Main = 'Crocea Mors',
-        Sub = 'Daybreak',
-    },
-    Weapon_Crocea_1h = {
-        Main = 'Crocea Mors',
-        Sub = 'Genmei Shield',
-    },
-    SIR = {
-		Ammo = 'staunch tathlum',
-        Head = 'leth. chappel +3',
-        Neck = 'Warder\'s Charm +1',
-        Ear1 = 'eabani earring',
-        Ear2 = 'alabaster Earring',
-		Body = 'adamantite armor',
-        Hands = 'leth. ganth. +3',
-        Ring1 = 'murky ring',
-        Ring2 = 'Stikini Ring +1',
-        Back = 'null shawl',
-        Waist = 'null belt',
-        Legs = 'Nyame flanchard',
-        Feet = 'nyame sollerets',
-    },
     Idle = {
 		Main = 'excalibur',
 		Sub = 'diamond aspis',
@@ -120,7 +67,46 @@ local sets = {
         Legs = 'nyame flanchard',
         Feet = 'leth. houseaux +3',
     },
+    SIR = {
+		Ammo = 'staunch tathlum',
+        Head = 'leth. chappel +3',
+        Neck = 'Warder\'s Charm +1',
+        Ear1 = 'eabani earring',
+        Ear2 = 'alabaster Earring',
+		Body = 'adamantite armor',
+        Hands = 'leth. ganth. +3',
+        Ring1 = 'murky ring',
+        Ring2 = 'Stikini Ring +1',
+        Back = 'null shawl',
+        Waist = 'null belt',
+        Legs = 'Nyame flanchard',
+        Feet = 'nyame sollerets',
+    },
 
+    Weapon_Naegling = {
+        Main = 'Naegling',
+        Sub = 'Thibron',
+    },
+    Weapon_Naegling_1h = {
+        Main = 'Naegling',
+        Sub = 'Genmei Shield',
+    },
+    Weapon_Maxentius = {
+        Main = 'Maxentius',
+        Sub = 'Thibron',
+    },
+    Weapon_Maxentius_1h = {
+        Main = 'Maxentius',
+        Sub = 'Genmei Shield',
+    },
+    Weapon_Crocea = {
+        Main = 'Crocea Mors',
+        Sub = 'Daybreak',
+    },
+    Weapon_Crocea_1h = {
+        Main = 'Crocea Mors',
+        Sub = 'Genmei Shield',
+    },
     Tp_Default = {
 		Main = 'excalibur',
 		Sub = 'thibron',
@@ -556,6 +542,20 @@ local sets = {
 	},
     Absorb = {}, -- every Absorb- spell (land rate: Dark Magic skill, macc; potency is not skill)
     Absorb_TP = {}, -- Absorb-TP on top of Absorb
+    Cure_Received = {
+    },
+    Cursna_Received = {
+    },
+    Phalanx_Received = {
+    },
+    Protect_Shell_Received = {
+    },
+    Regen_Received = {
+    },
+    Refresh_Received = {
+    },
+    Waltz_Received = {
+    },
 };
 profile.Sets = sets;
 

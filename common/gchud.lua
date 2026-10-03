@@ -43,8 +43,7 @@ gchud.ToggleCommands = {
     AutoFood = 'autofood',
     AutoSoda = 'autosoda',
     Burst = 'burst',
-    AutoMB = 'automb',
-    AutoNuke = 'autonuke',
+    AutoNuke = 'automb',
     String = 'forcestring',
     SongLock = 'songlock',
     Death = 'death',
@@ -57,7 +56,7 @@ gchud.ToggleOrder = { 'DTset', 'MDTset', 'Aminon', 'SIR', 'TH', 'Kite', 'AutoFoo
 local SHORT = {
     DTset = 'dt', MDTset = 'md', Aminon = 'am', SIR = 'si', TH = 'th', Kite = 'kt',
     AutoFood = 'fd', AutoSoda = 'sd', PROC = 'pr',
-    Burst = 'bs', AutoMB = 'mb', AutoNuke = 'an', String = 'hp', SongLock = 'sl', Death = 'dh',
+    Burst = 'bs', AutoNuke = 'an', String = 'hp', SongLock = 'sl', Death = 'dh',
     Def = 'def', MB = 'mb', MBTier = 'tier',
     Weapons = 'wpn', MeleeSet = 'ml', Main = 'm', Sub = 's', Range = 'r', Ammo = 'a',
     NukeSet = 'nk', Element = 'el', TankSet = 'tk', Hoxne = 'hx', PupMode = 'pp', Weapon = 'w',
@@ -67,10 +66,10 @@ local SHORT = {
 local FULL = {
     DTset = 'DT set', MDTset = 'MDT set', Aminon = 'Aminon', SIR = 'Spell interrupt', TH = 'Treasure Hunter',
     Kite = 'Kite', AutoFood = 'Auto food', AutoSoda = 'Auto soda', PROC = 'Proc',
-    Burst = 'Burst (force)', AutoMB = 'Auto MB', AutoNuke = 'Auto nuke', String = 'Harp (force string)', SongLock = 'Song lock (enemy songs keep main/sub)',
+    Burst = 'Burst (force)', AutoNuke = 'Auto MB (casts bursts)', String = 'Harp (force string)', SongLock = 'Song lock (enemy songs keep main/sub)',
     Death = 'Death', Weapons = 'Weapon set',
     Def = 'Defense (click = /def: DT > MDT > Aminon > SIRD > none)',
-    MB = 'Magic burst mode (click = /mbmode: Off > Chain > Auto > Force); Auto shows its nuke tier',
+    MB = 'Auto MB (click = /automb on/off, Ctrl+click = /mbtier); Auto shows its nuke tier, +F = /burst on',
     MBTier = 'Autonuke tier (click = /mbtier: Low I > Mid III > High V)', MeleeSet = 'Melee set', Main = 'Main', Sub = 'Sub',
     Range = 'Range', Ammo = 'Ammo', NukeSet = 'Nuke set', Element = 'Element', TankSet = 'Tank set',
     Hoxne = 'Hoxne', PupMode = 'Pup mode', Weapon = 'Weapon',
@@ -352,7 +351,7 @@ end
 -- Cycle columns first (weapon set leads), then toggle columns. Clicking a cell drives that box.
 -- Hidden to save width: cycle columns None/Off on every box; toggle columns at load default on
 -- every box, unless pinned (settings.HUDPinned). They show up as soon as any box changes them.
--- DT/MDT/Aminon/SIR merge into one 'def' column (/def), AutoMB/AutoNuke/Burst into 'mb' (/mbmode).
+-- DT/MDT/Aminon/SIR merge into one 'def' column (/def), AutoNuke/Burst into 'mb' (/automb).
 -- Clicking a name adds a detail line under it: job + that box's hidden cycles and toggles.
 local PADX = 1; -- matches the FramePadding x pushed in render()
 
@@ -397,13 +396,7 @@ end
 
 -- Merged columns: several toggles shown as one mode, clicked through the command that cycles them.
 local DEF_PARTS = { { 'DTset', 'DT' }, { 'MDTset', 'MDT' }, { 'Aminon', 'Amin' }, { 'SIR', 'SIR' } };
-local MB_TEXT = {
-    Off = 'normal nuke set, nothing casts by itself',
-    Chain = 'Burst set only when the nuke lands in a live skillchain of its element (/automb)',
-    Auto = 'Chain + casts into live skillchains by itself (/automb + /autonuke)',
-    Force = 'Burst set on every nuke, no skillchain check (/burst)',
-};
-local GROUP_PART = { DTset = true, MDTset = true, Aminon = true, SIR = true, AutoMB = true, AutoNuke = true, Burst = true };
+local GROUP_PART = { DTset = true, MDTset = true, Aminon = true, SIR = true, AutoNuke = true, Burst = true };
 local GROUP_ORDER = { 'Def', 'MB' };
 
 local function part(row, key)
@@ -436,29 +429,23 @@ local function group_cell(row, key)
         };
     end
     if (key == 'MB') then
-        local auto, d1 = part(row, 'AutoMB');
-        if (auto == nil) then return nil end
         local nuke, d2 = part(row, 'AutoNuke');
+        if (nuke == nil) then return nil end
         local burst, d3 = part(row, 'Burst');
         local tier, d4 = strip_default(row.Cycles.MBTier);
         if (row.Cycles.MBTier == nil) then d4 = true end
         local roman = ({ Low = 'I', Mid = 'III', High = 'V' })[tier] or '';
-        local alldef = (d1 ~= false) and (d2 ~= false) and (d3 ~= false) and d4;
-        -- same names as /mbmode; a mix /mbmode never makes (e.g. /autonuke alone) gets a '*'
-        local gear = (burst and 'Force') or (auto and 'Chain') or 'Off';
-        local mode = gear;
-        if nuke then mode = (gear == 'Chain') and 'Auto' or (gear .. '*') end
-        local text = MB_TEXT[mode] or (gear .. ' + auto-cast: ' .. MB_TEXT[gear]);
+        local alldef = (d2 ~= false) and (d3 ~= false) and d4;
+        local text = (nuke and ('Auto' .. roman) or 'Off') .. (burst and '+F' or '');
         return {
-            text = nuke and (mode .. roman) or mode,
-            col = (mode == 'Off') and (alldef and COL_EMPTY or COL_OFF_CHG) or (alldef and COL_VAL_DEF or COL_VAL),
-            cmd = 'mbmode',
-            ctrlCmd = nuke and 'mbtier' or nil, -- Ctrl+click cycles the autonuke tier while in Auto
+            text = text,
+            col = (not nuke and not burst) and (alldef and COL_EMPTY or COL_OFF_CHG) or (alldef and COL_VAL_DEF or COL_VAL),
+            cmd = 'automb',
+            ctrlCmd = 'mbtier',
             def = alldef,
-            tip = row.Name .. '  MB mode ' .. mode .. (alldef and ' (default)' or '') .. ': ' .. text
-                .. ((roman ~= '') and ('  |  autonuke tier ' .. roman .. ' (' .. tier .. ', /mbtier)') or '')
-                .. '  |  click /mbmode -> ' .. ((burst and 'Off') or (nuke and 'Force') or (auto and 'Auto') or 'Chain')
-                .. (nuke and '  |  Ctrl+click /mbtier' or ''),
+            tip = row.Name .. '  Auto MB ' .. (nuke and 'on' or 'off') .. ((roman ~= '') and (', tier ' .. roman) or '')
+                .. '  |  Burst set: ' .. (burst and 'every nuke (/burst)' or 'on live skillchains')
+                .. '  |  click /automb, Ctrl+click /mbtier',
         };
     end
     return nil;

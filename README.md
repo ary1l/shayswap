@@ -26,7 +26,7 @@ Full reference: `COMMANDS.md`.
 | Shift+grave | Default weapons |
 | Ctrl+grave | `/def`: DT → MDT → Aminon → SIRD |
 | Alt+grave | `/hoxne` |
-| Win+grave | `/mbmode` |
+| Win+grave | `/automb` |
 
 `/gchelp` lists the main commands (all of them: `COMMANDS.md`). `/gckey <key> <cmd>` rebinds.
 
@@ -50,11 +50,9 @@ Full reference: `COMMANDS.md`.
   (BG-Wiki: spell 3s, WS 2s, job ability 2s with other job abilities allowed after 1s).
 - **Holds**: `/naked` `/weaponsonly` `/abysseaproc` strip slots and keep them bare; `/capacity` `/jubilee`
   `/dynamisrp` put on and keep your best capacity cape / Jubilee Ring / Dynamis - Divergence neck.
-- **Magic burst** (RDM BLM SCH GEO), `/mbmode` cycles:
-  - `Off`: normal nuke set, nothing automatic.
-  - `Chain`: Burst set only when the nuke will land inside a live skillchain of its element on that target.
-  - `Auto`: Chain, plus it casts the chain's nuke itself (tier I/III/V by `/mbtier`; Transfixion/Compression: SCH helix).
-  - `Force`: Burst set on every nuke, no skillchain check.
+- **Magic burst** (RDM BLM SCH GEO): the Burst set goes on by itself whenever a nuke will land inside a live
+  skillchain of its element on that target. `/automb` (Win+grave) makes the box cast the chain's nuke itself
+  (tier I/III/V by `/mbtier`; Transfixion/Compression: SCH helix). `/burst`: Burst set on every nuke.
 - **Received gear**: when anyone starts casting Cure/Cura/Curaga, Phalanx, Protect, Shell, Regen, Refresh or
   Cursna on you (or Curaga/Cura/Protectra/Shellra near you from a party member), the matching `*_Received` set goes
   on until that spell lands or is interrupted (8s max). Waltzes are instant abilities,
@@ -77,7 +75,7 @@ Leave `gSettings.FastCast` at 0. Nothing here needs your Fast Cast number.
 - **Idle gear after a cast**: LAC puts it back when the game says your cast finished (or was interrupted),
   not on a timer. `FastCast` only sets LAC's backup timer for a lost packet. At 0 the backup is the full
   cast time, which is safe. Set too high, the backup fires early and idle gear goes on mid-cast.
-- **Will the burst land in time?** (`Chain` and `Auto`): the engine times your real casts, from the game's
+- **Will the burst land in time?** the engine times your real casts, from the game's
   "starts casting" packet to "finished". So Fast Cast gear, buffs, traits and lag are all included,
   with no setting to maintain. It keeps your last 5 casts per magic skill and plans with the slowest,
   so one lucky Quick Cast doesn't make it think you're faster than you are. Interrupted casts are ignored.
