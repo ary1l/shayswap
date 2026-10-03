@@ -161,6 +161,7 @@ and at 0. Unlimited Shot: quiet.
 |---|---|
 | `/gchud [on\|off]` | Show/hide |
 | `/gchud pos 500 120` | Place it (dragging also saves) |
+| `/gchud large` / `/gchud compact` | Look: `large` = bigger text, more spacing, full names and values; `compact` (default) = tight. `/gchud style` flips. Saved per character |
 | `/gchud debug` | Files found, rows parsed |
 | `/gcbar [on\|off]` | Local one-line status bar (off by default) |
 | `/gcbar pos 300 0` | Place it |
@@ -210,7 +211,9 @@ Glyphs: `wpn` Weapons, `ml` MeleeSet, `m` `s` `r` `a` Main/Sub/Range/Ammo, `nk` 
 | `HUDPinned` | `Def MB Kite AutoFood AutoSoda` | Always-shown columns |
 | `HUDAbbr` | `{}` | Value names: `{ ['CarnwenhanAcc'] = 'CarnA' }` |
 | `HUDLabels` | `{}` | Glyphs: `{ Main = 'mn' }` |
-| `HUDScale` | `0.9` | Text size |
+| `HUDScale` | `0.9` | Text size (compact) |
+| `HUDStyle` | `'compact'` | `'large'` for the roomy look (or `/gchud large`) |
+| `HUDScaleLarge` | `1.1` | Text size (large) |
 | `HUDAlpha` | `0.45` | Background, 0 = none |
 
 ## Other commands

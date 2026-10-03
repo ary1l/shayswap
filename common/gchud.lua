@@ -82,18 +82,22 @@ local EMPTY = { none = true, off = true, unknown = true };
 -- 'Death Penalty' / 'DeathPenalty' -> DeaP, 'Anarchy +2' -> Ana+2, 'RostamB' -> RosB, 'Gleti's Knife' -> GleK.
 -- Override any with settings.HUDAbbr = { ['CarnwenhanAcc'] = 'CarnA' } (case-insensitive).
 local abbrCache = {};
+local function user_abbr(value)
+    local user = inc.settings.HUDAbbr;
+    if (type(user) ~= 'table') then return nil end
+    local lv = string.lower(value);
+    for k, v in pairs(user) do
+        if (string.lower(tostring(k)) == lv) then return tostring(v) end
+    end
+    return nil;
+end
 local function abbr(value)
     value = tostring(value or '');
     if (value == '') then return '' end
     local hit = abbrCache[value]; -- cleared by gchud.Start, so HUDAbbr edits apply on reload
     if (hit ~= nil) then return hit end
-    local user = inc.settings.HUDAbbr;
-    if (type(user) == 'table') then
-        local lv = string.lower(value);
-        for k, v in pairs(user) do
-            if (string.lower(tostring(k)) == lv) then abbrCache[value] = tostring(v); return abbrCache[value] end
-        end
-    end
+    local u = user_abbr(value);
+    if (u ~= nil) then abbrCache[value] = u; return u end
     local t = string.gsub(value, "['%.]", '');
     t = string.gsub(t, '[^%w%+]', ' ');
     t = string.gsub(t, '(%l)(%u)', '%1 %2');
@@ -278,6 +282,18 @@ end
 
 local savedX, savedY = nil, nil;
 
+-- Two looks: 'compact' (default, tight) and 'large' (bigger text, more room, full names). /gchud large|compact,
+-- saved per character with the position. settings.HUDStyle is the default; HUDScale / HUDScaleLarge the text size.
+local STYLES = {
+    compact = { window = { 4, 2 }, frame = { 1, 0 }, spacing = { 4, 1 }, padx = 1, gap = 1, name = 4 },
+    large = { window = { 8, 5 }, frame = { 3, 1 }, spacing = { 6, 3 }, padx = 2, gap = 2, name = nil },
+};
+local function style_name()
+    local s = string.lower(tostring(inc.settings.HUDStyle or 'compact'));
+    return (STYLES[s] ~= nil) and s or 'compact';
+end
+local function style() return STYLES[style_name()] end
+
 local function pos_file()
     local player = me();
     if (player == nil) then return nil end
@@ -290,7 +306,7 @@ local function save_pos()
     if not ashita.fs.exists(d) then ashita.fs.create_directory(d) end
     local h = io.open(d .. f, 'w');
     if (h == nil) then return end
-    h:write(string.format('%d,%d', inc.settings.HUDX or 300, inc.settings.HUDY or 40));
+    h:write(string.format('%d,%d,%s', inc.settings.HUDX or 300, inc.settings.HUDY or 40, style_name()));
     h:close();
     savedX, savedY = inc.settings.HUDX, inc.settings.HUDY;
 end
@@ -300,10 +316,11 @@ local function load_pos()
     if (d == nil) then return end
     local h = io.open(d .. f, 'r');
     if (h == nil) then return end
-    local x, y = string.match(h:read('*a') or '', '^(%-?%d+),(%-?%d+)');
+    local x, y, s = string.match(h:read('*a') or '', '^(%-?%d+),(%-?%d+),?(%a*)');
     h:close();
     if (x == nil) then return end
     inc.settings.HUDX, inc.settings.HUDY = tonumber(x), tonumber(y);
+    if (s ~= nil) and (STYLES[string.lower(s)] ~= nil) then inc.settings.HUDStyle = string.lower(s) end
     savedX, savedY = inc.settings.HUDX, inc.settings.HUDY;
 end
 
@@ -353,7 +370,11 @@ end
 -- every box, unless pinned (settings.HUDPinned). They show up as soon as any box changes them.
 -- DT/MDT/Aminon/SIR merge into one 'def' column (/def), AutoNuke/Burst into 'mb' (/automb).
 -- Clicking a name adds a detail line under it: job + that box's hidden cycles and toggles.
-local PADX = 1; -- matches the FramePadding x pushed in render()
+local PADX = 1; -- cell padding; set from the style each frame in render()
+local function short_name(name)
+    local n = style().name;
+    return (n ~= nil) and string.sub(name, 1, n) or name;
+end
 
 local function textw(t)
     local w = imgui.CalcTextSize(t);
@@ -385,7 +406,7 @@ local function cycle_cell(row, key)
     local empty = (EMPTY[string.lower(value)] == true);
     local cmd = gchud.CycleCommands[key];
     return {
-        text = empty and '-' or abbr(value),
+        text = empty and '-' or ((style().name == nil) and (user_abbr(tostring(value)) or tostring(value)) or abbr(value)), -- large: full value
         col = empty and COL_EMPTY or (def and COL_VAL_DEF or COL_VAL),
         cmd = cmd,
         empty = empty,
@@ -538,10 +559,10 @@ local function body()
     end
 
     -- measure
-    local gap = textw(' ');
+    local gap = textw(string.rep(' ', style().gap));
     local x0 = imgui.GetCursorPosX();
     local nameW = 0;
-    for _, row in ipairs(rows) do nameW = math.max(nameW, textw(string.sub(row.Name, 1, 4)) + PADX * 2) end
+    for _, row in ipairs(rows) do nameW = math.max(nameW, textw(short_name(row.Name)) + PADX * 2) end
     local cols = {};
     local x = x0 + nameW + gap;
     local function add(key, kind, center)
@@ -580,7 +601,7 @@ local function body()
         local open = (expanded[row.Name] == true);
         imgui.SetCursorPosX(x0);
         imgui.PushStyleColor(ImGuiCol_Text, COL_NAME);
-        local clicked = imgui.SmallButton(string.sub(row.Name, 1, 4) .. '##' .. row.Name .. 'row');
+        local clicked = imgui.SmallButton(short_name(row.Name) .. '##' .. row.Name .. 'row');
         imgui.PopStyleColor();
         tip(row.Name .. '  ' .. tostring(row.Job) .. '  (click: ' .. (open and 'hide' or 'show') .. ' details)');
         for _, col in ipairs(cols) do
@@ -635,7 +656,7 @@ end
 local fontPushed = false;
 local function inner()
     -- Ashita < 4.3: SetWindowFontScale. Ashita 4.3 (ImGui 1.92) removed it: PushFont(nil, size).
-    local scale = tonumber(inc.settings.HUDScale) or 1.0;
+    local scale = (style_name() == 'large') and (tonumber(inc.settings.HUDScaleLarge) or 1.1) or (tonumber(inc.settings.HUDScale) or 1.0);
     if (imgui.SetWindowFontScale ~= nil) then
         imgui.SetWindowFontScale(scale);
     elseif (scale ~= 1.0) and (imgui.PushFont ~= nil) and (imgui.GetFontSize ~= nil) then
@@ -654,9 +675,11 @@ local function render()
     end
     local flags = bit.bor(ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing,
         ImGuiWindowFlags_NoTitleBar, ImGuiWindowFlags_NoScrollbar, ImGuiWindowFlags_NoResize);
-    imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, { 4, 2 });
-    imgui.PushStyleVar(ImGuiStyleVar_FramePadding, { 1, 0 });
-    imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, { 4, 1 });
+    local st = style();
+    PADX = st.padx;
+    imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, st.window);
+    imgui.PushStyleVar(ImGuiStyleVar_FramePadding, st.frame);
+    imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, st.spacing);
     imgui.PushStyleColor(ImGuiCol_Button, COL_CLEAR);
     imgui.PushStyleColor(ImGuiCol_ButtonHovered, COL_HOVER);
     imgui.PushStyleColor(ImGuiCol_ButtonActive, COL_HOVER);
@@ -774,6 +797,15 @@ function gchud.HandleCommand(args)
         inc.settings.HUDY = tonumber(args[4]);
         placed = false;
         save_pos();
+        return;
+    end
+    if (arg == 'large') or (arg == 'compact') or (arg == 'style') then
+        if (arg == 'style') then arg = (style_name() == 'large') and 'compact' or 'large' end
+        inc.settings.HUDStyle = arg;
+        save_pos();
+        visible = true;
+        nextRead = 0;
+        print(chat.header('GCHUD'):append(chat.message('style: ' .. arg)));
         return;
     end
     if (arg == 'on') then
