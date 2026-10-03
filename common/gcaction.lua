@@ -140,10 +140,6 @@ function gcaction.Check()
         if has(b) then say(a.Name .. ': ' .. string.lower(b)); return true end
     end
     local kind = a.ActionType;
-    if (inc.RequiredFor ~= nil) and ((kind == 'Spell') or (kind == 'Ability')) then
-        local _, why = inc.RequiredFor(a.Name); -- Dispelga/Honor March/Aria/Impact/Tomahawk/Angon gear
-        if (why ~= nil) then say(a.Name .. ': ' .. why); return true end
-    end
     if (kind == 'Spell') then
         if has('Mute') then say(a.Name .. ': mute'); return true end
         if has('Silence') then

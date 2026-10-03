@@ -998,6 +998,7 @@ end
 	-- Items an action can't go without (BG-Wiki/FFXIclopedia): Dispelga needs Daybreak in main, Honor March
 	-- Marsyas, Aria of Passion Loughnashade, Impact a Twilight or Crepuscular Cloak for the whole cast (it
 	-- covers the head, so head is emptied), Tomahawk a Thr. Tomahawk and Angon an Angon in ammo.
+	-- Put on when carried; nothing is ever cancelled (the game itself refuses the action without the item).
 	gcinclude.RequiredGear = {
 		['Dispelga'] = { Main = T{'Daybreak'} },
 		['Honor March'] = { Range = T{'Marsyas'} },
@@ -1007,28 +1008,19 @@ end
 		['Angon'] = { Ammo = T{'Angon'} },
 	};
 
-	-- The gear to put on for this action, or nil and why it can't be done (item not carried, slot /locked).
+	-- The gear to put on for this action, or nil when an item for it isn't carried (then nothing is changed).
 	function gcinclude.RequiredFor(name)
 		local req = gcinclude.RequiredGear[name or ''];
 		if (req == nil) then return nil end
-		local set, equip = {}, nil;
+		local set = {};
 		for slot, items in pairs(req) do
 			if (type(items) == 'string') then
 				set[slot] = items;
 			else
-				local pick = nil;
 				for _, it in ipairs(items) do
-					if carriedName(it) then pick = it; break end
+					if carriedName(it) then set[slot] = it; break end
 				end
-				if (pick == nil) then return nil, 'needs ' .. table.concat(items, ' or ') end
-				if (gcinclude.LockedSlots[gData.GetEquipSlot(slot)] == true) then
-					equip = equip or gData.GetEquipment();
-					local worn = (equip[slot] ~= nil) and equip[slot].Name or nil;
-					if (worn == nil) or (string.lower(worn) ~= string.lower(pick)) then
-						return nil, string.lower(slot) .. ' is locked (' .. pick .. ' needed)';
-					end
-				end
-				set[slot] = pick;
+				if (set[slot] == nil) then return nil end
 			end
 		end
 		return set;
@@ -1188,11 +1180,6 @@ end
 				if e.alreadyOn then onSince = ((seen ~= nil) and (seen.id == e.id)) and seen.at or -math.huge end
 				e.nextTry = math.max(now + 0.5, onSince + e.delay + ENCHANT_MARGIN);
 				local info = enchantInfo(item);
-				if (info ~= nil) and (info.charges == 0) then
-					gcinclude.Err(e.item .. ': no charges left, released');
-					gcinclude.ReleaseEnchant(e.index);
-					return;
-				end
 				e.extPending = (info ~= nil) and (e.alreadyOn ~= true);
 			elseif (now > e.start + ENCHANT_EQUIP_WAIT) then
 				gcinclude.Err(e.item .. ': never showed up in ' .. string.lower(e.slot) .. ', released');
@@ -1202,7 +1189,7 @@ end
 		end
 		-- Reuse timer, once the extdata shows this equip (activation changed): the equip happened at
 		-- activation - delay, so the item is usable reuse = next use - (activation - delay) seconds after it.
-		-- Not refreshed within 2s: left to the tries.
+		-- A few seconds past the delay: the first try waits for it. Never refuses: the game says no itself.
 		if (e.extPending == true) then
 			local info = enchantInfo(equippedItem(e.index));
 			if (info == nil) then
@@ -1210,12 +1197,7 @@ end
 			elseif (e.preAct == nil) or (info.activation ~= e.preAct) then
 				e.extPending = false;
 				local reuse = info.nextUse - (info.activation - e.delay);
-				local left = math.floor(reuse - (now - e.equippedAt));
-				if (reuse > e.delay + 5) and (left > 0) then
-					gcinclude.Err(string.format('%s: reuse timer, about %d:%02d left, released', e.item, math.floor(left / 60), left % 60));
-					gcinclude.ReleaseEnchant(e.index);
-					return;
-				elseif (reuse > e.delay) then
+				if (reuse > e.delay) and (reuse <= e.delay + 5) then
 					e.nextTry = math.max(e.nextTry, e.equippedAt + reuse + ENCHANT_MARGIN);
 				end
 			elseif (now > e.equippedAt + 2) then
@@ -1225,7 +1207,7 @@ end
 		if (now < e.nextTry) then return end
 		if (gState.PlayerAction ~= nil) then e.nextTry = now + 0.5; return end -- an action is running: wait, don't spend a try
 		if (e.tries >= ENCHANT_TRIES) then
-			gcinclude.Err(e.item .. ': not used after ' .. e.tries .. ' tries (charges or reuse timer?), released');
+			gcinclude.Err(e.item .. ': not used after ' .. e.tries .. ' tries, released');
 			gcinclude.ReleaseEnchant(e.index);
 			return;
 		end
