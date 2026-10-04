@@ -201,6 +201,9 @@ local sets = {
     Counterstance = {--these feet are also for Mantra
         Feet = 'Hes. Gaiters',
     },
+    Buffs = { -- worn while that buff is up (engine layer, on top of Dt/TH)
+        ['Boost'] = { Waist = 'Ask Sash' }, -- Boost: "Regain"+200 only while the sash stays on (FFXIAH Ask Sash thread)
+    },
 
     TH = {
 		Ammo = 'Per. Lucky Egg',
@@ -276,7 +279,8 @@ profile.HandleAbility = function()
     elseif string.match(ability.Name, 'Chakra') then gFunc.EquipSet(sets.Chakra);
     elseif string.match(ability.Name, 'Footwork') then gFunc.EquipSet(sets.FootworkJA);
     elseif string.match(ability.Name, 'Counterstance') or string.match(ability.Name, 'Mantra') then gFunc.EquipSet(sets.Counterstance);
-    elseif string.contains(ability.Name, 'Formless Strikes') then gFunc.EquipSet(sets.FormlessStrikes) end
+    elseif string.contains(ability.Name, 'Formless Strikes') then gFunc.EquipSet(sets.FormlessStrikes)
+    elseif (ability.Name == 'Boost') then gFunc.EquipSet(sets.Buffs.Boost) end -- sash on from the start
 
     gcinclude.CheckCancels();
 end
