@@ -83,6 +83,10 @@ Leave `gSettings.FastCast` at 0. Nothing here needs your Fast Cast number.
 
 ## Gear tips
 
+- Slot keywords (LuAshitacast, per Thorny): `'remove'` forces the slot empty (sends an unequip); `'displaced'`
+  changes nothing but marks the slot empty, for a slot the game empties itself when the set goes on (a cloak
+  covers Head; a bell, instrument or throwing weapon in Range empties Ammo; a tathlum or the Hoxne Ampulla in Ammo
+  empties Range); `'ignore'` leaves the slot alone.
 - HP pieces: give them `Priority = <HP>` so max HP doesn't dip mid-swap.
 - Leave Moonshade out of WS sets; the engine adds it.
 - Weapons in `TH` (THF: Gandring Sub) stay on the whole time `/th` is on, tagged or not (a swap would reset TP).

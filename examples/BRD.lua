@@ -100,7 +100,7 @@ local sets = {
         Sub = 'Genmei Shield',
     },
     Weapon_Hoxne = {
-        Range = 'remove',
+        Range = 'displaced',
         Ammo = 'Hoxne Ampulla',
     },
     Tp_Default = {
