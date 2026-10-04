@@ -1001,13 +1001,14 @@ end
 
 	-- Items an action can't go without (BG-Wiki/FFXIclopedia): Dispelga needs Daybreak in main, Honor March
 	-- Marsyas, Aria of Passion Loughnashade, Impact a Twilight or Crepuscular Cloak for the whole cast (it
-	-- covers the head, so head is emptied), Tomahawk a Thr. Tomahawk and Angon an Angon in ammo.
+	-- covers the head: the game empties it, so Head is 'displaced', per Thorny), Tomahawk a Thr. Tomahawk and
+	-- Angon an Angon in ammo.
 	-- Put on when carried; nothing is ever cancelled (the game itself refuses the action without the item).
 	gcinclude.RequiredGear = {
 		['Dispelga'] = { Main = T{'Daybreak'} },
 		['Honor March'] = { Range = T{'Marsyas'} },
 		['Aria of Passion'] = { Range = T{'Loughnashade'} },
-		['Impact'] = { Body = T{'Crepuscular Cloak', 'Twilight Cloak'}, Head = 'remove' },
+		['Impact'] = { Body = T{'Crepuscular Cloak', 'Twilight Cloak'}, Head = 'displaced' },
 		['Tomahawk'] = { Ammo = T{'Thr. Tomahawk'} },
 		['Angon'] = { Ammo = T{'Angon'} },
 	};
@@ -2041,7 +2042,7 @@ end
 		local subName = (type(sub) == 'table') and sub.Name or sub;
 		if (type(subName) ~= 'string') or gcinclude.WeaponKeywords:contains(string.lower(subName)) then return true end
 		local mainName = (type(main) == 'table') and main.Name or main;
-		if (type(mainName) == 'string') and (string.lower(mainName) == 'remove') then return true end
+		if (type(mainName) == 'string') and ((string.lower(mainName) == 'remove') or (string.lower(mainName) == 'displaced')) then return true end
 		local mainRes;
 		if (type(mainName) == 'string') and not gcinclude.WeaponKeywords:contains(string.lower(mainName))
 			and (gState.Disabled[1] ~= true) then
@@ -2093,7 +2094,7 @@ end
 				-- Settle Ammo/Range before locking them, else a bow already on stays locked in.
 				local range = gData.GetEquipment().Range;
 				local settle = { Ammo = gcinclude.settings.HoxneItem };
-				if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then settle.Range = 'remove' end
+				if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then settle.Range = 'displaced' end -- the Ampulla going on drops the bow
 				gcinclude.ForceUnlocked(settle);
 				if (#gcinclude.HoxneOwned > 0) then gcinclude.LockSlots(gcinclude.HoxneOwned) end
 			end
@@ -2105,7 +2106,7 @@ end
 		if (state ~= 'On') and (state ~= 'Locked') then return end
 		local set = { Ammo = gcinclude.settings.HoxneItem };
 		local range = gData.GetEquipment().Range;
-		if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then set.Range = 'remove' end
+		if (range ~= nil) and gcinclude.NeedsAmmo(range.Name) then set.Range = 'displaced' end -- the game drops it for the Ampulla
 		gFunc.EquipSet(set);
 	end
 

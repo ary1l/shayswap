@@ -298,11 +298,11 @@ local sets = {
 
     Preshot = {
 		Range = 'aliyat chakram',
-		Ammo = 'remove',
+		Ammo = 'displaced',
     },
     Midshot = {
 		Range = 'aliyat chakram',
-		Ammo = 'remove',
+		Ammo = 'displaced',
         Ear1 = 'Telos Earring',
         Ear2 = 'Crep. Earring',
     },
