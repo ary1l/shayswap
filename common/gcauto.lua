@@ -205,6 +205,7 @@ local function tick()
     if (now < nextTick) then return end
     nextTick = now + 0.5;
     if (inc == nil) or (disp == nil) then return end
+    if (inc.Zoning ~= nil) and inc.Zoning() then return end -- no auto items/nukes mid-zone
     prune_tags();
     if (now < busyUntil) or (now < lockUntil) then return end
     if (gState == nil) or (gState.PlayerAction ~= nil) then return end
@@ -869,6 +870,7 @@ function gcauto.Start()
             local ok, P = pcall(parse_action, e.data);
             if ok then pcall(roll_packet, P); pcall(lock_packet, P); pcall(combat_packet, P); pcall(cast_packet, P); pcall(mb_packet, P); pcall(item_packet, P); pcall(incoming_cast, P); pcall(incoming_end, P) end
         end
+        if (e.id == 0x000B) and (inc ~= nil) and (inc.OnZoneOut ~= nil) then pcall(function() inc.OnZoneOut(struct.unpack('L', e.data, 0x04 + 1)) end) end -- LogoutState
         if (e.id == 0x000A) and (inc ~= nil) and (inc.OnZone ~= nil) then pcall(inc.OnZone) end
         if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; jaLockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
     end);
