@@ -3,6 +3,9 @@
 Every command works as `/name` or `/lac fwd name`. All boxes: `/mss /lac fwd <cmd>`.
 One box: `/ms sendto <name> /lac fwd <cmd>`.
 
+While zoning (from the server's zone-line reply until 3s after arriving) nothing is sent by itself: no item uses,
+queued actions, food/soda or auto-casts.
+
 On/off commands (`/automb`, `/burst`, `/kite`, `/th`, `/dt`, `/mdt`, `/aminon`, `/sir`, `/death`, `/proc`, `/forcestring`,
 `/songlock`, `/gcmessages`, `/autofood`, `/autosoda`, ...) take `on` or `off`; with no argument they flip.
 
@@ -49,7 +52,7 @@ gcinclude.WeaponItemMap = {
 | `/def [off\|dt\|mdt\|aminon\|sird]` | Sets one (or none); no arg cycles none → DT → MDT → Aminon → SIRD → none (Ctrl+grave) |
 | `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub (the set's items, else what you wear) plus Range/Ammo when the set names them, until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
-| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range (an instrument in Range would knock the ampulla off). `/hoxne use` goes Locked and uses it. While On/Locked it is used when it is in Ammo and the Enchantment status isn't up (BG-Wiki: Double Attack +100% for 30 min as Enchantment, 60s recast, 5s use delay, lost when unequipped or zoning); Enchantment up, it is never used. Zoning sets it back to Off. `HoxneAutoUse = false` stops the automatic use |
+| `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range (an instrument in Range would knock the ampulla off). `/hoxne use` goes Locked and uses it. While On/Locked it is used when it is in Ammo and the Enchantment status isn't up (BG-Wiki: Double Attack +100% for 30 min as Enchantment, 60s recast, 5s use delay, lost when unequipped or zoning); Enchantment up, it is never used; it waits until Enchantment has been gone 3s (it drops as you cross a zone line). Zoning sets it back to Off. `HoxneAutoUse = false` stops the automatic use |
 | `/hoxne use` | Locked, equip, wait its delay, use |
 | `/lock` | Lock Main, Sub, Ammo |
 | `/lock ear1 back` | Lock any slots by name |

@@ -1247,6 +1247,7 @@ end
 		local now = os.clock();
 		if (now < gcinclude.NextHoldCheck) then return end
 		gcinclude.NextHoldCheck = now + 0.1;
+		if gcinclude.Zoning() then return end -- nothing sent or swapped by itself mid-zone
 		trackSlots(now);
 		gcinclude.CheckEnchantHold();
 		if gcinclude.CheckDualWieldChange(now) then return end -- forced 1h swap: let it land before the hold re-checks
@@ -2206,9 +2207,26 @@ end
 		gcinclude.UseEnchanted(name, nil);
 	end
 
+	-- Zoning: from the server's reply to the zone line (0x000B, XiPackets GP_SERV_COMMAND_LOGOUT; LogoutState 4 =
+	-- cancelled) until 3s after zone-in (0x000A), or while Ashita's player says so. Nothing is sent by itself
+	-- meanwhile: the buff list reads empty then, and an /item sent mid-zone took the Shorthand plugin down.
+	gcinclude.ZoneOutAt, gcinclude.ZoneInAt = nil, -1e9;
+	function gcinclude.OnZoneOut(state)
+		gcinclude.ZoneOutAt = (state ~= 4) and os.clock() or nil;
+	end
+	function gcinclude.Zoning()
+		local now = os.clock();
+		if (gcinclude.ZoneOutAt ~= nil) and (now - gcinclude.ZoneOutAt < 60) then return true end
+		if (now < gcinclude.ZoneInAt + 3) then return true end
+		local p = AshitaCore:GetMemoryManager():GetPlayer();
+		return (p ~= nil) and (p:GetIsZoning() ~= 0);
+	end
+
 	-- Zoning: item uses stop (zoning drops an enchantment anyway: BG-Wiki Hoxne Ampulla), slots are given back,
 	-- and /hoxne goes back to Off, so nothing is used on arrival.
 	function gcinclude.OnZone()
+		gcinclude.ZoneOutAt, gcinclude.ZoneInAt = nil, os.clock();
+		gcinclude.HoxneGoneSince = nil;
 		for index, _ in pairs(gcinclude.Enchants) do gcinclude.ReleaseEnchant(index) end
 		gcinclude.HoxneRetryAt = 0;
 		if gcinclude.HoxneOn() then
@@ -2222,13 +2240,17 @@ end
 	-- id 162 in Windower's buff resources), 60s recast, 5s use delay, lost when unequipped or on zoning.
 	-- While /hoxne is On or Locked and the Ampulla is in ammo with no Enchantment up, it is used (the use delay
 	-- counted from when it went on). Enchantment up: never used. /hoxne use uses it now. One go a minute.
+	-- Enchantment has to be gone 3s straight first: it drops as you cross a zone line, a moment before the
+	-- server's zone reply (0x000B) marks you as zoning.
 	gcinclude.HoxneRetryAt = 0;
 	gcinclude.HoxneCheckAt = 0;
+	gcinclude.HoxneGoneSince = nil;
 	function gcinclude.CheckHoxneAuto(now)
 		if (gcinclude.settings.HoxneAutoUse ~= true) or (now < gcinclude.HoxneCheckAt) then return end
 		gcinclude.HoxneCheckAt = now + 1;
-		if (now < gcinclude.HoxneRetryAt) or not gcinclude.HoxneOn() then return end
-		if (gcinclude.BuffCount('Enchantment') > 0) then return end
+		if (not gcinclude.HoxneOn()) or (gcinclude.BuffCount('Enchantment') > 0) then gcinclude.HoxneGoneSince = nil; return end
+		gcinclude.HoxneGoneSince = gcinclude.HoxneGoneSince or now;
+		if (now < gcinclude.HoxneGoneSince + 3) or (now < gcinclude.HoxneRetryAt) then return end
 		local r = AshitaCore:GetResourceManager():GetItemByName(gcinclude.settings.HoxneItem, 0);
 		if (r == nil) or (equippedId(4) ~= r.Id) then return end
 		if (gcinclude.Enchants[4] ~= nil) or (gState.PlayerAction ~= nil) then return end
