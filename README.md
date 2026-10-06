@@ -42,7 +42,7 @@ Full reference: `COMMANDS.md`.
   Quick Draw, cures, elemental WS); items an action can't go without (Dispelga Daybreak, Honor March Marsyas, Aria
   Loughnashade, Impact cloak, Tomahawk/Angon ammo); a Sub that can't go with the Main (2-handed/grip) is dropped;
   Hoxne Ampulla used when its Enchantment buff isn't up; low ammo / Utsusemi tool warnings; `/cancel Stoneskin` when asleep under it;
-  `HardCC` set (Dt minus weapons) when asleep/petrified/stunned/terrorized/charmed, `Sleeping` over it when asleep (its weapons past the TP hold, e.g. Lorg Mor to wake);
+  `Incapacitated` set (Dt minus weapons) when slept/petrified/stunned/terrorized/charmed, `Sleeping` over it when asleep (its weapons past the TP hold, e.g. Lorg Mor to wake);
   Moonshade under 1750 TP on every WS; Holy Water
   on Doom; food and soda; `/th`: TH gear at rest and on spells/shots at a mob until it is tagged (your hit, shot,
   WS, ability, or a spell/step that lands; BLU: `BluMagTH` spells only), `TH`-set weapons the whole time; lockstyle on load if `LockstyleSet` is set.

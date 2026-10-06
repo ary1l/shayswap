@@ -18,7 +18,7 @@
 			Ring1 = 'Purity Ring',
 			Ring2 = 'Blenmot\'s Ring',
 		},
-		Sleeping = { -- this set will auto equip if you are asleep, over HardCC; a job file's own Sleeping set is used instead (Main allowed there)
+		Sleeping = { -- this set will auto equip if you are asleep, over Incapacitated; a job file's own Sleeping set is used instead (Main allowed there)
 		},
 		Reraise = { -- this set will try to equip when weakened if AutoGear variable is true below or you can force it with /rrset in game
 			Head = 'Crepuscular Helm',
@@ -2589,7 +2589,7 @@ end
 		end
 	end
 
-	-- A set without Main/Sub/Range/Ammo: swapping those costs TP or a Hoxne Enchantment. Job files build HardCC with it.
+	-- A set without Main/Sub/Range/Ammo: swapping those costs TP or a Hoxne Enchantment. Job files build Incapacitated with it.
 	function gcinclude.NoWeapons(set)
 		local out = {};
 		for k, v in pairs(set or {}) do
@@ -2598,15 +2598,15 @@ end
 		return out;
 	end
 
-	-- Any HardCC (asleep, petrified, stunned, terrorized, charmed): the job's HardCC set, else Dt minus weapons.
+	-- Slept, petrified, stunned, terrorized or charmed (gcinclude.HardCC buffs): the job's Incapacitated set, else Dt minus weapons.
 	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
-	function gcinclude.CheckHardCC()
+	function gcinclude.CheckIncapacitated()
 		local hit = false;
 		for _, b in ipairs(gcinclude.HardCC) do
 			if (gcinclude.BuffCount(b) > 0) then hit = true; break end
 		end
 		if not hit then return end
-		local set = gcinclude.FindSet('HardCC');
+		local set = gcinclude.FindSet('Incapacitated');
 		if (set == nil) then
 			local dt = gcinclude.FindSet('Dt');
 			if (dt == nil) then return end
@@ -2621,7 +2621,7 @@ end
 		local sleep = gcinclude.BuffCount('Sleep');
 		local doom = (gcinclude.BuffCount('Doom'))+(gcinclude.BuffCount('Bane'));
 
-		gcinclude.CheckHardCC();
+		gcinclude.CheckIncapacitated();
 		if (sleep >= 1) then gFunc.EquipSet(gcinclude.FindSet('Sleeping') or gcinclude.sets.Sleeping) end
 		if (doom >= 1) then	gFunc.EquipSet(gcinclude.sets.Doomed) end
 		if (weakened >= 1) then gFunc.EquipSet(gcinclude.sets.Reraise) end
