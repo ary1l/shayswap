@@ -1114,11 +1114,14 @@ end
 		return free;
 	end
 
+	gcinclude.SleepFreed = {}; -- slots the last UpdateHold let go for the Sleeping set
 	function gcinclude.UpdateHold()
+		gcinclude.SleepFreed = {};
 		if gcinclude.HoldActive() then
 			local free = gcinclude.SleepFreeSlots();
 			for _, slot in ipairs(gcinclude.HoldSlots) do
 				if (free ~= nil) and free[slot] then
+					gcinclude.SleepFreed[slot] = true;
 					if (gcinclude.HeldSlots[slot] ~= nil) then
 						if (gcinclude.LockedSlots[slot] == nil) then gState.Disabled[slot] = false end
 						gcinclude.HeldSlots[slot] = nil;
@@ -2589,7 +2592,7 @@ end
 		end
 	end
 
-	-- A set without Main/Sub/Range/Ammo: swapping those costs TP or a Hoxne Enchantment. Job files build Incapacitated with it.
+	-- A set without Main/Sub/Range/Ammo: swapping those costs TP or a Hoxne Enchantment.
 	function gcinclude.NoWeapons(set)
 		local out = {};
 		for k, v in pairs(set or {}) do
@@ -2598,22 +2601,23 @@ end
 		return out;
 	end
 
-	-- Slept, petrified, stunned, terrorized or charmed (gcinclude.HardCC buffs): the job's Incapacitated set, else Dt minus weapons.
+	-- Slept, petrified, stunned or terrorized: Dt minus Main/Sub/Range/Ammo, then the job's Incapacitated set on top.
+	-- Not charmed: the client can't change gear then and GearSwap never sends any (Windower GearSwap flow.lua).
+	gcinclude.IncapacitatedBuffs = T{'Sleep', 'Petrification', 'Stun', 'Terror'};
 	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
 	function gcinclude.CheckIncapacitated()
 		local hit = false;
-		for _, b in ipairs(gcinclude.HardCC) do
+		for _, b in ipairs(gcinclude.IncapacitatedBuffs) do
 			if (gcinclude.BuffCount(b) > 0) then hit = true; break end
 		end
 		if not hit then return end
-		local set = gcinclude.FindSet('Incapacitated');
-		if (set == nil) then
-			local dt = gcinclude.FindSet('Dt');
-			if (dt == nil) then return end
+		local dt = gcinclude.FindSet('Dt');
+		if (dt ~= nil) then
 			if (dtNoWeaponsOf ~= dt) then dtNoWeapons, dtNoWeaponsOf = gcinclude.NoWeapons(dt), dt end
-			set = dtNoWeapons;
+			gFunc.EquipSet(dtNoWeapons);
 		end
-		gFunc.EquipSet(set);
+		local extra = gcinclude.FindSet('Incapacitated');
+		if (extra ~= nil) then gFunc.EquipSet(extra) end
 	end
 
 	function gcinclude.CheckCommonDebuffs()
@@ -2960,6 +2964,9 @@ function gcinclude.CheckDefault()
 
     -- Auto Regen/Refresh/DT/Pet_Dt and Town sets count as "your sets", so they go under the engine layers
     -- (README layer order: your sets -> weapons (+ TH weapons while /th is on) -> mdt/Aminon -> Hoxne -> TH -> received -> buffs -> XIRoll).
+    -- Awake again with a slot still let go for the Sleeping set: hold it now, not at the next 0.1s HoldTick,
+    -- so this handler's job-set weapon can't cost the TP (LAC checks gState.Disabled when the buffer goes out).
+    if (next(gcinclude.SleepFreed) ~= nil) and (gcinclude.BuffCount('Sleep') == 0) then gcinclude.UpdateHold() end
     local me = gData.GetPlayer(); -- one read for the auto sets, the combat check and XIRoll
     gcinclude.SetRegenRefreshGear(me);
     gcinclude.SetTownGear();

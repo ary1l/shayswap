@@ -3,6 +3,8 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 
 local sets = {
+    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over Dt minus Main/Sub/Range/Ammo; add extra pieces here
+    },
     Idle = {
         Head = 'nyame helm',
         Neck = 'Loricate Torque +1',
@@ -330,8 +332,6 @@ local sets = {
     Waltz_Received = {
     },
 };
-sets.Incapacitated = gFunc.Combine(gcinclude.NoWeapons(sets.Dt), { -- slept, petrified, stunned, terrorized, charmed: Dt minus Main/Sub/Range/Ammo, plus anything added here
-});
 profile.Sets = sets;
 
 

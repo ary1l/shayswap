@@ -4,6 +4,8 @@ gcinclude.SIRSkip = T{'Phalanx','Reprisal'}; -- /sir leaves these midcasts alone
 
 
 local sets = {
+    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over Dt minus Main/Sub/Range/Ammo; add extra pieces here
+    },
     Idle = {
 		Main = 'burtgang',
 		Sub = 'aegis',
@@ -737,8 +739,6 @@ local sets = {
     Waltz_Received = {
     },
 	};
-sets.Incapacitated = gFunc.Combine(gcinclude.NoWeapons(sets.Dt), { -- slept, petrified, stunned, terrorized, charmed: Dt minus Main/Sub/Range/Ammo, plus anything added here
-});
 profile.Sets = sets;
 
 profile.OnLoad = function()

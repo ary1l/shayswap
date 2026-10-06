@@ -3,6 +3,8 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 
 local sets = {
+    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over Dt minus Main/Sub/Range/Ammo; add extra pieces here
+    },
     Idle = {
         Ammo = 'Staunch Tathlum +1',
         Head = 'Hashishin Kavuk +3',
@@ -470,8 +472,6 @@ local sets = {
     Waltz_Received = {
     },
 };
-sets.Incapacitated = gFunc.Combine(gcinclude.NoWeapons(sets.Dt), { -- slept, petrified, stunned, terrorized, charmed: Dt minus Main/Sub/Range/Ammo, plus anything added here
-});
 profile.Sets = sets;
 
 
