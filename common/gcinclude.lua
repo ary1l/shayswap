@@ -2601,20 +2601,24 @@ end
 		return out;
 	end
 
-	-- Slept, petrified, stunned or terrorized: Dt minus Main/Sub/Range/Ammo, then the job's Incapacitated set, then received gear.
+	-- Slept, petrified, stunned or terrorized: your /def set (mdt or Aminon; else Dt, as SIRD is midcast only)
+	-- minus Main/Sub/Range/Ammo, then the job's Incapacitated set, then received gear.
 	-- Not charmed: the client can't change gear then and GearSwap never sends any (Windower GearSwap flow.lua).
 	gcinclude.IncapacitatedBuffs = T{'Sleep', 'Petrification', 'Stun', 'Terror'};
-	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
+	local noWeaponsOf = setmetatable({}, { __mode = 'k' }); -- built once per set table
 	function gcinclude.CheckIncapacitated()
 		local hit = false;
 		for _, b in ipairs(gcinclude.IncapacitatedBuffs) do
 			if (gcinclude.BuffCount(b) > 0) then hit = true; break end
 		end
 		if not hit then return end
-		local dt = gcinclude.FindSet('Dt');
-		if (dt ~= nil) then
-			if (dtNoWeaponsOf ~= dt) then dtNoWeapons, dtNoWeaponsOf = gcinclude.NoWeapons(dt), dt end
-			gFunc.EquipSet(dtNoWeapons);
+		local def;
+		if (gcdisplay.GetToggle('Aminon') == true) then def = gcinclude.FindSet('Aminon') or gcinclude.FindSet('mdt');
+		elseif (gcdisplay.GetToggle('MDTset') == true) then def = gcinclude.FindSet('mdt') end
+		def = def or gcinclude.FindSet('Dt');
+		if (def ~= nil) then
+			if (noWeaponsOf[def] == nil) then noWeaponsOf[def] = gcinclude.NoWeapons(def) end
+			gFunc.EquipSet(noWeaponsOf[def]);
 		end
 		local extra = gcinclude.FindSet('Incapacitated');
 		if (extra ~= nil) then gFunc.EquipSet(extra) end

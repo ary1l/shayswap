@@ -4,7 +4,7 @@ gcinclude.SIRSkip = T{'Phalanx','Reprisal'}; -- /sir leaves these midcasts alone
 
 
 local sets = {
-    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over Dt minus Main/Sub/Range/Ammo; add extra pieces here
+    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over your /def set (else Dt) minus Main/Sub/Range/Ammo; add extra pieces here
     },
     Idle = {
 		Main = 'burtgang',
