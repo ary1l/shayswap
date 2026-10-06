@@ -70,7 +70,7 @@ local sets = {
         Legs = 'ebers pant. +2',
         Feet = 'bunzi\'s sabots',
     },
-    Sleeping = { -- worn while asleep, past the TP hold: stage 2 Lorg Mor "Slowly devours your soul" (HP/MP drain wakes you); stages 3+ don't drain
+    Sleeping = { -- worn while asleep over HardCC, past the TP hold: stage 2 Lorg Mor "Slowly devours your soul" (HP/MP drain wakes you); stages 3+ don't drain
         Main = 'Lorg Mor',
     },
     SIR = {
@@ -367,6 +367,8 @@ local sets = {
     Waltz_Received = {
     },
 };
+sets.HardCC = gFunc.Combine(gcinclude.NoWeapons(sets.Dt), { -- asleep, petrified, stunned, terrorized, charmed: Dt minus Main/Sub/Range/Ammo, plus anything added here
+});
 profile.Sets = sets;
 
 profile.OnLoad = function()

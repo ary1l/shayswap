@@ -60,6 +60,8 @@ local sets = {
     Refresh_Received = {},
     Waltz_Received = {},
 };
+sets.HardCC = gFunc.Combine(gcinclude.NoWeapons(sets.Dt), { -- asleep, petrified, stunned, terrorized, charmed: Dt minus Main/Sub/Range/Ammo, plus anything added here
+});
 profile.Sets = sets;
 
 profile.Packer = {

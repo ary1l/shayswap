@@ -288,8 +288,8 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 | `LightBonus` | Healing Magic midcast |
 | `TH` | `/th` on: at rest, and over midcast/midshot at a mob, until it is tagged (your hit, shot, WS or ability; a spell, step or Effusion only if it lands; clears on death or zone). Not over actions on you or allies. BLU: only `BluMagTH` spells, always (AoE). Main/Sub/Range stay on while `/th` is on, tagged or not (Sub only if you can dual wield; a weapon swap resets TP) |
 | `HolyWater` | When Doomed (else `gcinclude.sets.Holy_Water`) |
-| `Sleeping` | Asleep (else `gcinclude.sets.Sleeping`). Main/Sub/Range in it go on past the TP hold (not past `/lock`), e.g. WHM `Main = 'Lorg Mor'`: a Prime stage 1-2 weapon's "Slowly devours your soul" drains HP/MP each tick, which wakes you (BG-Wiki Prime weapons). A weapon swap resets TP |
-| `Dt` | Also while petrified, stunned, terrorized or charmed, minus Main/Sub/Range/Ammo (TP, Hoxne). `HardCCDt = false` to stop |
+| `HardCC` | Asleep, petrified, stunned, terrorized or charmed (else `Dt` minus Main/Sub/Range/Ammo). Each job file builds it as `gFunc.Combine(gcinclude.NoWeapons(sets.Dt), { extras })` |
+| `Sleeping` | Asleep, over `HardCC` (else `gcinclude.sets.Sleeping`). Main/Sub/Range in it go on past the TP hold (not past `/lock`), e.g. WHM/GEO `Main = 'Lorg Mor'`: a Prime stage 1-2 weapon's "Slowly devours your soul" drains HP/MP each tick, which wakes you (BG-Wiki Prime weapons). A weapon swap resets TP |
 | `XIRoll` | Idle only, with a roll on you at 11 (default Roller's Ring) |
 | `Absorb` | Absorb-TP and every other Absorb- spell, over midcast |
 | `Absorb_TP` | Optional, Absorb-TP only, on top of `Absorb` |
@@ -300,7 +300,7 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 Moonshade goes in Ear2 on WS below `MoonshadeTP` (1750), except `MoonshadeSkip`.
 
 Layer order: your sets → weapons (+ `TH` weapons while `/th` is on) → mdt/Aminon → Hoxne → TH → received → buff sets → XIRoll →
-debuff (hard CC Dt/Sleep/Doom/Weakness) and craft/zeni/fish/rr sets.
+debuff (HardCC/Sleeping/Doom/Weakness) and craft/zeni/fish/rr sets.
 Midcast: job sets → TH → `Buffs_Midcast` → Absorb → LightBonus → obi/Orpheus/back/ring → SIR → required items.
 WS: job sets → `Buffs_Ws` → Moonshade → obi/Orpheus/back.
 

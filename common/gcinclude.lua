@@ -18,7 +18,7 @@
 			Ring1 = 'Purity Ring',
 			Ring2 = 'Blenmot\'s Ring',
 		},
-		Sleeping = { -- this set will auto equip if you are asleep; a job file's own Sleeping set is used instead (Main allowed there)
+		Sleeping = { -- this set will auto equip if you are asleep, over HardCC; a job file's own Sleeping set is used instead (Main allowed there)
 		},
 		Reraise = { -- this set will try to equip when weakened if AutoGear variable is true below or you can force it with /rrset in game
 			Head = 'Crepuscular Helm',
@@ -183,7 +183,6 @@
 		AmmoWarn = 20; -- warn when the ammo in use (inventory + wardrobes) is at or under this, 0 = never
 		NinjaToolWarn = 10; -- warn when Utsusemi tools (Shihei, + Shikanofuda on NIN) are at or under this, 0 = never
 		SleepCancelStoneskin = true; -- asleep with Stoneskin up: /cancel Stoneskin so damage can wake you (FFXIclopedia Sleep)
-		HardCCDt = true; -- petrified, stunned, terrorized or charmed: your Dt set goes on, minus main/sub/range/ammo
 		HoxneAutoUse = true; -- Hoxne On/Locked: use the Ampulla when it is in ammo and Enchantment isn't up
 	};
 
@@ -2590,24 +2589,31 @@ end
 		end
 	end
 
-	gcinclude.DtCC = T{'Petrification', 'Stun', 'Terror', 'Charm'}; -- HardCC that gear can't end: Dt instead
+	-- A set without Main/Sub/Range/Ammo: swapping those costs TP or a Hoxne Enchantment. Job files build HardCC with it.
+	function gcinclude.NoWeapons(set)
+		local out = {};
+		for k, v in pairs(set or {}) do
+			if not gcinclude.WeaponSlots:contains(gData.GetEquipSlot(k)) then out[k] = v end
+		end
+		return out;
+	end
+
+	-- Any HardCC (asleep, petrified, stunned, terrorized, charmed): the job's HardCC set, else Dt minus weapons.
 	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
-	function gcinclude.CheckCCDt()
-		if (gcinclude.settings.HardCCDt ~= true) then return end
+	function gcinclude.CheckHardCC()
 		local hit = false;
-		for _, b in ipairs(gcinclude.DtCC) do
+		for _, b in ipairs(gcinclude.HardCC) do
 			if (gcinclude.BuffCount(b) > 0) then hit = true; break end
 		end
 		if not hit then return end
-		local set = gcinclude.FindSet('Dt');
-		if (set == nil) then return end
-		if (dtNoWeaponsOf ~= set) then -- weapon/ammo swaps would cost TP or a Hoxne Enchantment: built once per set table
-			dtNoWeapons, dtNoWeaponsOf = {}, set;
-			for k, v in pairs(set) do
-				if not gcinclude.WeaponSlots:contains(gData.GetEquipSlot(k)) then dtNoWeapons[k] = v end
-			end
+		local set = gcinclude.FindSet('HardCC');
+		if (set == nil) then
+			local dt = gcinclude.FindSet('Dt');
+			if (dt == nil) then return end
+			if (dtNoWeaponsOf ~= dt) then dtNoWeapons, dtNoWeaponsOf = gcinclude.NoWeapons(dt), dt end
+			set = dtNoWeapons;
 		end
-		gFunc.EquipSet(dtNoWeapons);
+		gFunc.EquipSet(set);
 	end
 
 	function gcinclude.CheckCommonDebuffs()
@@ -2615,7 +2621,7 @@ end
 		local sleep = gcinclude.BuffCount('Sleep');
 		local doom = (gcinclude.BuffCount('Doom'))+(gcinclude.BuffCount('Bane'));
 
-		gcinclude.CheckCCDt();
+		gcinclude.CheckHardCC();
 		if (sleep >= 1) then gFunc.EquipSet(gcinclude.FindSet('Sleeping') or gcinclude.sets.Sleeping) end
 		if (doom >= 1) then	gFunc.EquipSet(gcinclude.sets.Doomed) end
 		if (weakened >= 1) then gFunc.EquipSet(gcinclude.sets.Reraise) end
