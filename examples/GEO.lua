@@ -1,6 +1,8 @@
 local profile = {};
 gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 local sets = {
+    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over Dt minus Main/Sub/Range/Ammo; add extra pieces here
+    },
     Idle = {
         Main = 'idris',
         Sub = 'Genmei Shield',
@@ -96,6 +98,9 @@ local sets = {
         Waist = 'carrier\'s sash',
         Legs = 'Nyame Flanchard',
         Feet = 'nyame sollerets',
+    },
+    Sleeping = { -- worn while asleep over Dt/Incapacitated, past the TP hold: stage 2 Lorg Mor "Slowly devours your soul" (HP/MP drain wakes you); stages 3+ don't drain
+        Main = 'Lorg Mor',
     },
     SIR = {
         Head = 'azimuth hood +3',

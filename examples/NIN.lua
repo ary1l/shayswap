@@ -6,6 +6,8 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 -- are worn by name (gcinclude.ByName); a spell with no set uses its family's (['Cure'] for Cure IV).
 -- Add '<Name>_Hybrid' / '<Name>_Acc' for /meleeset. Empty sets do nothing.
 local sets = {
+    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over Dt minus Main/Sub/Range/Ammo; add extra pieces here
+    },
     -- Weapon modes: add a Weapon_<Mode> set and the mode to WeaponModes in OnLoad.
     -- Weapon_Example = { Main = 'Item Name', Sub = 'Item Name' },
 

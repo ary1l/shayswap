@@ -3,6 +3,8 @@ gcinclude = gFunc.LoadFile('common\\gcinclude.lua');
 
 
 local sets = {
+    Incapacitated = { -- slept, petrified, stunned or terrorized: worn over Dt minus Main/Sub/Range/Ammo; add extra pieces here
+    },
     Idle = {
         Ammo = 'Staunch Tathlum +1',
         Head = 'Hashishin Kavuk +3',

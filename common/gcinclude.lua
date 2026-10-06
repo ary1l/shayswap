@@ -18,7 +18,7 @@
 			Ring1 = 'Purity Ring',
 			Ring2 = 'Blenmot\'s Ring',
 		},
-		Sleeping = { -- this set will auto equip if you are asleep
+		Sleeping = { -- this set will auto equip if you are asleep, over Incapacitated; a job file's own Sleeping set is used instead (Main allowed there)
 		},
 		Reraise = { -- this set will try to equip when weakened if AutoGear variable is true below or you can force it with /rrset in game
 			Head = 'Crepuscular Helm',
@@ -1100,10 +1100,33 @@ end
 		return (AshitaCore:GetMemoryManager():GetParty():GetMemberTP(0) >= guard); -- any status: a Main/Sub/Range swap resets TP idle too
 	end
 
+	-- Asleep: Main/Sub/Range named in the Sleeping set skip the TP hold, so a wake-up weapon can go on
+	-- (BG-Wiki Prime weapons: "Slowly devours your soul" drains HP/MP per tick, which wakes you from Sleep).
+	function gcinclude.SleepFreeSlots()
+		if (gcinclude.BuffCount('Sleep') == 0) then return nil end
+		local set = gcinclude.FindSet('Sleeping') or gcinclude.sets.Sleeping;
+		if (type(set) ~= 'table') then return nil end
+		local free = nil;
+		for k, _ in pairs(set) do
+			local slot = gData.GetEquipSlot(k);
+			if gcinclude.HoldSlots:contains(slot) then free = free or {}; free[slot] = true end
+		end
+		return free;
+	end
+
+	gcinclude.SleepFreed = {}; -- slots the last UpdateHold let go for the Sleeping set
 	function gcinclude.UpdateHold()
+		gcinclude.SleepFreed = {};
 		if gcinclude.HoldActive() then
+			local free = gcinclude.SleepFreeSlots();
 			for _, slot in ipairs(gcinclude.HoldSlots) do
-				if (gcinclude.HeldSlots[slot] == nil) and (gcinclude.LockedSlots[slot] == nil) and (gState.Disabled[slot] ~= true) then
+				if (free ~= nil) and free[slot] then
+					gcinclude.SleepFreed[slot] = true;
+					if (gcinclude.HeldSlots[slot] ~= nil) then
+						if (gcinclude.LockedSlots[slot] == nil) then gState.Disabled[slot] = false end
+						gcinclude.HeldSlots[slot] = nil;
+					end
+				elseif (gcinclude.HeldSlots[slot] == nil) and (gcinclude.LockedSlots[slot] == nil) and (gState.Disabled[slot] ~= true) then
 					gState.Disabled[slot] = true;
 					gcinclude.HeldSlots[slot] = true;
 				end
@@ -2569,12 +2592,41 @@ end
 		end
 	end
 
+	-- A set without Main/Sub/Range/Ammo: swapping those costs TP or a Hoxne Enchantment.
+	function gcinclude.NoWeapons(set)
+		local out = {};
+		for k, v in pairs(set or {}) do
+			if not gcinclude.WeaponSlots:contains(gData.GetEquipSlot(k)) then out[k] = v end
+		end
+		return out;
+	end
+
+	-- Slept, petrified, stunned or terrorized: Dt minus Main/Sub/Range/Ammo, then the job's Incapacitated set on top.
+	-- Not charmed: the client can't change gear then and GearSwap never sends any (Windower GearSwap flow.lua).
+	gcinclude.IncapacitatedBuffs = T{'Sleep', 'Petrification', 'Stun', 'Terror'};
+	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
+	function gcinclude.CheckIncapacitated()
+		local hit = false;
+		for _, b in ipairs(gcinclude.IncapacitatedBuffs) do
+			if (gcinclude.BuffCount(b) > 0) then hit = true; break end
+		end
+		if not hit then return end
+		local dt = gcinclude.FindSet('Dt');
+		if (dt ~= nil) then
+			if (dtNoWeaponsOf ~= dt) then dtNoWeapons, dtNoWeaponsOf = gcinclude.NoWeapons(dt), dt end
+			gFunc.EquipSet(dtNoWeapons);
+		end
+		local extra = gcinclude.FindSet('Incapacitated');
+		if (extra ~= nil) then gFunc.EquipSet(extra) end
+	end
+
 	function gcinclude.CheckCommonDebuffs()
 		local weakened = gcinclude.BuffCount(1); -- Weakness (buff 1; the name is 'weakness', not 'Weakened')
 		local sleep = gcinclude.BuffCount('Sleep');
 		local doom = (gcinclude.BuffCount('Doom'))+(gcinclude.BuffCount('Bane'));
 
-		if (sleep >= 1) then gFunc.EquipSet(gcinclude.sets.Sleeping) end
+		gcinclude.CheckIncapacitated();
+		if (sleep >= 1) then gFunc.EquipSet(gcinclude.FindSet('Sleeping') or gcinclude.sets.Sleeping) end
 		if (doom >= 1) then	gFunc.EquipSet(gcinclude.sets.Doomed) end
 		if (weakened >= 1) then gFunc.EquipSet(gcinclude.sets.Reraise) end
 	end
@@ -2912,6 +2964,9 @@ function gcinclude.CheckDefault()
 
     -- Auto Regen/Refresh/DT/Pet_Dt and Town sets count as "your sets", so they go under the engine layers
     -- (README layer order: your sets -> weapons (+ TH weapons while /th is on) -> mdt/Aminon -> Hoxne -> TH -> received -> buffs -> XIRoll).
+    -- Awake again with a slot still let go for the Sleeping set: hold it now, not at the next 0.1s HoldTick,
+    -- so this handler's job-set weapon can't cost the TP (LAC checks gState.Disabled when the buffer goes out).
+    if (next(gcinclude.SleepFreed) ~= nil) and (gcinclude.BuffCount('Sleep') == 0) then gcinclude.UpdateHold() end
     local me = gData.GetPlayer(); -- one read for the auto sets, the combat check and XIRoll
     gcinclude.SetRegenRefreshGear(me);
     gcinclude.SetTownGear();
