@@ -2601,7 +2601,7 @@ end
 		return out;
 	end
 
-	-- Slept, petrified, stunned or terrorized: Dt minus Main/Sub/Range/Ammo, then the job's Incapacitated set on top.
+	-- Slept, petrified, stunned or terrorized: Dt minus Main/Sub/Range/Ammo, then the job's Incapacitated set, then received gear.
 	-- Not charmed: the client can't change gear then and GearSwap never sends any (Windower GearSwap flow.lua).
 	gcinclude.IncapacitatedBuffs = T{'Sleep', 'Petrification', 'Stun', 'Terror'};
 	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
@@ -2618,6 +2618,7 @@ end
 		end
 		local extra = gcinclude.FindSet('Incapacitated');
 		if (extra ~= nil) then gFunc.EquipSet(extra) end
+		gcinclude.CheckReceived(); -- gear for a Phalanx/Cure/etc. on its way still goes on top, as it does over /dt
 	end
 
 	function gcinclude.CheckCommonDebuffs()
