@@ -117,8 +117,6 @@ Spells, abilities and WS that would fail are cancelled before any gear moves, wi
 | Stratagems at 0 | Cancelled, next charge time shown |
 | Waltz short on TP | Cancelled. Set `WaltzTPCut` to your gear's "Waltz TP cost" reduction |
 
-Items an action needs (Dispelga Daybreak, Honor March Marsyas, Aria of Passion Loughnashade, Impact Crepuscular or Twilight Cloak with Head emptied, Tomahawk/Angon ammo) are put on when carried; they never cancel anything.
-
 Charge-pool abilities (Ready, Sic, Quick Draw) skip the recast check. LAC only sees what the client sends,
 so anything the client refuses itself never gets here.
 
@@ -288,7 +286,7 @@ Change per job: `gcinclude.settings.dem_Ring = 'Teleport Ring: Dem'`.
 | `LightBonus` | Healing Magic midcast |
 | `TH` | `/th` on: at rest, and over midcast/midshot at a mob, until it is tagged (your hit, shot, WS or ability; a spell, step or Effusion only if it lands; clears on death or zone). Not over actions on you or allies. BLU: only `BluMagTH` spells, always (AoE). Main/Sub/Range stay on while `/th` is on, tagged or not (Sub only if you can dual wield; a weapon swap resets TP) |
 | `HolyWater` | When Doomed (else `gcinclude.sets.Holy_Water`) |
-| `Incapacitated` | Slept, petrified, stunned or terrorized: `Dt` minus Main/Sub/Range/Ammo goes on, then this set (extras, empty by default) on top. Not charmed: the client can't change gear then and GearSwap never sends any |
+| `Incapacitated` | Slept, petrified, stunned or terrorized: your `/def` set (`mdt` or `Aminon`; else `Dt`, as SIRD is midcast only) minus Main/Sub/Range/Ammo goes on, then this set (extras, empty by default) on top, then any `*_Received` set. Not charmed: the client can't change gear then and GearSwap never sends any |
 | `Sleeping` | Asleep, over `Incapacitated` (else `gcinclude.sets.Sleeping`). Main/Sub/Range in it go on past the TP hold (not past `/lock`), e.g. WHM/GEO `Main = 'Lorg Mor'`: a Prime stage 1-2 weapon's "Slowly devours your soul" drains 1 HP and 1 MP every 3s, which wakes you (BG-Wiki Prime weapons; not Diabolos' Nightmare). A weapon swap resets TP. Awake again, your normal weapon comes back |
 | `XIRoll` | Idle only, with a roll on you at 11 (default Roller's Ring) |
 | `Absorb` | Absorb-TP and every other Absorb- spell, over midcast |
@@ -301,7 +299,7 @@ Moonshade goes in Ear2 on WS below `MoonshadeTP` (1750), except `MoonshadeSkip`.
 
 Layer order: your sets → weapons (+ `TH` weapons while `/th` is on) → mdt/Aminon → Hoxne → TH → received → buff sets → XIRoll →
 debuff (Incapacitated/Sleeping/Doom/Weakness) and craft/zeni/fish/rr sets.
-Midcast: job sets → TH → `Buffs_Midcast` → Absorb → LightBonus → obi/Orpheus/back/ring → SIR → required items.
+Midcast: job sets → TH → `Buffs_Midcast` → Absorb → LightBonus → obi/Orpheus/back/ring → SIR.
 WS: job sets → `Buffs_Ws` → Moonshade → obi/Orpheus/back.
 
 Sub vs Main (FFXIclopedia Grips): a two-handed main (Great Sword, Great Axe, Scythe, Polearm, Great Katana,

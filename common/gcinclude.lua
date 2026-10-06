@@ -999,44 +999,6 @@ end
 		return nil;
 	end
 
-	-- Items an action can't go without (BG-Wiki/FFXIclopedia): Dispelga needs Daybreak in main, Honor March
-	-- Marsyas, Aria of Passion Loughnashade, Impact a Twilight or Crepuscular Cloak for the whole cast (it
-	-- covers the head: the game empties it, so Head is 'displaced', per Thorny), Tomahawk a Thr. Tomahawk and
-	-- Angon an Angon in ammo.
-	-- Put on when carried; nothing is ever cancelled (the game itself refuses the action without the item).
-	gcinclude.RequiredGear = {
-		['Dispelga'] = { Main = T{'Daybreak'} },
-		['Honor March'] = { Range = T{'Marsyas'} },
-		['Aria of Passion'] = { Range = T{'Loughnashade'} },
-		['Impact'] = { Body = T{'Crepuscular Cloak', 'Twilight Cloak'}, Head = 'displaced' },
-		['Tomahawk'] = { Ammo = T{'Thr. Tomahawk'} },
-		['Angon'] = { Ammo = T{'Angon'} },
-	};
-
-	-- The gear to put on for this action, or nil when an item for it isn't carried (then nothing is changed).
-	function gcinclude.RequiredFor(name)
-		local req = gcinclude.RequiredGear[name or ''];
-		if (req == nil) then return nil end
-		local set = {};
-		for slot, items in pairs(req) do
-			if (type(items) == 'string') then
-				set[slot] = items;
-			else
-				for _, it in ipairs(items) do
-					if carriedName(it) then set[slot] = it; break end
-				end
-				if (set[slot] == nil) then return nil end
-			end
-		end
-		return set;
-	end
-
-	function gcinclude.CheckRequired()
-		local a = gData.GetAction();
-		local set = (a ~= nil) and gcinclude.RequiredFor(a.Name) or nil;
-		if (set ~= nil) then gFunc.EquipSet(set) end
-	end
-
 	-- Low ammo and Utsusemi tool warnings; nothing is cancelled (BG-Wiki Barrage: it fires only as many shots
 	-- as you have ammo). Says so the first time a count is at or under the limit, then every 10 fewer, and at 0.
 	local lowWarned = {};
@@ -1720,7 +1682,6 @@ end
 					else
 						gcinclude.CheckSupplies(); -- Utsusemi tools
 					end
-					gcinclude.CheckRequired(); -- Dispelga, Honor March, Aria, Impact, Tomahawk, Angon
 					if (gcinclude.SmartKeep == true) and ((name == 'HandlePrecast') or (name == 'HandleMidcast')) then
 						gcinclude.StripWeaponSwaps();
 					end
@@ -2601,23 +2562,28 @@ end
 		return out;
 	end
 
-	-- Slept, petrified, stunned or terrorized: Dt minus Main/Sub/Range/Ammo, then the job's Incapacitated set on top.
+	-- Slept, petrified, stunned or terrorized: your /def set (mdt or Aminon; else Dt, as SIRD is midcast only)
+	-- minus Main/Sub/Range/Ammo, then the job's Incapacitated set, then received gear.
 	-- Not charmed: the client can't change gear then and GearSwap never sends any (Windower GearSwap flow.lua).
 	gcinclude.IncapacitatedBuffs = T{'Sleep', 'Petrification', 'Stun', 'Terror'};
-	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
+	local noWeaponsOf = setmetatable({}, { __mode = 'k' }); -- built once per set table
 	function gcinclude.CheckIncapacitated()
 		local hit = false;
 		for _, b in ipairs(gcinclude.IncapacitatedBuffs) do
 			if (gcinclude.BuffCount(b) > 0) then hit = true; break end
 		end
 		if not hit then return end
-		local dt = gcinclude.FindSet('Dt');
-		if (dt ~= nil) then
-			if (dtNoWeaponsOf ~= dt) then dtNoWeapons, dtNoWeaponsOf = gcinclude.NoWeapons(dt), dt end
-			gFunc.EquipSet(dtNoWeapons);
+		local def;
+		if (gcdisplay.GetToggle('Aminon') == true) then def = gcinclude.FindSet('Aminon') or gcinclude.FindSet('mdt');
+		elseif (gcdisplay.GetToggle('MDTset') == true) then def = gcinclude.FindSet('mdt') end
+		def = def or gcinclude.FindSet('Dt');
+		if (def ~= nil) then
+			if (noWeaponsOf[def] == nil) then noWeaponsOf[def] = gcinclude.NoWeapons(def) end
+			gFunc.EquipSet(noWeaponsOf[def]);
 		end
 		local extra = gcinclude.FindSet('Incapacitated');
 		if (extra ~= nil) then gFunc.EquipSet(extra) end
+		gcinclude.CheckReceived(); -- gear for a Phalanx/Cure/etc. on its way still goes on top, as it does over /dt
 	end
 
 	function gcinclude.CheckCommonDebuffs()
