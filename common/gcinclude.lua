@@ -18,7 +18,7 @@
 			Ring1 = 'Purity Ring',
 			Ring2 = 'Blenmot\'s Ring',
 		},
-		Sleeping = { -- this set will auto equip if you are asleep
+		Sleeping = { -- this set will auto equip if you are asleep; a job file's own Sleeping set is used instead (Main allowed there)
 		},
 		Reraise = { -- this set will try to equip when weakened if AutoGear variable is true below or you can force it with /rrset in game
 			Head = 'Crepuscular Helm',
@@ -183,6 +183,7 @@
 		AmmoWarn = 20; -- warn when the ammo in use (inventory + wardrobes) is at or under this, 0 = never
 		NinjaToolWarn = 10; -- warn when Utsusemi tools (Shihei, + Shikanofuda on NIN) are at or under this, 0 = never
 		SleepCancelStoneskin = true; -- asleep with Stoneskin up: /cancel Stoneskin so damage can wake you (FFXIclopedia Sleep)
+		HardCCDt = true; -- petrified, stunned, terrorized or charmed: your Dt set goes on, minus main/sub/range/ammo
 		HoxneAutoUse = true; -- Hoxne On/Locked: use the Ampulla when it is in ammo and Enchantment isn't up
 	};
 
@@ -1100,10 +1101,30 @@ end
 		return (AshitaCore:GetMemoryManager():GetParty():GetMemberTP(0) >= guard); -- any status: a Main/Sub/Range swap resets TP idle too
 	end
 
+	-- Asleep: Main/Sub/Range named in the Sleeping set skip the TP hold, so a wake-up weapon can go on
+	-- (BG-Wiki Prime weapons: "Slowly devours your soul" drains HP/MP per tick, which wakes you from Sleep).
+	function gcinclude.SleepFreeSlots()
+		if (gcinclude.BuffCount('Sleep') == 0) then return nil end
+		local set = gcinclude.FindSet('Sleeping') or gcinclude.sets.Sleeping;
+		if (type(set) ~= 'table') then return nil end
+		local free = nil;
+		for k, _ in pairs(set) do
+			local slot = gData.GetEquipSlot(k);
+			if gcinclude.HoldSlots:contains(slot) then free = free or {}; free[slot] = true end
+		end
+		return free;
+	end
+
 	function gcinclude.UpdateHold()
 		if gcinclude.HoldActive() then
+			local free = gcinclude.SleepFreeSlots();
 			for _, slot in ipairs(gcinclude.HoldSlots) do
-				if (gcinclude.HeldSlots[slot] == nil) and (gcinclude.LockedSlots[slot] == nil) and (gState.Disabled[slot] ~= true) then
+				if (free ~= nil) and free[slot] then
+					if (gcinclude.HeldSlots[slot] ~= nil) then
+						if (gcinclude.LockedSlots[slot] == nil) then gState.Disabled[slot] = false end
+						gcinclude.HeldSlots[slot] = nil;
+					end
+				elseif (gcinclude.HeldSlots[slot] == nil) and (gcinclude.LockedSlots[slot] == nil) and (gState.Disabled[slot] ~= true) then
 					gState.Disabled[slot] = true;
 					gcinclude.HeldSlots[slot] = true;
 				end
@@ -2569,12 +2590,33 @@ end
 		end
 	end
 
+	gcinclude.DtCC = T{'Petrification', 'Stun', 'Terror', 'Charm'}; -- HardCC that gear can't end: Dt instead
+	local dtNoWeapons, dtNoWeaponsOf = nil, nil;
+	function gcinclude.CheckCCDt()
+		if (gcinclude.settings.HardCCDt ~= true) then return end
+		local hit = false;
+		for _, b in ipairs(gcinclude.DtCC) do
+			if (gcinclude.BuffCount(b) > 0) then hit = true; break end
+		end
+		if not hit then return end
+		local set = gcinclude.FindSet('Dt');
+		if (set == nil) then return end
+		if (dtNoWeaponsOf ~= set) then -- weapon/ammo swaps would cost TP or a Hoxne Enchantment: built once per set table
+			dtNoWeapons, dtNoWeaponsOf = {}, set;
+			for k, v in pairs(set) do
+				if not gcinclude.WeaponSlots:contains(gData.GetEquipSlot(k)) then dtNoWeapons[k] = v end
+			end
+		end
+		gFunc.EquipSet(dtNoWeapons);
+	end
+
 	function gcinclude.CheckCommonDebuffs()
 		local weakened = gcinclude.BuffCount(1); -- Weakness (buff 1; the name is 'weakness', not 'Weakened')
 		local sleep = gcinclude.BuffCount('Sleep');
 		local doom = (gcinclude.BuffCount('Doom'))+(gcinclude.BuffCount('Bane'));
 
-		if (sleep >= 1) then gFunc.EquipSet(gcinclude.sets.Sleeping) end
+		gcinclude.CheckCCDt();
+		if (sleep >= 1) then gFunc.EquipSet(gcinclude.FindSet('Sleeping') or gcinclude.sets.Sleeping) end
 		if (doom >= 1) then	gFunc.EquipSet(gcinclude.sets.Doomed) end
 		if (weakened >= 1) then gFunc.EquipSet(gcinclude.sets.Reraise) end
 	end

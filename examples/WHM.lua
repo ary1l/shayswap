@@ -70,6 +70,9 @@ local sets = {
         Legs = 'ebers pant. +2',
         Feet = 'bunzi\'s sabots',
     },
+    Sleeping = { -- worn while asleep, past the TP hold: stage 2 Lorg Mor "Slowly devours your soul" (HP/MP drain wakes you); stages 3+ don't drain
+        Main = 'Lorg Mor',
+    },
     SIR = {
         Ammo = 'Staunch Tathlum +1',
         Head = 'theo. cap +4',
