@@ -999,44 +999,6 @@ end
 		return nil;
 	end
 
-	-- Items an action can't go without (BG-Wiki/FFXIclopedia): Dispelga needs Daybreak in main, Honor March
-	-- Marsyas, Aria of Passion Loughnashade, Impact a Twilight or Crepuscular Cloak for the whole cast (it
-	-- covers the head: the game empties it, so Head is 'displaced', per Thorny), Tomahawk a Thr. Tomahawk and
-	-- Angon an Angon in ammo.
-	-- Put on when carried; nothing is ever cancelled (the game itself refuses the action without the item).
-	gcinclude.RequiredGear = {
-		['Dispelga'] = { Main = T{'Daybreak'} },
-		['Honor March'] = { Range = T{'Marsyas'} },
-		['Aria of Passion'] = { Range = T{'Loughnashade'} },
-		['Impact'] = { Body = T{'Crepuscular Cloak', 'Twilight Cloak'}, Head = 'displaced' },
-		['Tomahawk'] = { Ammo = T{'Thr. Tomahawk'} },
-		['Angon'] = { Ammo = T{'Angon'} },
-	};
-
-	-- The gear to put on for this action, or nil when an item for it isn't carried (then nothing is changed).
-	function gcinclude.RequiredFor(name)
-		local req = gcinclude.RequiredGear[name or ''];
-		if (req == nil) then return nil end
-		local set = {};
-		for slot, items in pairs(req) do
-			if (type(items) == 'string') then
-				set[slot] = items;
-			else
-				for _, it in ipairs(items) do
-					if carriedName(it) then set[slot] = it; break end
-				end
-				if (set[slot] == nil) then return nil end
-			end
-		end
-		return set;
-	end
-
-	function gcinclude.CheckRequired()
-		local a = gData.GetAction();
-		local set = (a ~= nil) and gcinclude.RequiredFor(a.Name) or nil;
-		if (set ~= nil) then gFunc.EquipSet(set) end
-	end
-
 	-- Low ammo and Utsusemi tool warnings; nothing is cancelled (BG-Wiki Barrage: it fires only as many shots
 	-- as you have ammo). Says so the first time a count is at or under the limit, then every 10 fewer, and at 0.
 	local lowWarned = {};
@@ -1720,7 +1682,6 @@ end
 					else
 						gcinclude.CheckSupplies(); -- Utsusemi tools
 					end
-					gcinclude.CheckRequired(); -- Dispelga, Honor March, Aria, Impact, Tomahawk, Angon
 					if (gcinclude.SmartKeep == true) and ((name == 'HandlePrecast') or (name == 'HandleMidcast')) then
 						gcinclude.StripWeaponSwaps();
 					end

@@ -117,8 +117,6 @@ Spells, abilities and WS that would fail are cancelled before any gear moves, wi
 | Stratagems at 0 | Cancelled, next charge time shown |
 | Waltz short on TP | Cancelled. Set `WaltzTPCut` to your gear's "Waltz TP cost" reduction |
 
-Items an action needs (Dispelga Daybreak, Honor March Marsyas, Aria of Passion Loughnashade, Impact Crepuscular or Twilight Cloak with Head emptied, Tomahawk/Angon ammo) are put on when carried; they never cancel anything.
-
 Charge-pool abilities (Ready, Sic, Quick Draw) skip the recast check. LAC only sees what the client sends,
 so anything the client refuses itself never gets here.
 
@@ -301,7 +299,7 @@ Moonshade goes in Ear2 on WS below `MoonshadeTP` (1750), except `MoonshadeSkip`.
 
 Layer order: your sets → weapons (+ `TH` weapons while `/th` is on) → mdt/Aminon → Hoxne → TH → received → buff sets → XIRoll →
 debuff (Incapacitated/Sleeping/Doom/Weakness) and craft/zeni/fish/rr sets.
-Midcast: job sets → TH → `Buffs_Midcast` → Absorb → LightBonus → obi/Orpheus/back/ring → SIR → required items.
+Midcast: job sets → TH → `Buffs_Midcast` → Absorb → LightBonus → obi/Orpheus/back/ring → SIR.
 WS: job sets → `Buffs_Ws` → Moonshade → obi/Orpheus/back.
 
 Sub vs Main (FFXIclopedia Grips): a two-handed main (Great Sword, Great Axe, Scythe, Polearm, Great Katana,
