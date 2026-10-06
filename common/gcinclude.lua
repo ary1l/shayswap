@@ -158,7 +158,7 @@
 		SIRSkip = T{}; -- spell names /sir leaves alone, e.g. T{'Phalanx','Reprisal'}
 		HoxneItem = 'Hoxne Ampulla'; -- what the Hoxne states keep in your ammo slot
 		HoxneLockSlots = T{'Ammo', 'Range'}; -- locked by the Locked state (nothing worn in Range can stay on with the Ampulla: SE forum ranged/ammo groups)
-		Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','automb'} }; -- bound on load, unbound on unload; T{} for none. Per job: set gcinclude.settings.Keybinds in OnLoad before gcinclude.Initialize()
+		Keybinds = T{ {'^`','wm'}, {'+`','wm default'}, {'^+`','def'}, {'!`','hoxne'}, {'@`','automb'} }; -- no bare grave (too easy to hit); bound on load, unbound on unload; T{} for none. Per job: set gcinclude.settings.Keybinds in OnLoad before gcinclude.Initialize()
 		XIRollSet = T{ Ring2 = 'Roller\'s Ring' }; -- used when a job file has no XIRoll set of its own
 		HUDOwners = T{'Shaymin'}; -- character names that open the alt HUD on load
 		HUDX = 300; -- alt HUD position; drag it in game, saved per character
@@ -2116,6 +2116,12 @@ end
 	function gcinclude.ApplyKeybinds()
 		local binds = gcinclude.settings.Keybinds;
 		if (type(binds) ~= 'table') then return end
+		-- bare grave used to be /wm: clear it unless a bind here still asks for it
+		local bare = false;
+		for _, bind in ipairs(binds) do
+			if (type(bind) == 'table') and (bind[1] == '`') then bare = true end
+		end
+		if not bare then AshitaCore:GetChatManager():QueueCommand(-1, '/unbind `') end
 		for _, bind in ipairs(binds) do
 			if (type(bind) == 'table') and (bind[1] ~= nil) and (bind[2] ~= nil) then
 				AshitaCore:GetChatManager():QueueCommand(-1, '/bind ' .. bind[1] .. ' /lac fwd ' .. bind[2]);
@@ -2316,7 +2322,7 @@ end
 			'bar    : /gcbar [on|off|pos x y]',
 			'on/off : every toggle takes on|off (no arg flips it); /def off|dt|mdt|aminon|sird',
 			'nuke   : Burst set is automatic on live skillchains; /automb [on|off] = cast bursts by itself; /mbtier low|mid|high = its tier I|III|V; /burst = Burst set on every nuke',
-			'keys   : grave wm, Shift wm default, Ctrl def, Alt hoxne, Win automb; /gckey <key> <command>',
+			'keys   : Ctrl+grave wm, Shift+grave wm default, Ctrl+Shift+grave def, Alt+grave hoxne, Win+grave automb (no bare grave); /gckey <key> <command>',
 			'all of these work as /mss /lac fwd <command> for every box',
 		};
 		for _, line in ipairs(lines) do

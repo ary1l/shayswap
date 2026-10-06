@@ -49,7 +49,7 @@ gcinclude.WeaponItemMap = {
 
 | Command | Does |
 |---|---|
-| `/def [off\|dt\|mdt\|aminon\|sird]` | Sets one (or none); no arg cycles none → DT → MDT → Aminon → SIRD → none (Ctrl+grave) |
+| `/def [off\|dt\|mdt\|aminon\|sird]` | Sets one (or none); no arg cycles none → DT → MDT → Aminon → SIRD → none (Ctrl+Shift+grave) |
 | `/dt` `/mdt` `/aminon` | Toggle one. `/aminon` uses `mdt` if the job has no `Aminon` set, and locks Main/Sub (the set's items, else what you wear) plus Range/Ammo when the set names them, until off; other slots still swap for actions |
 | `/sir` | `SIR` set over every midcast. `SIRSkip` exempts spells; engaged or not |
 | `/hoxne` | Off → On → Locked (Alt+grave). On keeps the ampulla in Ammo and keeps bows/guns/crossbows out of Range (they need matching ammo); Locked also locks Ammo and Range (an instrument in Range would knock the ampulla off). `/hoxne use` goes Locked and uses it. While On/Locked it is used when it is in Ammo and the Enchantment status isn't up (BG-Wiki: Double Attack +100% for 30 min as Enchantment, 60s recast, 5s use delay, lost when unequipped or zoning); Enchantment up, it is never used; it waits until Enchantment has been gone 3s (it drops as you cross a zone line). Zoning sets it back to Off. `HoxneAutoUse = false` stops the automatic use |
@@ -353,17 +353,18 @@ Obi score: day +10, weather +10 (double +25), opposing element subtracts. Orpheu
 
 | Key | Command |
 |---|---|
-| grave | `wm` |
+| Ctrl+grave | `wm` |
 | Shift+grave | `wm default` |
-| Ctrl+grave | `def` |
+| Ctrl+Shift+grave | `def` |
 | Alt+grave | `hoxne` |
 | Win+grave | `automb` |
 
 ```lua
-Keybinds = T{ {'`','wm'}, {'+`','wm default'}, {'^`','def'}, {'!`','hoxne'}, {'@`','automb'} };
+Keybinds = T{ {'^`','wm'}, {'+`','wm default'}, {'^+`','def'}, {'!`','hoxne'}, {'@`','automb'} };
 ```
 
-Prefixes: `!` Alt, `^` Ctrl, `+` Shift, `@` Win, `#` Apps. `T{}` = none. Binds replace existing ones
+Prefixes: `!` Alt, `^` Ctrl, `+` Shift, `@` Win, `#` Apps; combine them (`^+` = Ctrl+Shift). Bare grave is left
+unbound (too easy to hit; cleared on load unless a bind asks for it). `T{}` = none. Binds replace existing ones
 on that key and are removed on unload; check `/bind list`. `/bind block 1` stops them firing while
 typing. If Win+grave opens Start, try `/keyboard winkey 0` or another key.
 

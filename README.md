@@ -22,9 +22,9 @@ Full reference: `COMMANDS.md`.
 
 | Key | Does |
 |---|---|
-| grave | Next weapon mode (`/wm`) |
+| Ctrl+grave | Next weapon mode (`/wm`) |
 | Shift+grave | Default weapons |
-| Ctrl+grave | `/def`: DT → MDT → Aminon → SIRD |
+| Ctrl+Shift+grave | `/def`: DT → MDT → Aminon → SIRD |
 | Alt+grave | `/hoxne` |
 | Win+grave | `/automb` |
 
