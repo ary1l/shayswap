@@ -125,7 +125,7 @@ so anything the client refuses itself never gets here.
 | Command | Does |
 |---|---|
 | `/autofood [on\|off]` | Eat when Food is missing (outside town, not moving) |
-| `/autosoda [on\|off]` | Use `SodaItem` when Regain is missing; 20s between tries, off after `ConsumableMaxTries` (2) |
+| `/autosoda [on\|off]` | Use `SodaItem` when Regain is missing; 20s between tries, off after `ConsumableMaxTries` (2) and on zoning |
 | `/revit [on\|off]` | Zone item list (below) |
 | `/holywater [on\|off]` | Holy Water on Doom (on by default) |
 | `/gce <item>` | Equip enchanted item, lock slot, wait its delay, use |
