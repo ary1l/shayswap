@@ -43,7 +43,7 @@ Full reference: `COMMANDS.md`.
   Hoxne Ampulla used when its Enchantment buff isn't up; low ammo / Utsusemi tool warnings; `/cancel Stoneskin` when asleep under it;
   your /def set (else Dt) minus weapons + `Incapacitated` when slept/petrified/stunned/terrorized, `Sleeping` over it when asleep (its weapons past the TP hold, e.g. Lorg Mor to wake);
   Moonshade under 1750 TP on every WS; Holy Water
-  on Doom; food and soda; `/th`: TH gear at rest and on spells/shots at a mob until it is tagged (your hit, shot,
+  on Doom; food and soda (both off on zoning); `/th`: TH gear at rest and on spells/shots at a mob until it is tagged (your hit, shot,
   WS, ability, or a spell/step that lands; BLU: `BluMagTH` spells only), `TH`-set weapons the whole time; lockstyle on load if `LockstyleSet` is set.
 - **Action checks**: spells, abilities and WS that would fail are cancelled before any gear moves, with the
   reason in chat. A recast back within 5s is queued and fires when ready, after the forced delay of your last action

@@ -873,9 +873,13 @@ function gcauto.Start()
         if (e.id == 0x000B) and (inc ~= nil) and (inc.OnZoneOut ~= nil) then pcall(function() inc.OnZoneOut(struct.unpack('L', e.data, 0x04 + 1)) end) end -- LogoutState
         if (e.id == 0x000A) and (inc ~= nil) and (inc.OnZone ~= nil) then pcall(inc.OnZone) end
         if (e.id == 0x000A) then gcauto.RollReset(); gcauto.ClearTags(); lockUntil = 0; jaLockUntil = 0; lastCombat = -1e9; monsterCache = {}; soda = { lock = 0, tries = 0 }; mbres = {}; mbst = {} end
-        if (e.id == 0x000A) and (disp ~= nil) and (disp.GetToggle('AutoSoda') == true) then -- AutoSoda goes off on zoning
-            disp.SetToggle('AutoSoda', false);
-            say('AutoSoda off (zoned)');
+        if (e.id == 0x000A) and (disp ~= nil) then -- AutoFood and AutoSoda go off on zoning
+            for _, name in ipairs({ 'AutoFood', 'AutoSoda' }) do
+                if (disp.GetToggle(name) == true) then
+                    disp.SetToggle(name, false);
+                    say(name .. ' off (zoned)');
+                end
+            end
         end
     end);
 end

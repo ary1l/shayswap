@@ -3,6 +3,7 @@
 Every command works as `/name` or `/lac fwd name`. All boxes: `/mss /lac fwd <cmd>`.
 One box: `/ms sendto <name> /lac fwd <cmd>`.
 
+Zoning turns off `/autofood`, `/autosoda` and `/hoxne` (re-arm them where you want them).
 While zoning (from the server's zone-line reply until 3s after arriving) nothing is sent by itself: no item uses,
 queued actions, food/soda or auto-casts.
 
@@ -124,7 +125,7 @@ so anything the client refuses itself never gets here.
 
 | Command | Does |
 |---|---|
-| `/autofood [on\|off]` | Eat when Food is missing (outside town, not moving) |
+| `/autofood [on\|off]` | Eat when Food is missing (outside town, not moving); off on zoning |
 | `/autosoda [on\|off]` | Use `SodaItem` when Regain is missing; 20s between tries, off after `ConsumableMaxTries` (2) and on zoning |
 | `/revit [on\|off]` | Zone item list (below) |
 | `/holywater [on\|off]` | Holy Water on Doom (on by default) |
