@@ -478,7 +478,8 @@ local function draw_cell(row, key, c)
     if (c.cmd == nil) then
         imgui.Text(c.text);
     else
-        clicked = imgui.SmallButton(c.text .. '##' .. row.Name .. key);
+        c.id = c.id or (c.text .. '##' .. row.Name .. key); -- cells live until the next read, so built once
+        clicked = imgui.SmallButton(c.id);
     end
     imgui.PopStyleColor();
     tip(c.tip);
@@ -507,14 +508,9 @@ local function columns(orderKey, canonical)
     return out;
 end
 
-local function body()
-    if (#rows == 0) then
-        imgui.Text('no characters reporting');
-        track_drag();
-        return;
-    end
-
-    -- build cells, pick visible cycle columns
+-- Cells, visible columns and widths depend only on the rows (re-read every 0.5s), the style, the text
+-- scale and the window origin, so they are built when one of those changes, not every frame.
+local function build_grid(x0)
     local ccols = columns('CycleOrder', gchud.CycleOrder);
     local tcols = columns('ToggleOrder', gchud.ToggleOrder);
     local cells = {};
@@ -560,25 +556,47 @@ local function body()
 
     -- measure
     local gap = textw(string.rep(' ', style().gap));
-    local x0 = imgui.GetCursorPosX();
     local nameW = 0;
     for _, row in ipairs(rows) do nameW = math.max(nameW, textw(short_name(row.Name)) + PADX * 2) end
     local cols = {};
     local x = x0 + nameW + gap;
     local function add(key, kind, center)
-        local w = textw(label(key));
+        local l = label(key);
+        local lw = textw(l);
+        local w = lw;
         for i = 1, #rows do
             local c = cells[i][kind][key];
             if (c ~= nil) then c.w = textw(c.text); w = math.max(w, c.w) end -- reused when the row is drawn
         end
         w = w + PADX * 2;
-        cols[#cols + 1] = { key = key, kind = kind, x = x, w = w, center = center };
+        cols[#cols + 1] = { key = key, kind = kind, x = x, w = w, center = center, label = l, labelW = lw, tip = FULL[key] or key };
         x = x + w + gap;
     end
     for _, k in ipairs(vis) do add(k, 'c', false) end
     x = x + gap; -- group gap
     for _, k in ipairs(gvis) do add(k, 'g', false) end
     for _, k in ipairs(tvis) do add(k, 't', true) end
+    local nameIds = {};
+    for i, row in ipairs(rows) do nameIds[i] = short_name(row.Name) .. '##' .. row.Name .. 'row' end
+    return { rows = rows, style = style_name(), x0 = x0, cells = cells, cols = cols, nameIds = nameIds,
+        ccols = ccols, tcols = tcols, shown = shown, gshown = gshown, tshown = tshown };
+end
+
+local grid = nil;
+local function body(scale)
+    if (#rows == 0) then
+        imgui.Text('no characters reporting');
+        track_drag();
+        return;
+    end
+    local x0 = imgui.GetCursorPosX();
+    local g = grid;
+    if (g == nil) or (g.rows ~= rows) or (g.style ~= style_name()) or (g.scale ~= scale) or (g.x0 ~= x0) then
+        g = build_grid(x0);
+        g.scale = scale;
+        grid = g;
+    end
+    local cells, cols, ccols, tcols, shown, gshown, tshown = g.cells, g.cols, g.ccols, g.tcols, g.shown, g.gshown, g.tshown;
     local function at(col, textWidth, first)
         local cx = col.x;
         if col.center then cx = cx + math.floor((col.w - textWidth) / 2) end
@@ -588,11 +606,10 @@ local function body()
     -- header
     imgui.PushStyleColor(ImGuiCol_Text, COL_KEY);
     for i, col in ipairs(cols) do
-        local l = label(col.key);
-        at(col, textw(l), i == 1);
+        at(col, col.labelW, i == 1);
         if not col.center then imgui.SetCursorPosX(imgui.GetCursorPosX() + PADX) end
-        imgui.Text(l);
-        tip(FULL[col.key] or col.key);
+        imgui.Text(col.label);
+        tip(col.tip);
     end
     imgui.PopStyleColor();
 
@@ -601,9 +618,11 @@ local function body()
         local open = (expanded[row.Name] == true);
         imgui.SetCursorPosX(x0);
         imgui.PushStyleColor(ImGuiCol_Text, COL_NAME);
-        local clicked = imgui.SmallButton(short_name(row.Name) .. '##' .. row.Name .. 'row');
+        local clicked = imgui.SmallButton(g.nameIds[i]);
         imgui.PopStyleColor();
-        tip(row.Name .. '  ' .. tostring(row.Job) .. '  (click: ' .. (open and 'hide' or 'show') .. ' details)');
+        if imgui.IsItemHovered() then
+            tip(row.Name .. '  ' .. tostring(row.Job) .. '  (click: ' .. (open and 'hide' or 'show') .. ' details)');
+        end
         for _, col in ipairs(cols) do
             local c = cells[i][col.kind][col.key];
             if (c ~= nil) then
@@ -642,9 +661,9 @@ local function body()
             for _, k in ipairs(tcols) do
                 local c = cells[i].t[k];
                 if (c ~= nil) and not tshown[k] then
-                    local l = label(k);
                     imgui.SameLine();
-                    draw_cell(row, k, { text = l, col = c.col, cmd = c.cmd, tip = c.tip });
+                    c.alt = c.alt or { text = label(k), col = c.col, cmd = c.cmd, tip = c.tip };
+                    draw_cell(row, k, c.alt);
                 end
             end
         end
@@ -663,7 +682,7 @@ local function inner()
         imgui.PushFont(nil, imgui.GetFontSize() * scale);
         fontPushed = true;
     end
-    body();
+    body(scale);
 end
 
 local function render()
