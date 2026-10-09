@@ -15,6 +15,8 @@ local MainLV = 0;
 local SubLV = 0;
 local Main = 'FOO';
 local Sub = 'BAR';
+local headText = '';
+local toggleKeys, cycleKeys = nil, nil; -- sorted names for the bar, rebuilt when a toggle or cycle is added
 
 function gcdisplay.AdvanceCycle(name)
 	local ctable = Cycles[name];
@@ -52,7 +54,9 @@ function gcdisplay.SetToggle(name, val)
 	Toggles[name] = (val == true);
 end
 
+-- Only the bar shows these, so nothing is read while it is off (BarCommand reads them when it goes on).
 function gcdisplay.Update()
+    if (cfg == nil) or (cfg.DisplayBar ~= true) then return end
     local player = AshitaCore:GetMemoryManager():GetPlayer();
     if (player == nil) then return; end
 
@@ -64,9 +68,11 @@ function gcdisplay.Update()
     SubLV = player:GetSubJobLevel();
     Main = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", MID) or 'NON';
     Sub = AshitaCore:GetResourceManager():GetString("jobs.names_abbr", SID) or 'NON';
+    headText = string.format('%d%s/%d%s  Atk:%d  Def:%d', MainLV, Main, SubLV, Sub, Attk, Def);
 end
 
 function gcdisplay.CreateToggle(name, default)
+	if (Toggles[name] == nil) then toggleKeys = nil end
 	Toggles[name] = default;
 end
 
@@ -91,6 +97,7 @@ function gcdisplay.CreateCycle(name, values)
 		Index = 1,
 		Array = values
 	};
+	if (Cycles[name] == nil) then cycleKeys = nil end
 	Cycles[name] = newCycle;
 end
 
@@ -108,6 +115,7 @@ function gcdisplay.ClearAll()
 	Cycles = {};
 	DefToggles = {};
 	DefCycles = {};
+	toggleKeys, cycleKeys = nil, nil;
 end
 
 -- Snapshot of every toggle and cycle right after the job loads; the HUD hides values still at it.
@@ -180,14 +188,16 @@ local function track_drag()
 end
 
 local function bar_body()
-	imgui.Text(string.format('%d%s/%d%s  Atk:%d  Def:%d', MainLV, Main, SubLV, Sub, Attk, Def));
-	for _, k in ipairs(sorted_keys(Toggles)) do
+	imgui.Text(headText);
+	toggleKeys = toggleKeys or sorted_keys(Toggles);
+	cycleKeys = cycleKeys or sorted_keys(Cycles);
+	for _, k in ipairs(toggleKeys) do
 		imgui.SameLine();
 		imgui.PushStyleColor(ImGuiCol_Text, (Toggles[k] == true) and COL_ON or COL_OFF);
 		imgui.Text(k);
 		imgui.PopStyleColor();
 	end
-	for _, k in ipairs(sorted_keys(Cycles)) do
+	for _, k in ipairs(cycleKeys) do
 		local c = Cycles[k];
 		imgui.SameLine();
 		imgui.PushStyleColor(ImGuiCol_Text, COL_VAL);
@@ -228,6 +238,7 @@ function gcdisplay.BarCommand(args)
 	elseif (arg == 'on') then cfg.DisplayBar = true;
 	elseif (arg == 'off') then cfg.DisplayBar = false;
 	else cfg.DisplayBar = not (cfg.DisplayBar == true) end
+	gcdisplay.Update();
 	barPlaced = false;
 	bar_save();
 	print(chat.header('GCinclude'):append(chat.message('Display bar: ' .. (cfg.DisplayBar and 'On' or 'Off'))));

@@ -633,6 +633,16 @@ end
 		end
 	end
 
+	-- gData.GetEquipSlot lowercases all 16 slot names and the key on every call (LAC data.lua); EquipSet runs
+	-- through it for every key while Hoxne is on, so each name is resolved once. Same result for every key.
+	local slotNum = {};
+	local function slotOf(k)
+		if (type(k) ~= 'string') then return gData.GetEquipSlot(k) end
+		local n = slotNum[k];
+		if (n == nil) then n = gData.GetEquipSlot(k); slotNum[k] = n end
+		return n;
+	end
+
 	gcinclude.WeaponSlots = T{1, 2, 3, 4};
 	gcinclude.WeaponSlotNames = T{'Main', 'Sub', 'Range', 'Ammo'};
 	gcinclude.WeaponCommands = T{weaponset = 'Weapons', wm = 'Weapons', mainset = 'Main', subset = 'Sub', rangeset = 'Range', ammoset = 'Ammo'};
@@ -794,7 +804,7 @@ end
 			local hit = false;
 			for _, name in ipairs(gcinclude.AllSlotNames) do
 				if (string.sub(string.lower(name), 1, string.len(want)) == want) then
-					local n = gData.GetEquipSlot(name);
+					local n = slotOf(name);
 					hit = true;
 					if not slots:contains(n) then slots:append(n) end
 				end
@@ -806,7 +816,7 @@ end
 
 	function gcinclude.SlotName(index)
 		for _, name in ipairs(gcinclude.AllSlotNames) do
-			if (gData.GetEquipSlot(name) == index) then return name end
+			if (slotOf(name) == index) then return name end
 		end
 		return tostring(index);
 	end
@@ -868,7 +878,7 @@ end
 		gcinclude.ReleaseHold(key);
 		local out, owned = {}, T{};
 		for slotName, item in pairs(set) do
-			local n = gData.GetEquipSlot(slotName);
+			local n = slotOf(slotName);
 			if (n ~= 0) and (gState.Disabled[n] ~= true) then out[slotName] = item; owned:append(n) end
 		end
 		if (#owned == 0) then return false end
@@ -1070,7 +1080,7 @@ end
 		if (type(set) ~= 'table') then return nil end
 		local free = nil;
 		for k, _ in pairs(set) do
-			local slot = gData.GetEquipSlot(k);
+			local slot = slotOf(k);
 			if gcinclude.HoldSlots:contains(slot) then free = free or {}; free[slot] = true end
 		end
 		return free;
@@ -1111,8 +1121,8 @@ end
 	local ENCHANT_EQUIP_WAIT = 10; -- give up if the item never shows up in the slot
 	local ENCHANT_USE_WAIT = 15;   -- after Item (Start), wait this long for Item (Finish), then retry
 
-	local function equippedItem(slot)
-		local inv = AshitaCore:GetMemoryManager():GetInventory();
+	local function equippedItem(slot, inv)
+		inv = inv or AshitaCore:GetMemoryManager():GetInventory();
 		local e = inv:GetEquippedItem(slot - 1);
 		local index = (e ~= nil) and bit.band(e.Index, 0x00FF) or 0;
 		if (index == 0) then return nil end
@@ -1129,8 +1139,10 @@ end
 	-- also when the item was put on by a set just before (e.g. Hoxne's 5s use delay, BG-Wiki).
 	local slotSeen = {};
 	local function trackSlots(now)
+		local inv = AshitaCore:GetMemoryManager():GetInventory(); -- once for all 16 slots
 		for slot = 1, 16 do
-			local id = equippedId(slot);
+			local item = equippedItem(slot, inv);
+			local id = (item ~= nil) and item.Id or nil;
 			local s = slotSeen[slot];
 			if (id == nil) then
 				slotSeen[slot] = nil;
@@ -1320,7 +1332,7 @@ end
 		if (type(set) ~= 'table') then return end
 		local out, n = {}, 0;
 		for k, v in pairs(set) do
-			local slot = gData.GetEquipSlot(k);
+			local slot = slotOf(k);
 			if (slot ~= 0) and (gState.Disabled[slot] ~= true) then
 				out[k] = v;
 				n = n + 1;
@@ -1869,7 +1881,7 @@ end
 				end
 			else
 				for k, v in pairs(set) do
-					local slot = gData.GetEquipSlot(k);
+					local slot = slotOf(k);
 					if gcinclude.WeaponSlots:contains(slot) then
 						equip[gcinclude.WeaponSlotNames[slot]] = v;
 					end
@@ -1886,7 +1898,7 @@ end
 			local th = gcinclude.FindSet('TH');
 			if (th ~= nil) then
 				for k, v in pairs(th) do
-					local slot = gData.GetEquipSlot(k);
+					local slot = slotOf(k);
 					if gcinclude.HoldSlots:contains(slot) and ((slot ~= 2) or gcinclude.CanDualWield()) then equip[gcinclude.WeaponSlotNames[slot]] = v end
 				end
 			end
@@ -1929,10 +1941,10 @@ end
 		if (thGearOf ~= set) then
 			thGear, thGearOf = set, set;
 			for k, _ in pairs(set) do
-				if gcinclude.HoldSlots:contains(gData.GetEquipSlot(k)) then
+				if gcinclude.HoldSlots:contains(slotOf(k)) then
 					thGear = {};
 					for k2, v2 in pairs(set) do
-						if not gcinclude.HoldSlots:contains(gData.GetEquipSlot(k2)) then thGear[k2] = v2 end
+						if not gcinclude.HoldSlots:contains(slotOf(k2)) then thGear[k2] = v2 end
 					end
 					break;
 				end
@@ -1967,7 +1979,7 @@ end
 		if (type(set) == 'string') then set = gcinclude.FindSet(set) or set end
 		if (type(set) ~= 'table') or (not gcinclude.HoxneOn()) then return set end
 		for k, v in pairs(set) do
-			if (gData.GetEquipSlot(k) == 3) and gcinclude.NeedsAmmo(v) then
+			if (slotOf(k) == 3) and gcinclude.NeedsAmmo(v) then
 				local out = {};
 				for k2, v2 in pairs(set) do if (k2 ~= k) then out[k2] = v2 end end
 				return out;
@@ -1986,7 +1998,7 @@ end
 			return gFunc.GcRawEquipSet(set);
 		end
 		gFunc.Equip = function(slot, item)
-			if (gcinclude ~= nil) and (gcinclude.HoxneOn ~= nil) and gcinclude.HoxneOn() and (gData.GetEquipSlot(slot) == 3) and gcinclude.NeedsAmmo(item) then return end
+			if (gcinclude ~= nil) and (gcinclude.HoxneOn ~= nil) and gcinclude.HoxneOn() and (slotOf(slot) == 3) and gcinclude.NeedsAmmo(item) then return end
 			return gFunc.GcRawEquip(slot, item);
 		end
 	end
@@ -2163,7 +2175,7 @@ end
 			return false;
 		end
 		local delay, source = gcinclude.EnchantDelay(name, res);
-		local index = gData.GetEquipSlot(slot);
+		local index = slotOf(slot);
 		gcinclude.ReleaseEnchant(index); -- a new /gce on the same slot replaces the old one
 		local wasLocked = (gcinclude.LockedSlots[index] == true);
 		if wasLocked and (allowLocked ~= true) then
@@ -2382,10 +2394,10 @@ end
 		local set = gcinclude.FindSet('Aminon') or gcinclude.FindSet('mdt') or {};
 		local wear, take = {}, T{};
 		for _, name in ipairs(gcinclude.AminonSlots) do
-			local slot = gData.GetEquipSlot(name);
+			local slot = slotOf(name);
 			local key = nil;
 			for k, _ in pairs(set) do
-				if (gData.GetEquipSlot(k) == slot) then key = k end -- set keys in any case
+				if (slotOf(k) == slot) then key = k end -- set keys in any case
 			end
 			if (gcinclude.LockedSlots[slot] == nil) and ((key ~= nil) or gcinclude.AminonAlways:contains(slot)) then
 				if (key ~= nil) then wear[key] = set[key] end
@@ -2557,7 +2569,7 @@ end
 	function gcinclude.NoWeapons(set)
 		local out = {};
 		for k, v in pairs(set or {}) do
-			if not gcinclude.WeaponSlots:contains(gData.GetEquipSlot(k)) then out[k] = v end
+			if not gcinclude.WeaponSlots:contains(slotOf(k)) then out[k] = v end
 		end
 		return out;
 	end
@@ -2920,6 +2932,7 @@ end
 		end
 	end
 
+local UTIL_ORDER = {'craftset', 'zeniset', 'fishset', 'rrset'};
 function gcinclude.CheckDefault()
     -- Self-healing check: Rebuild toggles if the memory manager updates to a new job
     local player = AshitaCore:GetMemoryManager():GetPlayer();
@@ -2939,7 +2952,7 @@ function gcinclude.CheckDefault()
     gcinclude.CheckWeapons(me);
     gcinclude.CheckCommonDebuffs();
     gcinclude.CheckLockingRings();
-    for _, cmd in ipairs({'craftset', 'zeniset', 'fishset', 'rrset'}) do
+    for _, cmd in ipairs(UTIL_ORDER) do
         if gcinclude.UtilOn[cmd] then gFunc.EquipSet(gcinclude.sets[gcinclude.UtilSets[cmd]]) end
     end
     gcdisplay.Update();
