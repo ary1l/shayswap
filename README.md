@@ -1,13 +1,34 @@
 # ShaySwap
 
-LuAshitacast engine for multiboxing. You fill in sets; it picks the gear.
+LuAshitacast engine for multiboxing. You fill in sets; it picks the gear. Runs on Ashita v4, and on
+Windower 4 through the GearSwap adapter in `windower/`.
 Full reference: `COMMANDS.md`.
 
 ## Install
 
+### Ashita v4 (LuAshitacast)
+
 1. Copy `common/` and `examples/` into `Ashita/config/addons/luashitacast/`.
-2. Copy `examples/<JOB>.lua` into your character folder (`<Name>_<id>/`).
-3. `/lac load` (or change job). After edits: `/lac reload`.
+2. Copy `examples/<JOB>.lua` into your character folder (`luashitacast/<Name>_<id>/`) and put in your gear.
+3. `/addon load luashitacast`, then `/lac load` (or change job). After edits: `/lac reload`.
+
+### Windower 4 (GearSwap)
+
+1. Copy everything in `windower/GearSwap/data/` into `Windower/addons/GearSwap/data/`
+   (that is `default.lua` and the `shayswap/` folder).
+2. Copy `common/` to `Windower/addons/GearSwap/data/shayswap/common/`.
+3. Copy `examples/<JOB>.lua` to `Windower/addons/GearSwap/data/shayswap/<Name>/<JOB>.lua` and put in your gear.
+   A job file straight in `shayswap/` (no name folder) is used by every character.
+4. `//lua load gearswap`, then change job (or `//gs reload`).
+
+- GearSwap only uses `default.lua` for jobs with no GearSwap file of their own. Already have a
+  `default.lua`? Rename this one to `<Name>.lua`.
+- Commands take two slashes: `//wm`, `//def`, `//gchud` (or `//gs c wm`). All boxes:
+  `//send @all gs c <command>` (Send addon). Keys are the same as Ashita.
+- Updating: replace `shayswap/common/` (and `shayswap/*.lua` if `windower/` changed).
+- Windower differences: the HUD and bar are display only (use commands; drag to move; boxes on one PC
+  share HUD state over IPC). Auto-nuke casts at the mob without targeting it. Packer list: `//gs org`
+  (needs the Organizer addon). The bar shows Atk/Def as 0.
 
 ## Quick start
 

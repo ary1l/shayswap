@@ -1,7 +1,7 @@
 -- ShaySwap for Windower: the Ashita calls common/*.lua and the job files make, answered from Windower.
 -- Only what ShaySwap uses is here. Anything else prints one "not on Windower" line and returns nil.
 --
--- Units checked against the sources (see WINDOWER_PORT.md):
+-- Units checked against the sources:
 --   spell cast/recast   Ashita quarter-seconds (LAC: CastTime * 0.25)  <- Windower seconds * 4
 --   spell recast timer  Ashita 1/60 s                                   <- Windower get_spell_recasts, 1/60 s
 --   ability recast      Ashita 1/60 s                                   <- Windower get_ability_recasts, seconds * 60
@@ -18,6 +18,60 @@ local function unsupported(what)
     windower.add_to_chat(123, '[ShaySwap] not on Windower: ' .. what);
 end
 A.Unsupported = unsupported;
+
+-- windower.ffxi reads, kept until the next event. Windower builds a new table on every read
+-- (get_items() copies every bag), and the game does not change while one event runs, so each read is
+-- made once per event. core.lua calls A.Fresh() as each event (frame, packet, GearSwap call, timer) starts.
+local raw = windower.ffxi;
+local memo = {};
+local NONE = {};
+function A.Fresh() memo = {} end
+local function kept(t, k, fn, ...)
+    local v = t[k];
+    if (v == nil) then
+        v = fn(...);
+        t[k] = (v == nil) and NONE or v;
+        return v;
+    end
+    if (v == NONE) then return nil end
+    return v;
+end
+-- A value built from those reads, kept for the rest of the event (gData.GetPlayer, GetEnvironment).
+function A.PerEvent(key, build) return kept(memo, key, build) end
+local function kept0(name)
+    local fn = raw[name];
+    return function() return kept(memo, name, fn) end
+end
+local function kept1(name)
+    local fn = raw[name];
+    return function(k)
+        if (k == nil) then return fn() end
+        local t = memo[name];
+        if (t == nil) then t = {}; memo[name] = t end
+        return kept(t, k, fn, k);
+    end
+end
+A.ffxi = setmetatable({
+    get_player = kept0('get_player'),
+    get_party = kept0('get_party'),
+    get_info = kept0('get_info'),
+    get_spells = kept0('get_spells'),
+    get_spell_recasts = kept0('get_spell_recasts'),
+    get_ability_recasts = kept0('get_ability_recasts'),
+    get_mob_by_index = kept1('get_mob_by_index'),
+    get_mob_by_target = kept1('get_mob_by_target'),
+    get_mob_by_id = kept1('get_mob_by_id'),
+    get_bag_info = kept1('get_bag_info'),
+    get_items = function(bag, index)
+        if (bag == nil) then return kept(memo, 'get_items', raw.get_items) end
+        local bags = memo.get_items_at;
+        if (bags == nil) then bags = {}; memo.get_items_at = bags end
+        local t = bags[bag];
+        if (t == nil) then t = {}; bags[bag] = t end
+        if (index == nil) then return kept(t, 'all', raw.get_items, bag) end
+        return kept(t, index, raw.get_items, bag, index);
+    end,
+}, { __index = raw });
 
 -- Unknown methods on the stand-in objects warn once instead of erroring.
 local function object(name, t)
@@ -53,7 +107,7 @@ end
 if (rawget(functions, 'once') == nil) then
     functions.once = function(fn, delay, ...)
         local args, n = { ... }, select('#', ...);
-        return coroutine.schedule(function() fn(unpack(args, 1, n)) end, tonumber(delay) or 0);
+        return coroutine.schedule(function() A.Fresh(); fn(unpack(args, 1, n)) end, tonumber(delay) or 0);
     end
 end
 
@@ -62,6 +116,14 @@ end
 ---------------------------------------------------------------------------------------------------
 local SPELL_TYPE = { WhiteMagic = 1, BlackMagic = 2, SummonerPact = 3, Ninjutsu = 4, BardSong = 5, BlueMagic = 6,
     Geomancy = 7, Trust = 8 }; -- LAC names 1..6 (White..Blue); anything higher is 'Unknown' in LAC either way
+
+-- Resource objects are static: each is built once per id and handed out again.
+local built = { items = {}, spells = {}, abilities = {} };
+local function once(cache, id, make)
+    local v = cache[id];
+    if (v == nil) then v = make(id) or false; cache[id] = v end
+    return v or nil;
+end
 
 local function item_obj(r)
     if (r == nil) then return nil end
@@ -104,6 +166,19 @@ local function ability_obj(id)
         Range = r.range or 0, Targets = r.targets or 0 };
 end
 
+local function item_by_id(id)
+    if (id == nil) then return nil end
+    return once(built.items, id, function(i) return item_obj(wres.items[i]) end);
+end
+local function spell_by_id(id)
+    if (id == nil) then return nil end
+    return once(built.spells, id, function(i) return spell_obj(wres.spells[i]) end);
+end
+local function ability_by_id(id)
+    if (type(id) ~= 'number') then return nil end
+    return once(built.abilities, id, ability_obj);
+end
+
 -- Case-insensitive name -> lowest id, built on first use.
 local nameIndex = {};
 local function by_name(kind, name)
@@ -138,23 +213,23 @@ local resourceManager = object('IResourceManager', {
         if (f == nil) then unsupported('GetString ' .. tostring(tbl)); return nil end
         return f(tonumber(id) or -1);
     end,
-    GetItemById = function(_, id) return item_obj(wres.items[id]) end,
-    GetItemByName = function(_, name) local id = by_name('items', name); return id and item_obj(wres.items[id]) end,
-    GetSpellById = function(_, id) return spell_obj(wres.spells[id]) end,
-    GetSpellByName = function(_, name) local id = by_name('spells', name); return id and spell_obj(wres.spells[id]) end,
-    GetAbilityById = function(_, id) return ability_obj(id) end,
+    GetItemById = function(_, id) return item_by_id(id) end,
+    GetItemByName = function(_, name) local id = by_name('items', name); return id and item_by_id(id) end,
+    GetSpellById = function(_, id) return spell_by_id(id) end,
+    GetSpellByName = function(_, name) local id = by_name('spells', name); return id and spell_by_id(id) end,
+    GetAbilityById = function(_, id) return ability_by_id(id) end,
     GetAbilityByName = function(_, name)
         local id = by_name('job_abilities', name);
-        if (id ~= nil) then return ability_obj(id + 0x200) end
+        if (id ~= nil) then return ability_by_id(id + 0x200) end
         id = by_name('weapon_skills', name);
-        return id and ability_obj(id);
+        return id and ability_by_id(id);
     end,
 });
 
 ---------------------------------------------------------------------------------------------------
 -- Memory
 ---------------------------------------------------------------------------------------------------
-local ffxi = windower.ffxi;
+local ffxi = A.ffxi;
 
 local function me() return ffxi.get_player() end
 local function mob(i) if (type(i) ~= 'number') or (i <= 0) then return nil end return ffxi.get_mob_by_index(i) end
@@ -179,10 +254,13 @@ local player = object('IPlayer', {
         return (type(jp) == 'table') and (jp.jp_spent or 0) or 0;
     end,
     HasSpell = function(_, id) local s = ffxi.get_spells(); return (s ~= nil) and (s[id] == true) end,
-    GetBuffs = function()
+    GetBuffs = function() -- one copy per event (read only by gcinclude.BuffCount)
+        local out = memo.buffs;
+        if (out ~= nil) then return out end
         local p = me();
-        local out = {};
+        out = {};
         if (p ~= nil) and (type(p.buffs) == 'table') then for k, v in pairs(p.buffs) do out[k] = v end end
+        memo.buffs = out;
         return out;
     end,
     -- No zoning flag on Windower: treat "no player entity yet" as zoning.
@@ -237,7 +315,10 @@ local target = object('ITarget', {
 });
 
 -- Ability recast slots: 0 is recast id 0 (SP abilities); the rest are the timers now running.
+-- Built once per event (gcinclude reads every slot).
 local function ability_slots()
+    local hit = memo.ability_slots;
+    if (hit ~= nil) then return hit[1], hit[2] end
     local r = ffxi.get_ability_recasts() or {};
     local ids = {};
     for id, t in pairs(r) do
@@ -245,6 +326,7 @@ local function ability_slots()
     end
     table.sort(ids);
     table.insert(ids, 1, 0);
+    memo.ability_slots = { ids, r };
     return ids, r;
 end
 

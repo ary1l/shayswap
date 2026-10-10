@@ -16,7 +16,7 @@ local TICK = 0.2; -- seconds between HandleDefault runs while idle (tunable; not
 
 local A = include('shayswap/ashita.lua');
 local I = include('shayswap/imgui.lua');
-local wres, ffxi = gearswap.res, windower.ffxi;
+local wres, ffxi = gearswap.res, A.ffxi; -- ffxi reads kept per event (ashita.lua)
 
 local ctx = { root = ROOT, events = {}, inEvent = false };
 
@@ -70,13 +70,22 @@ gProfile = nil;
 ---------------------------------------------------------------------------------------------------
 -- Equip: LAC item tables -> GearSwap
 ---------------------------------------------------------------------------------------------------
+local slotOf = {}; -- slot key as written -> index (string.lower once per key)
 local function slot_index(slot)
     if (type(slot) == 'number') then return ((slot >= 1) and (slot <= 16)) and slot or 0 end
     if (type(slot) ~= 'string') then return 0 end
-    return C.SlotsLC[string.lower(slot)] or 0;
+    local n = slotOf[slot];
+    if (n == nil) then n = C.SlotsLC[string.lower(slot)] or 0; slotOf[slot] = n end
+    return n;
 end
 
+-- A plain item name always makes the same table, so it is made once (nothing writes to these).
+local plainItem = {};
 local function make_item(item) -- LAC equip.lua MakeItemTable
+    if (type(item) == 'string') then
+        local hit = plainItem[item];
+        if (hit ~= nil) then return hit end
+    end
     local t = {};
     if (type(item) == 'string') then
         t.Name = string.lower(item);
@@ -95,6 +104,7 @@ local function make_item(item) -- LAC equip.lua MakeItemTable
     end
     if (t.Name == 'remove') and (t.Priority == nil) then t.Priority = -100 end
     t.Priority = t.Priority or 0;
+    if (type(item) == 'string') then plainItem[item] = t end
     return t;
 end
 
@@ -373,6 +383,17 @@ local function pet_index()
     return pi;
 end
 
+local buffLower = {}; -- buff id -> lower-case name
+local function buff_name(b)
+    local n = buffLower[b];
+    if (n == nil) then
+        local r = wres.buffs[b];
+        n = (r ~= nil) and string.lower(r.en) or false;
+        buffLower[b] = n;
+    end
+    return n;
+end
+
 local function buff_count(match)
     local p = ffxi.get_player();
     local count = 0;
@@ -381,9 +402,8 @@ local function buff_count(match)
     for _, b in pairs(p.buffs) do
         if (type(want) == 'number') then
             if (b == want) then count = count + 1 end
-        else
-            local r = wres.buffs[b];
-            if (r ~= nil) and (string.lower(r.en) == want) then count = count + 1 end
+        elseif (buff_name(b) == want) then
+            count = count + 1;
         end
     end
     return count;
@@ -431,6 +451,73 @@ local function action_table(action, pet)
     return t;
 end
 
+-- gData.GetPlayer / GetEnvironment / GetEquipment: built once per event (A.PerEvent); nothing writes to them.
+local function player_table()
+    local p = ffxi.get_player();
+    if (p == nil) then return nil end
+    local m = ffxi.get_mob_by_index(p.index);
+    local v = p.vitals or {};
+    local moving = false;
+    if (m ~= nil) and (lastSentX ~= nil) then moving = (m.x ~= lastSentX) or (m.y ~= lastSentY) end
+    local mj, sj = wres.jobs[p.main_job_id or 0], wres.jobs[p.sub_job_id or 0];
+    return {
+        HP = v.hp or 0, MaxHP = v.max_hp or 0, HPP = v.hpp or 0,
+        MP = v.mp or 0, MaxMP = v.max_mp or 0, MPP = v.mpp or 0,
+        TP = v.tp or 0,
+        IsMoving = moving,
+        MainJob = mj and mj.ens or 'NON', MainJobLevel = p.main_job_level or 0, MainJobSync = p.main_job_level or 0,
+        SubJob = sj and sj.ens or 'NON', SubJobLevel = p.sub_job_level or 0, SubJobSync = p.sub_job_level or 0,
+        Name = p.name,
+        Status = resolve(C.EntityStatus, (m and m.status) or 0),
+    };
+end
+
+local function environment_table()
+    local info = ffxi.get_info() or {};
+    local e = {};
+    local z = wres.zones[info.zone or -1];
+    e.Area = z and z.en or nil;
+    local day = info.day or 0;
+    e.Day = C.WeekDay[(day % 8) + 1];
+    e.DayElement = C.WeekDayElement[(day % 8) + 1];
+    local t = info.time or 0; -- minutes after midnight
+    e.Time = math.floor(t / 60) + (t % 60) / 100;
+    e.Timestamp = { day = day, hour = math.floor(t / 60), minute = t % 60 };
+    local w = info.weather or 0;
+    e.RawWeather = resolve(C.Weather, w);
+    e.RawWeatherElement = resolve(C.WeatherElement, w);
+    local p = ffxi.get_player();
+    if (p ~= nil) and (type(p.buffs) == 'table') then
+        for _, b in pairs(p.buffs) do if (C.StormWeather[b] ~= nil) then w = C.StormWeather[b] end end
+    end
+    e.Weather = resolve(C.Weather, w);
+    e.WeatherElement = resolve(C.WeatherElement, w);
+    local mp = wres.moon_phases and wres.moon_phases[info.moon_phase or -1];
+    e.MoonPhase = mp and mp.en or nil;
+    e.MoonPercent = info.moon;
+    return e;
+end
+
+local function equipment_table()
+    local items = ffxi.get_items();
+    local eq = (type(items) == 'table') and items.equipment or nil;
+    local out = {};
+    if (type(eq) ~= 'table') then return out end
+    for n = 1, 16 do
+        local key = A.EquipKeys[n - 1];
+        local index, bag = eq[key], eq[key .. '_bag'];
+        if (type(index) == 'number') and (index > 0) then
+            local it = ffxi.get_items(bag, index);
+            local r = (type(it) == 'table') and wres.items[it.id] or nil;
+            if (r ~= nil) then
+                out[C.SlotNames[n]] = { Container = bag, Item = { Id = it.id, Index = index, Count = it.count },
+                    Name = r.en, Resource = AshitaCore:GetResourceManager():GetItemById(it.id) };
+            end
+        end
+    end
+    return out;
+end
+
 gData = setmetatable({
     Constants = { EquipSlotNames = C.SlotNames },
     GetEquipSlot = slot_index,
@@ -464,69 +551,9 @@ gData = setmetatable({
         t.TP = 0; -- not in Windower's mob table
         return t;
     end,
-    GetPlayer = function()
-        local p = ffxi.get_player();
-        if (p == nil) then return nil end
-        local m = ffxi.get_mob_by_index(p.index);
-        local v = p.vitals or {};
-        local moving = false;
-        if (m ~= nil) and (lastSentX ~= nil) then moving = (m.x ~= lastSentX) or (m.y ~= lastSentY) end
-        local mj, sj = wres.jobs[p.main_job_id or 0], wres.jobs[p.sub_job_id or 0];
-        return {
-            HP = v.hp or 0, MaxHP = v.max_hp or 0, HPP = v.hpp or 0,
-            MP = v.mp or 0, MaxMP = v.max_mp or 0, MPP = v.mpp or 0,
-            TP = v.tp or 0,
-            IsMoving = moving,
-            MainJob = mj and mj.ens or 'NON', MainJobLevel = p.main_job_level or 0, MainJobSync = p.main_job_level or 0,
-            SubJob = sj and sj.ens or 'NON', SubJobLevel = p.sub_job_level or 0, SubJobSync = p.sub_job_level or 0,
-            Name = p.name,
-            Status = resolve(C.EntityStatus, (m and m.status) or 0),
-        };
-    end,
-    GetEnvironment = function()
-        local info = ffxi.get_info() or {};
-        local e = {};
-        local z = wres.zones[info.zone or -1];
-        e.Area = z and z.en or nil;
-        local day = info.day or 0;
-        e.Day = C.WeekDay[(day % 8) + 1];
-        e.DayElement = C.WeekDayElement[(day % 8) + 1];
-        local t = info.time or 0; -- minutes after midnight
-        e.Time = math.floor(t / 60) + (t % 60) / 100;
-        e.Timestamp = { day = day, hour = math.floor(t / 60), minute = t % 60 };
-        local w = info.weather or 0;
-        e.RawWeather = resolve(C.Weather, w);
-        e.RawWeatherElement = resolve(C.WeatherElement, w);
-        local p = ffxi.get_player();
-        if (p ~= nil) and (type(p.buffs) == 'table') then
-            for _, b in pairs(p.buffs) do if (C.StormWeather[b] ~= nil) then w = C.StormWeather[b] end end
-        end
-        e.Weather = resolve(C.Weather, w);
-        e.WeatherElement = resolve(C.WeatherElement, w);
-        local mp = wres.moon_phases and wres.moon_phases[info.moon_phase or -1];
-        e.MoonPhase = mp and mp.en or nil;
-        e.MoonPercent = info.moon;
-        return e;
-    end,
-    GetEquipment = function()
-        local items = ffxi.get_items();
-        local eq = (type(items) == 'table') and items.equipment or nil;
-        local out = {};
-        if (type(eq) ~= 'table') then return out end
-        for n = 1, 16 do
-            local key = A.EquipKeys[n - 1];
-            local index, bag = eq[key], eq[key .. '_bag'];
-            if (type(index) == 'number') and (index > 0) then
-                local it = ffxi.get_items(bag, index);
-                local r = (type(it) == 'table') and wres.items[it.id] or nil;
-                if (r ~= nil) then
-                    out[C.SlotNames[n]] = { Container = bag, Item = { Id = it.id, Index = index, Count = it.count },
-                        Name = r.en, Resource = AshitaCore:GetResourceManager():GetItemById(it.id) };
-                end
-            end
-        end
-        return out;
-    end,
+    GetPlayer = function() return A.PerEvent('gData.GetPlayer', player_table) end,
+    GetEnvironment = function() return A.PerEvent('gData.GetEnvironment', environment_table) end,
+    GetEquipment = function() return A.PerEvent('gData.GetEquipment', equipment_table) end,
     GetParty = function()
         local out = { ActionTarget = false, Count = 0, InParty = false, Target = false };
         local party = AshitaCore:GetMemoryManager():GetParty();
@@ -604,6 +631,7 @@ local function handle(name)
 end
 
 local function in_event(fn, ...)
+    A.Fresh();
     local was = ctx.inEvent;
     ctx.inEvent = true;
     local ok, err = pcall(fn, ...);
@@ -750,8 +778,7 @@ local function cancel_buff(name)
     local ids = {};
     if (p ~= nil) and (type(p.buffs) == 'table') then
         for _, b in pairs(p.buffs) do
-            local r = wres.buffs[b];
-            if (r ~= nil) and (string.lower(r.en) == want) then ids[b] = true end
+            if (buff_name(b) == want) then ids[b] = true end
         end
     end
     for id in pairs(ids) do
@@ -937,6 +964,7 @@ local function gs_sets(src, seen)
     return out;
 end
 function get_sets()
+    A.Fresh();
     A.Install(ctx);
     I.Install(ctx);
     local job = player and player.main_job;
@@ -961,6 +989,7 @@ function get_sets()
 end
 
 function file_unload()
+    A.Fresh();
     safe_call('OnUnload');
     gProfile = nil;
 end
@@ -984,12 +1013,14 @@ local function dispatch(name, ...)
 end
 
 windower.raw_register_event('prerender', function()
+    A.Fresh();
     I.BeginFrame();
     dispatch('d3d_present');
     I.EndFrame();
 end);
 
 windower.raw_register_event('outgoing chunk', function(id, original, modified, injected, blocked)
+    A.Fresh();
     if (id == 0x015) and (type(modified) == 'string') and (#modified >= 0x10) then
         lastSentX = modified:unpack('f', 0x04 + 1);
         lastSentY = modified:unpack('f', 0x0C + 1);
@@ -1008,6 +1039,7 @@ windower.raw_register_event('outgoing chunk', function(id, original, modified, i
 end);
 
 windower.raw_register_event('incoming chunk', function(id, original, modified, injected, blocked)
+    A.Fresh();
     if (id == 0x00A) then gState.PlayerAction = nil; gState.PetAction = nil end
     dispatch('packet_in', { id = id, data = modified, data_modified = modified, size = #(modified or ''),
         injected = injected, blocked = blocked });
@@ -1015,6 +1047,7 @@ end);
 
 -- Your action and your pet's, as LAC reads them from 0x028 (packethandlers.lua HandleIncoming0x28).
 windower.raw_register_event('action', function(act)
+    A.Fresh();
     local p = ffxi.get_player();
     if (p == nil) or (type(act) ~= 'table') then return end
     local cat, now = act.category, os.clock();
@@ -1060,11 +1093,13 @@ windower.raw_register_event('action', function(act)
 end);
 
 windower.raw_register_event('zone change', function()
+    A.Fresh();
     gState.PlayerAction = nil;
     gState.PetAction = nil;
 end);
 
 windower.raw_register_event('ipc message', function(msg)
+    A.Fresh();
     if (type(msg) ~= 'string') or (string.sub(msg, 1, 9) ~= 'shayswap ') then return end
     local kind, rest = string.match(msg, '^shayswap (%S+) (.*)$');
     if (kind == 'hud') and (rest ~= nil) then

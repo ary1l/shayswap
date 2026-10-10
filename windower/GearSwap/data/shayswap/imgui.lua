@@ -4,6 +4,9 @@
 --
 -- Layout: widths are measured in character cells (CalcTextSize = characters * CW), and the box uses a
 -- monospace font, so the column positions gchud computes line up.
+--
+-- gchud and the bar make the same calls every frame until something changes. Each window keeps last
+-- frame's items and rebuilds its text only when one differs; an unchanged frame skips the rebuild.
 
 local I = {};
 local CW, LH = 7, 14;           -- pixels per character cell / line, only used to convert gchud's positions
@@ -14,7 +17,7 @@ local windows = {};
 local frame = 0;
 local cur = nil;
 local nextPos = nil;
-local colors = {};              -- stack of { idx, col }
+local colorIdx, colorVal, colorN = {}, {}, 0; -- style color stack
 local mouseDown = false;
 
 local K = {
@@ -26,41 +29,77 @@ local K = {
     ImGuiWindowFlags_AlwaysAutoResize = 64, ImGuiWindowFlags_NoFocusOnAppearing = 4096,
 };
 
-local function text_color()
-    for i = #colors, 1, -1 do
-        if (colors[i][1] == K.ImGuiCol_Text) then return colors[i][2] end
+local function channel(v) return math.max(0, math.min(255, math.floor((tonumber(v) or 1) * 255 + 0.5))) end
+
+-- '\cs(r,g,b)' for a color table, made once per table (and again if its values change).
+local prefixOf = setmetatable({}, { __mode = 'k' });
+local function color_prefix(col)
+    local r, g, b = col[1], col[2], col[3];
+    local c = prefixOf[col];
+    if (c ~= nil) and (c[1] == r) and (c[2] == g) and (c[3] == b) then return c[4] end
+    local p = string.format('\\cs(%d,%d,%d)', channel(r), channel(g), channel(b));
+    prefixOf[col] = { r, g, b, p };
+    return p;
+end
+
+local function text_prefix()
+    for i = colorN, 1, -1 do
+        if (colorIdx[i] == K.ImGuiCol_Text) then return color_prefix(colorVal[i]) end
     end
     return nil;
 end
 
-local function new_line() cur.lines[#cur.lines + 1] = {} end
+local spaces = {};
+local function pad(n)
+    local s = spaces[n];
+    if (s == nil) then s = string.rep(' ', n); spaces[n] = s end
+    return s;
+end
 
-local function add_item(text, pad)
+-- Items are kept in call order: { line, x, text, prefix }. A changed item marks the window dirty.
+local function add_item(text, padPx)
     text = tostring(text or '');
-    if (cur == nil) then return end
-    if cur.hasItem and not cur.same then new_line() end
-    local line = cur.lines[#cur.lines];
-    line[#line + 1] = { x = cur.cx, text = text, col = text_color() };
-    cur.lastEnd = cur.cx + #text * CW + (pad or 0);
-    cur.cx = 0;
-    cur.same = false;
-    cur.hasItem = true;
+    local w = cur;
+    if (w == nil) then return end
+    if w.hasItem and not w.same then w.line = w.line + 1 end
+    local k = w.n + 1;
+    w.n = k;
+    local seg = w.segs[k];
+    if (seg == nil) then seg = {}; w.segs[k] = seg end
+    local pre = text_prefix();
+    if (seg.line ~= w.line) or (seg.x ~= w.cx) or (seg.text ~= text) or (seg.pre ~= pre) then
+        seg.line, seg.x, seg.text, seg.pre = w.line, w.cx, text, pre;
+        w.dirty = true;
+    end
+    w.lastEnd = w.cx + #text * CW + (padPx or 0);
+    w.cx = 0;
+    w.same = false;
+    w.hasItem = true;
 end
 
 local function strip_id(label) return (string.gsub(tostring(label or ''), '##.*$', '')) end
 
-local function channel(v) return math.max(0, math.min(255, math.floor((tonumber(v) or 1) * 255 + 0.5))) end
+local function by_x(a, b) return a.x < b.x end
 
 local function render(w)
+    if (w.n == 0) then return '' end
+    local lines = {};
+    for k = 1, w.n do
+        local seg = w.segs[k];
+        local line = lines[seg.line];
+        if (line == nil) then line = {}; lines[seg.line] = line end
+        line[#line + 1] = seg;
+    end
     local out = {};
-    for _, line in ipairs(w.lines) do
-        table.sort(line, function(a, b) return a.x < b.x end);
+    for li = 1, w.line do
+        local line = lines[li] or {};
+        table.sort(line, by_x);
         local s, pos = {}, 0;
         for _, seg in ipairs(line) do
             local col = math.floor(seg.x / CW + 0.5);
-            if (col > pos) then s[#s + 1] = string.rep(' ', col - pos); pos = col end
-            if (seg.col ~= nil) then
-                s[#s + 1] = string.format('\\cs(%d,%d,%d)%s\\cr', channel(seg.col[1]), channel(seg.col[2]), channel(seg.col[3]), seg.text);
+            if (col > pos) then s[#s + 1] = pad(col - pos); pos = col end
+            if (seg.pre ~= nil) then
+                s[#s + 1] = seg.pre .. seg.text .. '\\cr';
             else
                 s[#s + 1] = seg.text;
             end
@@ -81,15 +120,15 @@ local imgui = setmetatable({
                 text = { font = FONT, size = SIZE, red = 255, green = 255, blue = 255 },
                 flags = { draggable = true },
                 padding = 2,
-            }), shown = '' };
+            }), shown = '', segs = {}, shownN = -1 };
             windows[name] = w;
         end
         if (nextPos ~= nil) then w.text:pos(nextPos[1], nextPos[2]); nextPos = nil end
         w.frame = frame;
-        w.lines = { {} };
+        w.n, w.line, w.dirty = 0, 1, false;
         w.cx, w.lastEnd, w.same, w.hasItem, w.scale, w.bgAlpha = 0, 0, false, false, 1.0, nil;
-        for i = #colors, 1, -1 do
-            if (colors[i][1] == K.ImGuiCol_WindowBg) then w.bgAlpha = colors[i][2][4]; break end
+        for i = colorN, 1, -1 do
+            if (colorIdx[i] == K.ImGuiCol_WindowBg) then w.bgAlpha = colorVal[i][4]; break end
         end
         cur = w;
         return true;
@@ -98,8 +137,11 @@ local imgui = setmetatable({
         local w = cur;
         cur = nil;
         if (w == nil) then return end
-        local str = render(w);
-        if (str ~= w.shown) then w.text:text(str); w.shown = str end
+        if w.dirty or (w.n ~= w.shownN) then
+            local str = render(w);
+            if (str ~= w.shown) then w.text:text(str); w.shown = str end
+            w.shownN = w.n;
+        end
         local size = math.max(6, math.floor(SIZE * (w.scale or 1) + 0.5));
         if (size ~= w.size) then w.text:size(size); w.size = size end
         if (w.bgAlpha ~= nil) and (w.bgAlpha ~= w.alpha) then w.text:bg_alpha(channel(w.bgAlpha)); w.alpha = w.bgAlpha end
@@ -129,8 +171,12 @@ local imgui = setmetatable({
     IsItemHovered = function() return false end,
     SetTooltip = function() end,
     GetIO = function() return { KeyCtrl = false } end,
-    PushStyleColor = function(idx, col) colors[#colors + 1] = { idx, col } end,
-    PopStyleColor = function(n) for _ = 1, (tonumber(n) or 1) do colors[#colors] = nil end end,
+    PushStyleColor = function(idx, col) colorN = colorN + 1; colorIdx[colorN], colorVal[colorN] = idx, col end,
+    PopStyleColor = function(n)
+        for _ = 1, (tonumber(n) or 1) do
+            if (colorN > 0) then colorIdx[colorN], colorVal[colorN] = nil, nil; colorN = colorN - 1 end
+        end
+    end,
     PushStyleVar = function() end,
     PopStyleVar = function() end,
     SetWindowFontScale = function(s) if (cur ~= nil) then cur.scale = tonumber(s) or 1 end end,
@@ -138,7 +184,8 @@ local imgui = setmetatable({
 
 function I.BeginFrame()
     frame = frame + 1;
-    colors = {};
+    for i = colorN, 1, -1 do colorIdx[i], colorVal[i] = nil, nil end
+    colorN = 0;
 end
 
 -- Boxes not drawn this frame are hidden (gchud/gcdisplay draw only while switched on).
@@ -151,7 +198,9 @@ end
 function I.SetMouseDown(v) mouseDown = v end
 
 function I.Install()
-    windows, cur, nextPos, colors = {}, nil, nil, {};
+    windows, cur, nextPos = {}, nil, nil;
+    for i = colorN, 1, -1 do colorIdx[i], colorVal[i] = nil, nil end
+    colorN = 0;
     for k, v in pairs(K) do _G[k] = v end
     gearswap.package.loaded['imgui'] = imgui;
 end
