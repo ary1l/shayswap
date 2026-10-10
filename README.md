@@ -15,6 +15,8 @@ Full reference: `COMMANDS.md`.
 2. Template jobs (BLM BST DNC DRG DRK NIN PUP RUN SAM SMN WAR): a set named after an ability, spell,
    skill or WS (`['Savage Blade']`) is used for that action; a spell with no set uses its family's
    (`['Cure']` for Cure IV). `_Hybrid`/`_Acc` follow `/meleeset`. Other jobs name their sets in the job file.
+   Their example gear comes from [GetAwayCoxn's Luashitacast-Profiles](https://github.com/GetAwayCoxn/Luashitacast-Profiles):
+   swap in your own (MIT, see `examples/LICENSE-GetAwayCoxn.txt`).
 3. Leave `gSettings.FastCast` at 0 (see Fast Cast below).
 4. `/checksets` finds empty sets and bad item names.
 
